@@ -1,0 +1,62 @@
+# syntax=docker/dockerfile:1.6
+# ─────────────────────────────────────────────────────────────
+#  NotiqAI Admin — PRODUCTION build
+#  Stage 1: build static SPA
+#  Stage 2: nginx:alpine serves dist/ on :80
+#  ARG is declared AFTER npm install so that cache survives
+#  VITE_API_URL changes.
+# ─────────────────────────────────────────────────────────────
+
+# ---- Stage 1: build ----
+FROM node:22-alpine AS builder
+WORKDIR /app
+
+# Install deps FIRST (cache layer — not invalidated by ARG changes below)
+COPY package*.json ./
+RUN npm install --no-audit --no-fund
+
+# Now read build args and bake them into the bundle
+ARG VITE_API_URL=/api/v1
+ENV VITE_API_URL=${VITE_API_URL}
+
+COPY . .
+RUN npm run build
+
+# ---- Stage 2: serve ----
+FROM nginx:1.27-alpine AS runner
+
+# SPA-friendly nginx config
+RUN rm -f /etc/nginx/conf.d/default.conf
+COPY <<'EOF' /etc/nginx/conf.d/default.conf
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # gzip
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript
+               application/x-javascript text/xml application/xml
+               application/xml+rss text/javascript image/svg+xml;
+    gzip_min_length 1024;
+
+    # long cache for hashed assets
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # SPA fallback: every unknown path → index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+EOF
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=3s --retries=5 \
+    CMD wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1

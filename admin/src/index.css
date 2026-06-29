@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/* Class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Najot Nur brand tokens → enables bg-wine, text-wine, etc. (Tailwind v4) */
+@theme {
+  --color-wine: #8a1538;
+  --color-wine-dark: #5e0e25;
+  --color-wine-deep: #3f0918;
+  --color-wine-50: #fbf2f5;
+  --color-wine-100: #f6e7ec;
+  --color-wine-200: #e9c4d0;
+  --color-orange: #ff5c39;
+  --color-skyblue: #5bc2e7;
+  --color-ink: #1c1416;
+  --color-muted: #8b8186;
+  --color-line: #ece6e8;
+  /* semantic dark-mode-aware tokens */
+  --color-surface: #fbf8f9;
+  --color-card: #ffffff;
+
+  --font-sans: "Manrope", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: #fbf8f9;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Dark mode token overrides ── */
+  .dark {
+    --color-ink: #f0ebee;
+    --color-muted: #9b8f94;
+    --color-line: #2e2529;
+    --color-wine-50: #1f1618;
+    --color-wine-100: #271b1f;
+    --color-wine-200: #3a222b;
+    --color-surface: #120d0f;
+    --color-card: #1e1619;
+    color-scheme: dark;
+  }
+
+  .dark body {
+    background: #120d0f;
+  }
+}
+
+@keyframes toast-in {
+  0% {
+    opacity: 0;
+    transform: translateX(20px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}

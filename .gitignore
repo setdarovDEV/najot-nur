@@ -1,0 +1,67 @@
+# ───────────── OS / Editor ─────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+*.iml
+
+# ───────────── Secrets ─────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+backend/secrets/
+*.json
+!package.json
+!package-lock.json
+!tsconfig*.json
+!pubspec.lock
+backend/secrets/firebase-service-account.json
+mobile/android/app/google-services.json
+mobile/ios/Runner/GoogleService-Info.plist
+
+# ───────────── Python / Backend ─────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+dist/
+build/
+
+# ───────────── Node / Admin ─────────────
+node_modules/
+admin/dist/
+admin/.vite/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# ───────────── Flutter / Mobile ─────────────
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/build/
+mobile/.pub-cache/
+mobile/.pub/
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/**/GeneratedPluginRegistrant.*
+*.lock
+!pubspec.lock
+
+# ───────────── Docker / Data ─────────────
+.docker-data/
+postgres-data/
+redis-data/
+uploads/
+media/

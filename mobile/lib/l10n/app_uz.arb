@@ -1,0 +1,538 @@
+{
+  "@@locale": "uz",
+  "appName": "NotiqAI",
+  "welcome": "Xush kelibsiz",
+  "welcomeSubtitle": "Davom etish uchun telefon raqamingiz orqali kiring",
+  "termsNotice": "Davom etish orqali siz foydalanish shartlariga rozilik bildirasiz",
+  "appVersion": "NotiqAI · v{version}",
+  "@appVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionExpired": "Sessiya tugadi. Qayta kiring.",
+  "continueAction": "Davom etish",
+  "login": "Kirish",
+  "register": "Ro'yxatdan o'tish",
+  "registerAndLogin": "Ro'yxatdan o'tish va kirish",
+  "enterPassword": "Parolni kiriting",
+  "verificationCode": "Tasdiqlash kodi",
+  "stepPhone": "Telefon",
+  "stepVerification": "Tasdiqlash",
+  "stepInfo": "Ma'lumot",
+  "enterPhoneTitle": "Telefon raqamingizni kiriting",
+  "enterPhoneSubtitle": "Sizning raqamingizga tasdiqlash kodi yuboriladi",
+  "invalidPhone": "To'g'ri telefon raqam kiriting",
+  "passwordTooShort": "Parol kamida 6 ta belgidan iborat bo'lsin",
+  "codeTooShort": "Kodni to'liq kiriting",
+  "resendCode": "Kodni qayta yuborish",
+  "welcomeBack": "Xush kelibsiz!",
+  "enterPasswordFor": "{phone} raqami uchun parolni kiriting",
+  "@enterPasswordFor": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "enterCodeFor": "{phone} raqamiga yuborilgan kodni kiriting",
+  "@enterCodeFor": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "fillInfoTitle": "Ma'lumotlarni to'ldiring",
+  "fillInfoSubtitle": "Ro'yxatdan o'tish uchun quyidagilarni kiriting",
+  "enterFirstName": "Ismni kiriting",
+  "enterLastName": "Familiyani kiriting",
+  "offerAcceptTitle": "Foydalanuvchi ofertasi shartlariga roziman",
+  "offerAcceptSubtitle": "Shaxsiy ma'lumotlarni qayta ishlashga va ilovadan foydalanish qoidalariga rozilik bildiraman.",
+  "offerRequired": "Oferta shartlariga rozilik bildiring.",
+  "loginRequiredMessage": "Avval tizimga kiring.",
+  "fullNameRequired": "Ism familiya kiritilishi shart",
+  "fullNameTooShort": "Ism juda qisqa",
+  "invalidEmail": "Email formati noto'g'ri",
+  "saving": "Saqlanmoqda...",
+  "save": "Saqlash",
+  "loginRequiredTitle": "Natijani ko'rish uchun ro'yxatdan o'ting",
+  "loginRequiredSubtitle": "Tahlil natijalari, tarix va shaxsiy tavsiyalar faqat ro'yxatdan o'tgan foydalanuvchilar uchun.",
+  "meaningFluency": "Mazmun {meaning} · Ravonlik {fluency}",
+  "@meaningFluency": {
+    "placeholders": {
+      "meaning": {
+        "type": "int"
+      },
+      "fluency": {
+        "type": "int"
+      }
+    }
+  },
+  "historySpeech": "Nutq tahlili",
+  "historyObservation": "Kuzatuv testi",
+  "noCertificates": "Hali sertifikat yo'q. Kurslarni to'liq tugating — sertifikat avtomatik beriladi.",
+  "date": "Sana",
+  "grade": "Baho",
+  "serial": "Serial",
+  "noHistory": "Hozircha tahlillar yo'q. Nutq yoki kuzatuv modulini sinab ko'ring.",
+  "contactBannerTitle": "Najot Nur",
+  "contactBannerSubtitle": "Notiqlik mahorati markazi — sizning yordamingizga doimo tayyor.",
+  "quickContact": "Tezkor aloqa",
+  "contactTelegram": "Telegram",
+  "contactPhone": "Telefon",
+  "contactEmail": "Email",
+  "contactAddress": "Manzil",
+  "telegramHandle": "@najotnur_support",
+  "supportPhone": "+998 71 200 00 00",
+  "supportEmail": "support@najotnur.uz",
+  "supportAddress": "Toshkent sh., Mustaqillik ko'chasi 10",
+  "faqTitle": "Tez-tez beriladigan savollar",
+  "faq1Q": "Nutq tahlili qanday ishlaydi?",
+  "faq1A": "Siz 2 daqiqalik nutq yozib berasiz. AI mazmun, ravonlik va to'ldiruvchi so'zlarni tahlil qilib, batafsil natija qaytaradi.",
+  "faq2Q": "Sertifikatni qanday olish mumkin?",
+  "faq2A": "Kursdagi barcha darslarni tugating va testlardan o'ting. Kurs 100% tugatilganda sertifikat avtomatik chiqariladi.",
+  "faq3Q": "Natijalarim qayerda saqlanadi?",
+  "faq3A": "Barcha tahlillar va natijalar profilingizda saqlanadi. \"Tahlillar tarixi\" bo'limida ularni ko'rishingiz mumkin.",
+  "faq4Q": "Parolni unutdim, nima qilaman?",
+  "faq4A": "Login sahifasida \"Parolni unutdim\" tugmasini bosing. Telefon raqamingizga tiklash kodi yuboriladi.",
+  "noNotifications": "Hozircha bildirishnomalar yo'q.",
+  "audiencePersonal": "Shaxsiy",
+  "audienceCourse": "Kurs",
+  "audienceAll": "Hammaga",
+  "onboarding1Title": "NotiqAI bilan nutqingizni rivojlantiring",
+  "onboarding1Body": "Sun'iy intellekt yordamida notiqlik mahoratingizni tahlil qiling, xatolarni aniqlang va ustunlikka erishing.",
+  "onboarding2Title": "Ovoz va diktsiya",
+  "onboarding2Body": "Matn o'qing, ovozingiz AI tomonidan tahlil qilinadi. Xato tovushlar qizil rangda belgilanadi.",
+  "onboarding3Title": "Kuzatuvchanlik va nutq",
+  "onboarding3Body": "10 ta test, video darslar va audiokitoblar — barchasi sizning muvaffaqiyatingiz uchun.",
+  "onboardingNext": "Keyingi",
+  "onboardingSkip": "O'tkazib yuborish",
+  "tabHome": "Asosiy",
+  "tabCourses": "Darslar",
+  "tabBooks": "Kitoblar",
+  "tabProfile": "Profil",
+  "logoutConfirmTitle": "Tizimdan chiqmoqchimisiz?",
+  "logoutConfirmMessage": "Tizimdan chiqsangiz, qayta kirishingiz kerak bo'ladi.",
+  "logoutConfirmYes": "Ha, chiqish",
+  "logoutConfirmNo": "Bekor qilish",
+  "exitConfirmMessage": "Chiqishni xohlaysizmi? Yana bir marta bosing.",
+  "noAudiobooks": "Hozircha audiokitoblar yo'q.",
+  "noCourses": "Hozircha kurslar yo'q.",
+  "buyConfirmTitle": "Sotib olasizmi?",
+  "lessonNumber": "Dars {n}",
+  "@lessonNumber": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "fillersTitle": "Parazit so'zlar",
+  "scoreMeaning": "Mazmun",
+  "scoreFluency": "Ravonlik",
+  "scoreOverall": "Umumiy ball",
+  "errorWord": "Xato so'z",
+  "voiceRecorded": "Yozib olindi ✓",
+  "reselectText": "Matnni qayta tanlash",
+  "next": "Keyingi",
+  "prev": "Oldingi",
+  "questionCounter": "{current} / {total}",
+  "@questionCounter": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "submit": "Yuborish",
+  "testComplete": "Test yakunlandi",
+  "weakAreas": "Kuchli tomonlaringiz va kamchiliklaringiz",
+  "selectAnOption": "Variantni tanlang",
+  "lessonList": "Darslar",
+  "welcomeBody": "Najot Nur notiqlik mahorati markazining rasmiy ilovasi. Nutq, ovoz va kuzatuvchanlikni sun'iy intellekt yordamida rivojlantiring.",
+  "homeGreeting": "Bugun nimani sinab ko'ramiz?",
+  "homeSubtitle": "Ro'yxatdan o'tmasdan ham sinab ko'rishingiz mumkin.",
+  "homeActionSpeech": "Nutqni tekshirish",
+  "homeActionSpeechSub": "Nutq va ovozingizni AI tahlil qiladi",
+  "homeActionObservation": "Kuzatuvchanlikni tekshirish",
+  "homeActionObservationSub": "10 ta test: psixologiya va tana tili",
+  "homeFeatures": "Imkoniyatlar",
+  "free": "Bepul",
+  "forSale": "Sotuvda",
+  "lessonsShort": "{count} dars",
+  "@lessonsShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "andMore": "Yana {n} ta dars",
+  "@andMore": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "sumPrice": "{price} so'm",
+  "user": "Foydalanuvchi",
+  "guest": "Mehmon",
+  "notRegistered": "Ro'yxatdan o'tmagan",
+  "historySubtitle": "Nutq va kuzatuv natijalari",
+  "certificatesSubtitle": "Tugatgan kurslari bo'yicha",
+  "notificationsSubtitle": "Yangi xabarlar va e'lonlar",
+  "helpSubtitle": "Telegram, telefon, FAQ",
+  "speechHubPrompt": "Qaysi yo'nalishni sinab ko'ramiz?",
+  "speechHubSub": "Ovoz — talaffuzingizni, Nutq — fikr bayoningizni baholaydi.",
+  "voiceCheckDesc": "Berilgan matnni o'qing — AI xato tovush va so'zlarni qizil rangda ko'rsatib, talaffuzga baho beradi.",
+  "speechAnalysisDesc": "O'zingiz haqingizda 2 daqiqa gapiring. AI parazit so'z, pauza va ma'no yetkazilishini tahlil qiladi.",
+  "noReferences": "Matnlar topilmadi.",
+  "taskLabel": "Topshiriq",
+  "selfIntroPrompt": "O'zingiz haqingizda ~2 daqiqa gapirib bering",
+  "balanceTooLittle": "Ma'lumot kam — ko'proq tafsilot bering",
+  "balanceTooMuch": "Ma'lumot ortiqcha — qisqaroq bayon eting",
+  "balanceGood": "Ma'lumot hajmi muvozanatli",
+  "strengthsTitle": "Kuchli tomonlar",
+  "improvementsTitle": "Yaxshilash uchun",
+  "summaryTitle": "Umumiy xulosa",
+  "scoreOverallLabel": "umumiy ball",
+  "textWithErrors": "Matn — xatolar qizil rangda",
+  "overallAnalysis": "Umumiy tahlil",
+  "soundErrors": "Tovush xatolari",
+  "accuracyLabel": "Aniqlik: {score}%",
+  "noTests": "Testlar topilmadi.",
+  "finishAndAnalyze": "Yakunlash va tahlil",
+  "answeredCount": "{count} ta javob berildi",
+  "@answeredCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaPlaceholder": "Rasm/video tez kunda",
+  "catPsychology": "Psixologiya",
+  "catBodyLanguage": "Tana tili",
+  "catObservation": "Kuzatuvchanlik",
+  "testNumber": "Test {n}",
+  "noPage": "Sahifa mavjud emas.",
+  "paymentComingSoon": "To'lov integratsiyasi (Uzum/ATMOS) tez kunda!",
+  "paidAudiobook": "Pullik audiokitob",
+  "buyAudiobookPrompt": "Bu audiokitobni o'qish uchun sotib oling",
+  "noAudioFile": "Audio fayl mavjud emas.",
+  "audioLoadError": "Audio yuklanmadi: {error}",
+  "@audioLoadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pageOfTotal": "{current} / {total} sahifa",
+  "@pageOfTotal": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "loadingAudio": "Yuklanmoqda…",
+  "paymentLater": "To'lov integratsiyasi (Uzum/ATMOS) keyingi bosqichda",
+  "startCourse": "Kursni boshlash",
+  "aiExercise": "AI mashq",
+  "speedLabel": "Tezlik",
+  "qualityLabel": "Video sifati",
+  "qualityChanged": "Video sifati: {q} ga o'zgartirildi",
+  "start": "Boshlash",
+  "@qualityChanged": {
+    "placeholders": {
+      "q": {
+        "type": "String"
+      }
+    }
+  },
+  "@testNumber": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@accuracyLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "@sumPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "logout": "Chiqish",
+  "retry": "Qayta urinish",
+  "phoneLogin": "Telefon raqam orqali kirish",
+  "phoneNumber": "Telefon raqam",
+  "phoneHint": "+998 XX XXX XX XX",
+  "password": "Parol",
+  "passwordHint": "••••••",
+  "createPassword": "Parol yarating",
+  "firstName": "Ism",
+  "lastName": "Familiya",
+  "fullName": "Ism familiya",
+  "emailOptional": "Email (ixtiyoriy)",
+  "language": "Til",
+  "selectLanguage": "Tilni tanlash",
+  "languagePrompt": "Ilovada qaysi tilda davom etmoqchisiz?",
+  "uzbekLang": "O'zbekcha",
+  "russianLang": "Русский",
+  "englishLang": "English",
+  "edit": "Tahrirlash",
+  "profile": "Profil",
+  "registerLogin": "Ro'yxatdan o'tish / Kirish",
+  "openFromMenu": "Pastdagi menyudan oching",
+  "audiobooks": "Audiokitoblar",
+  "videoLessons": "Video darslar",
+  "buy": "Sotib olish",
+  "lessonsCount": "Darslar ({count})",
+  "@lessonsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesShort": "{mins} daqiqa",
+  "@minutesShort": {
+    "placeholders": {
+      "mins": {
+        "type": "int"
+      }
+    }
+  },
+  "pageNotFound": "Sahifa topilmadi: {uri}",
+  "@pageNotFound": {
+    "placeholders": {
+      "uri": {
+        "type": "String"
+      }
+    }
+  },
+  "errorPrefix": "Xatolik: {message}",
+  "@errorPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "profileUpdated": "Profil yangilandi.",
+  "profileEdit": "Profilni tahrirlash",
+  "certificates": "Sertifikatlarim",
+  "pdfUrl": "PDF: {url}",
+  "@pdfUrl": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "pdfDownload": "PDF yuklab olish",
+  "certRequestNew": "Sertifikat so'rash",
+  "certRequestSend": "So'rov yuborish",
+  "certRequestSent": "Sertifikat so'rovingiz curator(ga) yuborildi.",
+  "certRequestPending": "Kutilmoqda",
+  "certRequestRejected": "Rad etilgan",
+  "certFullName": "Sertifikatdagi ism",
+  "certFullNameHint": "Masalan: Aliyev Ali",
+  "certSelectCourse": "Kursni tanlang",
+  "certSelectCourseRequired": "Kurs tanlanishi shart",
+  "certRejectionReason": "Sabab",
+  "analysisHistory": "Tahlillar tarixi",
+  "helpContact": "Yordam va aloqa",
+  "notifications": "Bildirishnomalar",
+  "voiceCheck": "Ovozni tekshirish",
+  "voiceAnalysis": "Ovoz tahlili",
+  "speechCheck": "Nutqni tekshirish",
+  "speechAnalysis": "Nutq tahlili",
+  "speechText": "Nutqingiz matni (tahrirlash mumkin)",
+  "speechHint": "Assalomu alaykum, mening ismim...",
+  "noFillers": "Parazit so'zlar aniqlanmadi. Ajoyib!",
+  "fillerCount": "{key} × {value}",
+  "@fillerCount": {
+    "placeholders": {
+      "key": {
+        "type": "String"
+      },
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "selectText": "Matnni tanlang",
+  "readText": "Quyidagi matnni o'qing",
+  "recognizedText": "Aniqlangan matn (tahrirlash mumkin)",
+  "readWordsHint": "O'qigan so'zlaringiz...",
+  "analyze": "Tahlil qilish",
+  "analyzing": "Tahlil qilinmoqda...",
+  "recordingReady": "Ovoz yozildi. Tahlil qilishga tayyor.",
+  "backToHome": "Bosh sahifaga",
+  "wordAndSound": "{word}  ·  «{sound}»",
+  "@wordAndSound": {
+    "placeholders": {
+      "word": {
+        "type": "String"
+      },
+      "sound": {
+        "type": "String"
+      }
+    }
+  },
+  "observationTest": "Kuzatuvchanlik testi",
+  "observationAnalysis": "Kuzatuvchanlik tahlili",
+  "back": "Orqaga",
+  "cannotOpenVideo": "Videoni ochib bo'lmadi.",
+  "byDirections": "Yo'nalishlar bo'yicha",
+  "changeLanguageSubtitle": "O'zbek · Русский · English",
+  "supportChatTitle": "Bizga yozing",
+  "supportChatSubtitle": "Savollaringizni yuboring — tez javob beramiz",
+  "chatInputHint": "Xabaringizni yozing...",
+  "chatSend": "Yuborish",
+  "chatLoginRequired": "Chat uchun tizimga kirish kerak",
+  "chatNoMessages": "Hozircha xabar yo'q. Birinchi savolingizni yuboring!",
+  "chatSupport": "Qo'llab-quvvatlash",
+  "chatSending": "Yuborilmoqda...",
+  "orderSheetCourseTitle": "Kursga kirish so'rovi",
+  "orderSheetAudiobookTitle": "Audiokitob sotib olish",
+  "amountLabel": "Narx",
+  "paymentMethod": "To'lov usuli",
+  "paymentProofHint": "To'lov tasdig'i havolasi (ixtiyoriy)",
+  "orderSubmit": "So'rov yuborish",
+  "orderSubmitted": "So'rovingiz qabul qilindi!",
+  "orderSheetFooter": "To'lov tasdiqlanganidan so'ng kirish avtomatik beriladi.",
+  "methodClick": "Click",
+  "methodPayme": "Payme",
+  "methodCash": "Naqd",
+  "audiobookOrderPending": "Buyurtmangiz ko'rib chiqilmoqda. Iltimos, kuting.",
+  "orderPending": "Buyurtma kutilmoqda",
+  "myOrders": "Mening buyurtmalarim",
+  "myOrdersSubtitle": "Kurs va audiokitob buyurtmalari",
+  "noOrders": "Hozircha buyurtmalar yo'q.",
+  "orderStatusPending": "Kutilmoqda",
+  "orderStatusApproved": "Tasdiqlangan",
+  "orderStatusRejected": "Rad etilgan",
+  "orderTypeCourse": "Kurs",
+  "orderTypeAudiobook": "Audiokitob",
+  "chatActionSubtitle": "Savolingizni yozing",
+  "faqActionSubtitle": "Ko'p so'raladigan savollar",
+  "loginRequired": "Bu bo'lim uchun tizimga kirish kerak",
+  "loginRequiredBtn": "Kirish",
+  "practiceSpeech": "Talaffuz mashqi",
+  "practiceSpeechSub": "AI matn generatsiya qiladi — o'qing va tahlil oling",
+  "selectDifficulty": "Qiyinlik darajasini tanlang",
+  "difficultyEasy": "Oson",
+  "difficultyMedium": "O'rta",
+  "difficultyHard": "Qiyin",
+  "generateText": "Matn generatsiya qilish",
+  "generatingText": "Matn yaratilmoqda...",
+  "practiceReadText": "Quyidagi matnni ovoz chiqarib o'qing",
+  "tabPracticums": "Praktikum",
+  "practicumsTitle": "Praktikumlar",
+  "practicumsSubtitle": "Ekspert ovozi bilan amaliy mashqlar",
+  "noPracticums": "Hozircha praktikumlar yo'q.",
+  "tabTests": "Testlar",
+  "testsTitle": "Testlar",
+  "testsSubtitle": "Barcha mavjud testlar",
+  "quizEasy": "Oson",
+  "quizMedium": "O'rta",
+  "quizHard": "Qiyin",
+  "quizQuestions": "{count} ta savol",
+  "quizStart": "Testni boshlash",
+  "quizResult": "Test natijasi",
+  "quizScore": "{correct}/{total} to'g'ri",
+  "quizCorrect": "To'g'ri",
+  "quizWrong": "Noto'g'ri",
+  "quizFinish": "Yakunlash",
+  "quizNext": "Keyingi",
+  "noQuizzes": "Hozircha testlar yo'q.",
+  "quizDraft": "Tekshirilmoqda",
+  "uploadAudio": "Audio fayl yuklash",
+  "fileSelected": "Fayl tanlandi. Tahlil qilishga tayyor.",
+  "orDivider": "yoki",
+  "listenExpert": "Ekspert ovozini tinglang",
+  "playAudio": "Tinglash",
+  "stopAudio": "To'xtatish",
+
+  "continueCourse": "Davom ettirish",
+  "courseInProgress": "O'rganilmoqda",
+  "courseCompleted": "Kurs yakunlangan",
+  "lessonsCompleted": "{completed}/{total} dars bajarildi",
+  "@lessonsCompleted": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "lesson": "Dars",
+  "lessonTabVideo": "Video",
+  "lessonTabQuiz": "Test",
+  "lessonTabHomework": "Vazifa",
+  "tapToWatch": "Ko'rish uchun bosing",
+  "noVideoForLesson": "Bu dars uchun video mavjud emas",
+  "noQuizForLesson": "Bu dars uchun test mavjud emas",
+  "lessonDescription": "DARS TAVSIFI",
+  "markAsComplete": "Bajarildi deb belgilash",
+  "completed": "Bajarildi",
+  "lessonCompleted": "Dars yakunlandi!",
+  "lessonCompletedWithScore": "Dars yakunlandi! Ball: {score}%",
+  "@lessonCompletedWithScore": {
+    "placeholders": {
+      "score": { "type": "int" }
+    }
+  },
+  "videoOpenError": "Videoni ochib bo'lmadi",
+  "quizLessonTitle": "Dars testi",
+  "quizLessonSubtitle": "{count} ta savol",
+  "@quizLessonSubtitle": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "quizAnswerAll": "Barcha savollarga javob bering",
+  "submitQuiz": "Testni yuborish",
+  "quizPassed": "Test muvaffaqiyatli o'tildi!",
+  "quizFailed": "Test o'tilmadi",
+  "quizCorrectCount": "{correct}/{total} to'g'ri",
+  "@quizCorrectCount": {
+    "placeholders": {
+      "correct": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "homeworkTitle": "Uy vazifasi",
+  "homeworkSubtitle": "Uy vazifasini bajaring va kuratoga yuboring. Kurator ko'rib chiqqach, natijani ko'rasiz.",
+  "homeworkHint": "Javobingizni bu yerga yozing...",
+  "homeworkEmpty": "Iltimos, javobingizni yozing",
+  "homeworkSend": "Yuborish",
+  "homeworkSubmitted": "Uy vazifasi muvaffaqiyatli yuborildi!",
+  "homeworkPending": "Kurator tekshirmoqda...",
+  "homeworkReviewed": "Baholandi",
+  "homeworkResubmit": "Qayta yuborish",
+  "yourAnswer": "SIZNING JAVOBINGIZ",
+  "curatorFeedback": "KURATOR IZOHI",
+  "sending": "Yuborilmoqda...",
+  "cancel": "Bekor qilish"
+}

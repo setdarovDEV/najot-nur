@@ -1,0 +1,20 @@
+[project]
+name = "notiqai-backend"
+version = "0.1.0"
+description = "NotiqAI — Najot Nur oratory training API"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 90
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+ignore = ["B008"]  # FastAPI uses callables in defaults (Depends)
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

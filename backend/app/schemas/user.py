@@ -1,0 +1,43 @@
+"""User schemas."""
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from app.models.enums import Role
+
+
+class UserRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    full_name: str | None
+    phone: str | None
+    email: str | None
+    role: Role
+    is_active: bool
+    is_verified: bool
+    avatar_url: str | None
+    locale: str
+    created_at: datetime
+
+
+class UserPublic(BaseModel):
+    """Safe representation of the currently-authenticated user (admin/curator)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    full_name: str | None
+    email: str | None
+    role: Role
+    avatar_url: str | None
+
+
+class UserUpdate(BaseModel):
+    full_name: str | None = Field(None, max_length=160)
+    email: EmailStr | None = None
+    avatar_url: str | None = None
+    locale: str | None = Field(None, max_length=5)

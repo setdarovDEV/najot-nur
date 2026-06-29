@@ -1,0 +1,4 @@
+# NotiqAI server-side deployment artifacts
+deploy/nginx/conf.d/
+deploy/env.production
+deploy/deploy.sh

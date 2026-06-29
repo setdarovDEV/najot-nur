@@ -1,0 +1,400 @@
+class Lesson {
+  Lesson({
+    required this.id,
+    required this.title,
+    this.description,
+    required this.orderIndex,
+    this.videoUrl,
+    required this.durationSec,
+    required this.isVoiceExercise,
+    this.voiceExercisePrompt,
+  });
+
+  final String id;
+  final String title;
+  final String? description;
+  final int orderIndex;
+  final String? videoUrl;
+  final int durationSec;
+  final bool isVoiceExercise;
+  final String? voiceExercisePrompt;
+
+  factory Lesson.fromJson(Map<String, dynamic> j) => Lesson(
+        id: j['id'] as String,
+        title: j['title'] as String,
+        description: j['description'] as String?,
+        orderIndex: j['order_index'] as int? ?? 0,
+        videoUrl: j['video_url'] as String?,
+        durationSec: j['duration_sec'] as int? ?? 0,
+        isVoiceExercise: j['is_voice_exercise'] as bool? ?? false,
+        voiceExercisePrompt: j['voice_exercise_prompt'] as String?,
+      );
+}
+
+class Course {
+  Course({
+    required this.id,
+    required this.title,
+    this.description,
+    this.coverUrl,
+    required this.price,
+    required this.level,
+    this.lessons = const [],
+  });
+
+  final String id;
+  final String title;
+  final String? description;
+  final String? coverUrl;
+  final num price;
+  final String level;
+  final List<Lesson> lessons;
+
+  bool get isFree => price == 0;
+
+  factory Course.fromJson(Map<String, dynamic> j) => Course(
+        id: j['id'] as String,
+        title: j['title'] as String,
+        description: j['description'] as String?,
+        coverUrl: j['cover_url'] as String?,
+        price: _parsePrice(j['price']),
+        level: j['level'] as String? ?? 'beginner',
+        lessons: ((j['lessons'] as List?) ?? [])
+            .map((e) => Lesson.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  static num _parsePrice(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v;
+    if (v is String) return num.tryParse(v) ?? 0;
+    return 0;
+  }
+}
+
+class LessonQuizQuestion {
+  LessonQuizQuestion({
+    required this.id,
+    required this.question,
+    required this.options,
+    required this.orderIndex,
+  });
+  final String id;
+  final String question;
+  final List<String> options;
+  final int orderIndex;
+
+  factory LessonQuizQuestion.fromJson(Map<String, dynamic> j) =>
+      LessonQuizQuestion(
+        id: j['id'] as String,
+        question: j['question'] as String,
+        options: (j['options'] as List).cast<String>(),
+        orderIndex: j['order_index'] as int? ?? 0,
+      );
+}
+
+class LessonDetail {
+  LessonDetail({
+    required this.id,
+    required this.title,
+    this.description,
+    this.videoUrl,
+    required this.durationSec,
+    required this.isVoiceExercise,
+    this.voiceExercisePrompt,
+    required this.isCompleted,
+    this.autoScore,
+    this.questions = const [],
+  });
+  final String id;
+  final String title;
+  final String? description;
+  final String? videoUrl;
+  final int durationSec;
+  final bool isVoiceExercise;
+  final String? voiceExercisePrompt;
+  final bool isCompleted;
+  final int? autoScore;
+  final List<LessonQuizQuestion> questions;
+
+  bool get hasQuiz => questions.isNotEmpty;
+
+  factory LessonDetail.fromJson(Map<String, dynamic> j) => LessonDetail(
+        id: j['id'] as String,
+        title: j['title'] as String,
+        description: j['description'] as String?,
+        videoUrl: j['video_url'] as String?,
+        durationSec: j['duration_sec'] as int? ?? 0,
+        isVoiceExercise: j['is_voice_exercise'] as bool? ?? false,
+        voiceExercisePrompt: j['voice_exercise_prompt'] as String?,
+        isCompleted: j['is_completed'] as bool? ?? false,
+        autoScore: j['auto_score'] as int?,
+        questions: ((j['questions'] as List?) ?? [])
+            .map((e) => LessonQuizQuestion.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+class EnrolledLesson {
+  EnrolledLesson({
+    required this.lessonId,
+    required this.title,
+    required this.orderIndex,
+    required this.durationSec,
+    required this.isVoiceExercise,
+    required this.isCompleted,
+    this.autoScore,
+  });
+  final String lessonId;
+  final String title;
+  final int orderIndex;
+  final int durationSec;
+  final bool isVoiceExercise;
+  final bool isCompleted;
+  final int? autoScore;
+
+  factory EnrolledLesson.fromJson(Map<String, dynamic> j) => EnrolledLesson(
+        lessonId: j['lesson_id'] as String,
+        title: j['title'] as String,
+        orderIndex: j['order_index'] as int? ?? 0,
+        durationSec: j['duration_sec'] as int? ?? 0,
+        isVoiceExercise: j['is_voice_exercise'] as bool? ?? false,
+        isCompleted: j['is_completed'] as bool? ?? false,
+        autoScore: j['auto_score'] as int?,
+      );
+}
+
+class CourseProgress {
+  CourseProgress({
+    required this.enrolled,
+    this.enrollmentId,
+    this.status,
+    this.progressPct,
+    this.lessons = const [],
+    this.hasPendingOrder = false,
+  });
+  final bool enrolled;
+  final String? enrollmentId;
+  final String? status;
+  final int? progressPct;
+  final List<EnrolledLesson> lessons;
+  final bool hasPendingOrder;
+
+  bool get isCompleted => status == 'completed';
+
+  factory CourseProgress.fromJson(Map<String, dynamic> j) => CourseProgress(
+        enrolled: j['enrolled'] as bool? ?? false,
+        enrollmentId: j['enrollment_id'] as String?,
+        status: j['status'] as String?,
+        progressPct: j['progress_pct'] as int?,
+        hasPendingOrder: j['has_pending_order'] as bool? ?? false,
+        lessons: ((j['lessons'] as List?) ?? [])
+            .map((e) => EnrolledLesson.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+class HomeworkSubmission {
+  HomeworkSubmission({
+    required this.id,
+    required this.status,
+    this.submissionText,
+    this.submissionUrl,
+    this.curatorScore,
+    this.curatorFeedback,
+    this.reviewedAt,
+    required this.createdAt,
+  });
+  final String id;
+  final String status; // submitted | reviewed | returned
+  final String? submissionText;
+  final String? submissionUrl;
+  final int? curatorScore;
+  final String? curatorFeedback;
+  final DateTime? reviewedAt;
+  final DateTime createdAt;
+
+  bool get isReviewed => status == 'reviewed';
+
+  factory HomeworkSubmission.fromJson(Map<String, dynamic> j) =>
+      HomeworkSubmission(
+        id: j['id'] as String,
+        status: j['status'] as String,
+        submissionText: j['submission_text'] as String?,
+        submissionUrl: j['submission_url'] as String?,
+        curatorScore: j['curator_score'] as int?,
+        curatorFeedback: j['curator_feedback'] as String?,
+        reviewedAt: j['reviewed_at'] == null
+            ? null
+            : DateTime.parse(j['reviewed_at'] as String),
+        createdAt: DateTime.parse(j['created_at'] as String),
+      );
+}
+
+class AudiobookPage {
+  AudiobookPage({required this.pageNumber, this.content, this.audioUrl});
+
+  final int pageNumber;
+  final String? content;
+  final String? audioUrl;
+
+  factory AudiobookPage.fromJson(Map<String, dynamic> j) => AudiobookPage(
+        pageNumber: j['page_number'] as int,
+        content: j['content'] as String?,
+        audioUrl: j['audio_url'] as String?,
+      );
+}
+
+class Audiobook {
+  Audiobook({
+    required this.id,
+    required this.title,
+    this.author,
+    this.coverUrl,
+    this.description,
+    this.category,
+    this.audioUrl,
+    required this.isFree,
+    required this.price,
+    required this.totalPages,
+    this.pages = const [],
+  });
+
+  final String id;
+  final String title;
+  final String? author;
+  final String? coverUrl;
+  final String? description;
+  final String? category;
+  final String? audioUrl;
+  final bool isFree;
+  final num price;
+  final int totalPages;
+  final List<AudiobookPage> pages;
+
+  factory Audiobook.fromJson(Map<String, dynamic> j) => Audiobook(
+        id: j['id'] as String,
+        title: j['title'] as String,
+        author: j['author'] as String?,
+        coverUrl: j['cover_url'] as String?,
+        description: j['description'] as String?,
+        category: j['category'] as String?,
+        audioUrl: j['audio_url'] as String?,
+        isFree: j['is_free'] as bool? ?? true,
+        price: num.tryParse(j['price']?.toString() ?? '') ?? 0,
+        totalPages: j['total_pages'] as int? ?? 0,
+        pages: ((j['pages'] as List?) ?? [])
+            .map((e) => AudiobookPage.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+enum OrderPurpose { course, audiobook }
+
+enum OrderPaymentMethod { click, payme, cash }
+
+enum OrderStatus { pending, approved, rejected }
+
+extension OrderPurposeX on OrderPurpose {
+  String get apiValue => name;
+  static OrderPurpose fromApi(String? s) =>
+      s == 'audiobook' ? OrderPurpose.audiobook : OrderPurpose.course;
+}
+
+extension OrderPaymentMethodX on OrderPaymentMethod {
+  String get apiValue => name;
+  static OrderPaymentMethod fromApi(String? s) {
+    switch (s) {
+      case 'payme':
+        return OrderPaymentMethod.payme;
+      case 'cash':
+        return OrderPaymentMethod.cash;
+      default:
+        return OrderPaymentMethod.click;
+    }
+  }
+}
+
+extension OrderStatusX on OrderStatus {
+  String get apiValue => name;
+  static OrderStatus fromApi(String? s) {
+    switch (s) {
+      case 'approved':
+        return OrderStatus.approved;
+      case 'rejected':
+        return OrderStatus.rejected;
+      default:
+        return OrderStatus.pending;
+    }
+  }
+}
+
+class OrderRequest {
+  OrderRequest({
+    required this.id,
+    required this.purpose,
+    this.courseId,
+    this.audiobookId,
+    this.targetTitle,
+    required this.amount,
+    required this.currency,
+    required this.paymentMethod,
+    required this.status,
+    this.paymentProofUrl,
+    this.adminNote,
+    required this.createdAt,
+  });
+
+  final String id;
+  final OrderPurpose purpose;
+  final String? courseId;
+  final String? audiobookId;
+  final String? targetTitle;
+  final num amount;
+  final String currency;
+  final OrderPaymentMethod paymentMethod;
+  final OrderStatus status;
+  final String? paymentProofUrl;
+  final String? adminNote;
+  final DateTime createdAt;
+
+  factory OrderRequest.fromJson(Map<String, dynamic> j) => OrderRequest(
+        id: j['id'] as String,
+        purpose: OrderPurposeX.fromApi(j['purpose'] as String?),
+        courseId: j['course_id'] as String?,
+        audiobookId: j['audiobook_id'] as String?,
+        targetTitle: j['target_title'] as String?,
+        amount: num.tryParse(j['amount'].toString()) ?? 0,
+        currency: (j['currency'] as String?) ?? 'UZS',
+        paymentMethod:
+            OrderPaymentMethodX.fromApi(j['payment_method'] as String?),
+        status: OrderStatusX.fromApi(j['status'] as String?),
+        paymentProofUrl: j['payment_proof_url'] as String?,
+        adminNote: j['admin_note'] as String?,
+        createdAt:
+            DateTime.tryParse(j['created_at'] as String? ?? '') ?? DateTime.now(),
+      );
+}
+
+class AudiobookAccessStatus {
+  AudiobookAccessStatus({
+    required this.state,
+    required this.reason,
+    required this.hasPendingOrder,
+  });
+
+  /// 'granted' = user can read; 'locked' = paid gate shown.
+  final String state;
+  /// 'free' | 'purchased' | 'pending' | 'none'
+  final String reason;
+  final bool hasPendingOrder;
+
+  bool get canRead => state == 'granted';
+
+  factory AudiobookAccessStatus.fromJson(Map<String, dynamic> j) =>
+      AudiobookAccessStatus(
+        state: (j['state'] as String?) ?? 'locked',
+        reason: (j['reason'] as String?) ?? 'none',
+        hasPendingOrder: (j['has_pending_order'] as bool?) ?? false,
+      );
+}

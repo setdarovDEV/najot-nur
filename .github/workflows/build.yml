@@ -1,0 +1,97 @@
+# ════════════════════════════════════════════════════════════════
+#  NotiqAI — CI: build & push 4 production images to GHCR.
+#
+#  Triggers:
+#    • push to main  → rebuild + push with :latest and :<sha> tags
+#    • pull_request  → build only (no push, validates Dockerfile)
+#    • workflow_dispatch → manual build (any branch)
+#
+#  Images produced (all linux/amd64):
+#    ghcr.io/setdarovdev/najot-nur-backend:latest
+#    ghcr.io/setdarovdev/najot-nur-admin:latest
+#    ghcr.io/setdarovdev/najot-nur-curator:latest
+#    ghcr.io/setdarovdev/najot-nur-landing:latest
+#
+#  Dokploy watches these tags and redeploys on change.
+# ════════════════════════════════════════════════════════════════
+
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: setdarovdev
+  IMAGE_PREFIX: najot-nur
+  PLATFORMS: linux/amd64
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  #  Build each image in parallel. Cache is shared via GHA cache.
+  # ─────────────────────────────────────────────────────────────
+  build:
+    name: ${{ matrix.service.name }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: { name: backend,  context: ./backend,  dockerfile: Dockerfile.prod, build_args: "" }
+          - service: { name: admin,    context: ./admin,    dockerfile: Dockerfile.prod, build_args: "VITE_API_URL=/api/v1" }
+          - service: { name: curator,  context: ./curator,  dockerfile: Dockerfile.prod, build_args: "VITE_API_URL=/api/v1" }
+          - service: { name: landing,  context: ./landing,  dockerfile: Dockerfile.prod, build_args: "" }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service.name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{date 'YYYYMMDD-HHmmss'}}
+          flavor: latest=auto
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.context }}/${{ matrix.service.dockerfile }}
+          platforms: ${{ env.PLATFORMS }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.service.name }}
+          cache-to: type=gha,scope=${{ matrix.service.name }},mode=max
+          build-args: ${{ matrix.service.build_args }}
+          provenance: false

@@ -1,0 +1,83 @@
+# ════════════════════════════════════════════════════════════════
+#  NotiqAI — LOCAL development override.
+#
+#  Usage:
+#    docker compose -f docker-compose.yml -f docker-compose.local.yml up
+#
+#  This file:
+#    • Replaces prebuilt images with `build:` directives (hot reload)
+#    • Mounts source code for live editing
+#    • Maps dev ports to the host
+#    • Skips nginx (frontends are served directly on host ports)
+# ════════════════════════════════════════════════════════════════
+
+services:
+  postgres:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-dev:/var/lib/postgresql/data
+
+  redis:
+    ports:
+      - "6382:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: notiqai-backend:dev
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+      - media:/app/media
+    command: >
+      sh -c "alembic upgrade heads &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:${BACKEND_PORT:-8000}/api/v1
+    image: notiqai-admin:dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./admin:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+  curator:
+    build:
+      context: ./curator
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:${BACKEND_PORT:-8000}/api/v1
+    image: notiqai-curator:dev
+    ports:
+      - "5174:5174"
+    volumes:
+      - ./curator:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+  landing:
+    build:
+      context: ./landing
+      dockerfile: Dockerfile
+    image: notiqai-landing:dev
+    ports:
+      - "5175:5175"
+    volumes:
+      - ./landing:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+  nginx:
+    profiles: ["never"]   # disable in dev — use direct host ports
+
+volumes:
+  postgres-dev:

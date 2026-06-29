@@ -32,6 +32,7 @@ kursni tugatganlarga **PDF sertifikat** beriladi.
 
 ```
 najot-nur/
+├── .github/workflows/build.yml   ← GH Actions: 4 image'ni build/push qiladi
 ├── backend/        FastAPI · SQLAlchemy(async) · Alembic · Redis · Claude AI
 ├── mobile/         Flutter ilova (premium UI, brand: #8A1538)
 ├── landing/        React + Vite + TS  → notiqlik.uz         (marketing)
@@ -40,10 +41,10 @@ najot-nur/
 ├── docs/           Brending (logo, ranglar, NN aydentika.pdf)
 ├── deploy/
 │   ├── nginx/      Host-based routing konfiguratsiya
-│   ├── deploy.sh   Birinchi deploy
-│   ├── update.sh   Kod yangilash
+│   ├── deploy.sh   Birinchi deploy (serverda)
 │   └── ...
-├── docker-compose.yml   ← YAGONA production compose (Dokploy default)
+├── docker-compose.yml          ← Production: prebuilt GHCR image'lardan
+├── docker-compose.local.yml    ← Dev override: build + hot-reload
 └── .env.production.example
 ```
 
@@ -71,14 +72,11 @@ ulanadi. Nginx `Host` header orqali to'g'ri service'ga yo'naltiradi.
 
 ## 🚀 Ishga tushirish
 
-### Lokal development
+### Lokal development (hot-reload bilan)
 
 ```bash
-# 1) Env tayyorlash
-cp .env.example .env        # qiymatlarni to'ldiring
-
-# 2) Hammasini Docker bilan
-docker compose up -d        # postgres + redis + backend + admin + curator + landing
+cp .env.example .env
+docker compose -f docker-compose.yml -f docker-compose.local.yml up
 
 # Backend:  http://localhost:8000/docs   (Swagger / OpenAPI)
 # Landing:  http://localhost:5175
@@ -86,28 +84,33 @@ docker compose up -d        # postgres + redis + backend + admin + curator + lan
 # Curator:  http://localhost:5174
 ```
 
-### Production (Dokploy / self-hosted) — **bitta komanda**
+`docker-compose.local.yml` prebuilt image'lar o'rniga `build:` ishlatadi
+va source kodni mount qiladi (hot-reload).
 
+### Production (Dokploy / GitHub Actions)
+
+Build **GitHub Actions**'da, deploy **Dokploy**'da:
+
+```
+git push origin main
+   ↓
+GitHub Actions: 4 image build qiladi → ghcr.io/setdarovdev/najot-nur-*
+   ↓
+Dokploy: image'larni pull qilib konteynerlarni ishga tushiradi
+```
+
+Birinchi marta serverda:
 ```bash
-# 1) Production env tayyorlash
 cp .env.production.example .env
 # CHANGE_ME_* larni haqiqiy qiymatlar bilan almashtiring
 # (kamida POSTGRES_PASSWORD va JWT_SECRET_KEY)
-
-# 2) Birinchi marta seed ma'lumotlarni yuklash uchun .env ga:
-#    RUN_SEEDS=true   ← keyin false qilib qo'ying
-
-# 3) Hamma narsani ishga tushirish
-docker compose -f docker-compose.yml up -d --build
+docker compose -f docker-compose.yml up -d
 ```
 
-Tafsilotlar: **[deploy/README.md](deploy/README.md)**
+Keyingi deploylar uchun faqat `git push` yetarli — qolganini GH Actions
+va Dokploy o'zi qiladi.
 
-U yerda:
-- DNS sozlash
-- Serverda birinchi marta deploy qilish
-- **Dokploy'da 4 ta domenni `nginx` service'ga ulash** (eng muhim qadam)
-- Backup, yangilash, troubleshooting
+Tafsilotlar: **[deploy/README.md](deploy/README.md)**
 
 Har bir qism alohida ham ishga tushadi — `backend/README.md`,
 `mobile/README.md`, `admin/README.md`, `curator/README.md`, `landing/README.md`

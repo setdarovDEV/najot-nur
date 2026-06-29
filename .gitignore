@@ -73,3 +73,7 @@ docker-compose.override.yml
 
 bugs
 docs
+# Large binary docs that don't belong in git
+docs/*.pdf
+docs/*.docx
+docs/*.doc

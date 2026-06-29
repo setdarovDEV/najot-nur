@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────
-#  NotiqAI — bootstrap production deployment on a fresh VPS.
-#  Idempotent: safe to re-run after a code update.
+#  NotiqAI — first-time setup on a fresh VPS.
+#  Idempotent: safe to re-run.
+#
+#  Assumes:
+#    • Code is already on the server at /opt/notiqai
+#    • GitHub Actions has already built and pushed the 4 images
+#      to ghcr.io/setdarovdev/najot-nur-{backend,admin,curator,landing}:latest
+#    • DNS A-records point to this server
 # ─────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -29,15 +35,21 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
-# ── 2) Build + up ──
-echo "• Docker image'lar build qilinyapti…"
-docker compose -f docker-compose.yml build --pull
+# ── 2) GHCR login (private image'lar uchun) ──
+# Agar image'lar public bo'lsa (Settings → Public), bu qator kerak emas.
+# Private bo'lsa, serverda GitHub PAT yaratib quyish kerak:
+#   echo "$GITHUB_TOKEN" | docker login ghcr.io -u setdarovdev --password-stdin
+# (deploy/deploy.sh ga qo'shishingiz mumkin)
+
+# ── 3) Pull + up ──
+echo "• Prebuilt image'lar GHCR'dan tortilmoqda…"
+docker compose -f docker-compose.yml pull
 
 echo "• Servislar ishga tushirilmoqda…"
 docker compose -f docker-compose.yml up -d
 
-# ── 3) healthcheck kutamiz ──
-echo "• Backend healthcheck kutilyapti…"
+# ── 4) healthcheck kutamiz ──
+echo "• Nginx healthcheck kutilyapti…"
 for i in {1..40}; do
   if curl -fsS http://localhost/healthz >/dev/null 2>&1; then
     echo "✓ Nginx tayyor."

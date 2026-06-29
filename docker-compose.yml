@@ -1,5 +1,11 @@
 # ════════════════════════════════════════════════════════════════
-#  NotiqAI — PRODUCTION compose (Dokploy-ready, single file).
+#  NotiqAI — PRODUCTION compose (Dokploy, prebuilt images).
+#
+#  Images are built by GitHub Actions (.github/workflows/build.yml)
+#  and published to GitHub Container Registry:
+#    ghcr.io/setdarovdev/najot-nur-{backend,admin,curator,landing}
+#
+#  Dokploy just pulls and runs — no `docker build` here.
 #
 #  Architecture:
 #    ┌──────────────────────────────┐
@@ -16,19 +22,23 @@
 #                  │   backend    │
 #                  └──────────────┘
 #
-#  Public entry: ONE container (nginx:80) — Dokploy routes ALL
-#  subdomains to it via Traefik labels; nginx picks the right
-#  upstream by the `Host` header.
-#
 #  Quick start:
-#    1. Paste this file in Dokploy → New → Compose
-#    2. In Dokploy's "Domains" tab add 4 hostnames, ALL pointing
-#       to the `nginx` service on port 80 (see deploy/dokploy/README.md)
-#    3. Fill .env (copy from .env.production.example)
-#    4. Deploy. Traefik issues Let's Encrypt certs automatically.
+#    1. Push to main → GitHub Actions builds & pushes images
+#    2. In Dokploy → New → Docker Compose → paste this file
+#    3. In Dokploy's "Domains" tab add 4 hostnames, ALL pointing
+#       to the `nginx` service on port 80
+#    4. Fill env vars (see .env.production.example)
+#    5. Deploy. Traefik issues Let's Encrypt certs automatically.
+#
+#  For local development with hot-reload, use docker-compose.local.yml
+#  (it overrides images with `build:` directives).
 # ════════════════════════════════════════════════════════════════
 
 name: notiqai
+
+# ─── Pin image tag to commit SHA via :latest fallback ─────────
+# Dokploy can override this with the IMAGE_TAG env var if needed.
+x-image-tag: &image_tag ${IMAGE_TAG:-latest}
 
 services:
   # ─────────────────────────────────────────────────────────────
@@ -86,15 +96,13 @@ services:
       - notiq
 
   # ─────────────────────────────────────────────────────────────
-  #  Backend — FastAPI + gunicorn
+  #  Backend — FastAPI + gunicorn (prebuilt image from GHCR)
   # ─────────────────────────────────────────────────────────────
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
-    image: notiqai-backend:latest
+    image: ghcr.io/setdarovdev/najot-nur-backend:${IMAGE_TAG:-latest}
     container_name: notiq_backend
     restart: unless-stopped
+    pull_policy: always
     env_file:
       - .env
     environment:
@@ -120,26 +128,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
-    command:
-      - sh
-      - -c
-      - |
-        set -e
-        echo "▶ Running alembic migrations…"
-        alembic upgrade heads
-        if [ "$${RUN_SEEDS:-false}" = "true" ]; then
-          echo "▶ Seeding initial data (idempotent)…"
-          python -m app.seeds.seed || echo "  seed exited with non-zero, continuing"
-        fi
-        echo "▶ Starting gunicorn with $${WEB_CONCURRENCY:-2} workers…"
-        exec gunicorn app.main:app \
-          -k uvicorn.workers.UvicornWorker \
-          -b 0.0.0.0:8000 \
-          --workers $${WEB_CONCURRENCY:-2} \
-          --timeout 60 \
-          --graceful-timeout 30 \
-          --access-logfile - \
-          --error-logfile -
     deploy:
       resources:
         limits:
@@ -148,17 +136,13 @@ services:
       - notiq
 
   # ─────────────────────────────────────────────────────────────
-  #  Admin SPA — React + Vite, served by an internal nginx
+  #  Admin SPA — React + Vite (prebuilt image from GHCR)
   # ─────────────────────────────────────────────────────────────
   admin:
-    build:
-      context: ./admin
-      dockerfile: Dockerfile.prod
-      args:
-        VITE_API_URL: ${VITE_API_URL_ADMIN:-/api/v1}
-    image: notiqai-admin:latest
+    image: ghcr.io/setdarovdev/najot-nur-admin:${IMAGE_TAG:-latest}
     container_name: notiq_admin
     restart: unless-stopped
+    pull_policy: always
     expose:
       - "80"
     depends_on:
@@ -178,17 +162,13 @@ services:
       - notiq
 
   # ─────────────────────────────────────────────────────────────
-  #  Curator SPA — React + Vite
+  #  Curator SPA — React + Vite (prebuilt image from GHCR)
   # ─────────────────────────────────────────────────────────────
   curator:
-    build:
-      context: ./curator
-      dockerfile: Dockerfile.prod
-      args:
-        VITE_API_URL: ${VITE_API_URL_CURATOR:-/api/v1}
-    image: notiqai-curator:latest
+    image: ghcr.io/setdarovdev/najot-nur-curator:${IMAGE_TAG:-latest}
     container_name: notiq_curator
     restart: unless-stopped
+    pull_policy: always
     expose:
       - "80"
     depends_on:
@@ -208,15 +188,13 @@ services:
       - notiq
 
   # ─────────────────────────────────────────────────────────────
-  #  Landing SPA — public marketing page
+  #  Landing SPA — public marketing page (prebuilt image from GHCR)
   # ─────────────────────────────────────────────────────────────
   landing:
-    build:
-      context: ./landing
-      dockerfile: Dockerfile.prod
-    image: notiqai-landing:latest
+    image: ghcr.io/setdarovdev/najot-nur-landing:${IMAGE_TAG:-latest}
     container_name: notiq_landing
     restart: unless-stopped
+    pull_policy: always
     expose:
       - "80"
     healthcheck:

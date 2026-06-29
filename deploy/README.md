@@ -1,8 +1,24 @@
-# NotiqAI — server deployment
+# NotiqAI — server deployment (Dokploy)
 
 Production stack lives on **`45.138.159.219`** at **`/opt/notiqai/`**.
-Dokploy is the deployment platform (Traefik handles HTTPS in front of
-the stack).
+Dokploy is the deployment platform (Traefik handles HTTPS in front
+of the stack).
+
+## Build / deploy pipeline
+
+```
+git push origin main
+      ↓
+GitHub Actions (.github/workflows/build.yml)
+  → builds 4 images on GitHub's infrastructure
+  → pushes to GitHub Container Registry (ghcr.io/setdarovdev/najot-nur-*)
+      ↓
+Dokploy pulls :latest images and starts containers (no build on server)
+```
+
+**Why this is fast**: Dokploy's server is small, building Docker images
+on it took 5-10 minutes per deploy. With GH Actions, builds are parallel
+on GitHub's runners and finish in 2-4 minutes total.
 
 ## Public endpoints
 
@@ -21,10 +37,10 @@ service'larga ajratadi (single-entry-point arxitekturasi).
 
 ```
 notiq_nginx      nginx:1.27-alpine  ── public entry point (HTTP)
-notiq_admin      notiqai-admin      ── React SPA (vite build, internal nginx)
-notiq_curator    notiqai-curator    ── React SPA (vite build, internal nginx)
-notiq_landing    notiqai-landing    ── React SPA (vite build, internal nginx)
-notiq_backend    notiqai-backend    ── FastAPI + gunicorn
+notiq_admin      ghcr.io/...admin   ── React SPA (vite build, internal nginx)
+notiq_curator    ghcr.io/...curator ── React SPA (vite build, internal nginx)
+notiq_landing    ghcr.io/...landing ── React SPA (vite build, internal nginx)
+notiq_backend    ghcr.io/...backend ── FastAPI + gunicorn
 notiq_postgres   postgres:16-alpine ── primary DB
 notiq_redis      redis:7-alpine     ── cache + rate-limit
 ```
@@ -36,7 +52,8 @@ notiq_redis      redis:7-alpine     ── cache + rate-limit
    `curator.notiqlik.uz`, `api.notiqlik.uz`.
 2. **Kodni ko'chirish**:
    ```bash
-   rsync -avz --delete /home/abbbose/projects/najot-nur/ notiqai@45.138.159.219:/opt/notiqai/
+   rsync -avz --delete /home/abbbose/projects/najot-nur/ \
+     notiqai@45.138.159.219:/opt/notiqai/
    ```
 3. **`.env` tayyorlash** (serverda):
    ```bash
@@ -65,7 +82,23 @@ notiq_redis      redis:7-alpine     ── cache + rate-limit
 
    - HTTPS toggle'ni yoqing (Let's Encrypt avtomatik beradi).
 
-Batafsil: [`deploy/dokploy/README.md`](./dokploy/README.md).
+## Deploy keyingi kod o'zgarishlarida
+
+Oddiy ish jarayoni endi shunday:
+
+```bash
+# 1) Lokal'da kodni o'zgartiring
+git add -A
+git commit -m "..."
+git push origin main
+# 2) GitHub Actions 2-4 daqiqada image'larni quradi
+# 3) Dokploy avtomatik (yoki qo'lda) yangilangan image'larni tortadi
+# 4) Eski konteynerlar yangilanadi, downtime ~10 soniya
+```
+
+Dokploy'ning image-watch funksiyasi yoqilgan bo'lsa, **hech narsa
+qilish shart emas** — push qilish bilanoq yangilanadi. Aks holda
+Dokploy UI → notiqai → **Deploy** tugmasini bosing.
 
 ## Daily operations
 
@@ -75,7 +108,6 @@ cd /opt/notiqai
 
 deploy/logs.sh                 # tail all containers
 deploy/logs.sh backend         # tail one service
-deploy/update.sh               # rebuild + restart (env o'zgarmasa)
 deploy/backup.sh               # pg_dump + media tar
 ```
 
@@ -108,23 +140,3 @@ docker exec -it notiq_postgres psql -U notiq -d notiqai
 - `.env` nusxasi (chmod 600)
 - `media` volume tar
 - 14 kun retention
-
-## Updating the application
-
-```bash
-# local'da
-rsync -avz --delete \
-  --exclude='.env' --exclude='node_modules' --exclude='.git' \
-  /home/abbbose/projects/najot-nur/ \
-  notiqai@45.138.159.219:/opt/notiqai/
-
-# serverda
-ssh notiqai "cd /opt/notiqai && deploy/update.sh"
-```
-
-Frontend-only o'zgarishlar uchun tezroq:
-```bash
-ssh notiqai "cd /opt/notiqai && \
-  docker compose -f docker-compose.yml build admin && \
-  docker compose -f docker-compose.yml up -d admin"
-```

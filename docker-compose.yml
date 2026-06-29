@@ -216,9 +216,9 @@ services:
 
   # ─────────────────────────────────────────────────────────────
   #  Nginx — internal Host-based routing.
-  #  Receives requests from Caddy (host:8080 → container:80) and
-  #  forwards to the right service based on the Host header.
-  #  NOT exposed to the public internet.
+  #  Receives requests from Caddy (via internal Docker network on
+  #  port 80) and forwards to the right service based on the
+  #  Host header. NOT exposed to the public internet.
   # ─────────────────────────────────────────────────────────────
   nginx:
     image: nginx:1.27-alpine
@@ -233,9 +233,8 @@ services:
         condition: service_healthy
       landing:
         condition: service_healthy
-    ports:
-      # Only the host can reach this (Caddy forwards here).
-      - "127.0.0.1:8080:80"
+    expose:
+      - "80"
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
@@ -274,8 +273,6 @@ services:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data   # certs + ACME account
       - caddy_config:/config
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:2019/config/"]
       interval: 30s

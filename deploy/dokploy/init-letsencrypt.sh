@@ -4,14 +4,15 @@
 #
 #  Prerequisite:
 #    DNS A-records for notiqlik.uz, www.notiqlik.uz,
-#    admin.notiqlik.uz, curator.notiqlik.uz, api.notiqlik.uz
+#    admin.notiqlik.uz, curator.notiqlik.uz, api.notiqlik.uz,
+#    dokploy.notiqlik.uz
 #    must all point to this server's public IP.
 #
 #  Usage:
 #    docker compose -f docker-compose.deploy.yml --profile ssl \
 #        run --rm certbot init \
 #        notiqlik.uz www.notiqlik.uz admin.notiqlik.uz \
-#        curator.notiqlik.uz api.notiqlik.uz
+#        curator.notiqlik.uz api.notiqlik.uz dokploy.notiqlik.uz
 # ─────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -23,6 +24,7 @@ DOMAINS=(
     admin.notiqlik.uz
     curator.notiqlik.uz
     api.notiqlik.uz
+    dokploy.notiqlik.uz
 )
 EMAIL="${SSL_EMAIL:-admin@notiqlik.uz}"
 

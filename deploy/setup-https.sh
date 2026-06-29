@@ -2,15 +2,22 @@
 # ════════════════════════════════════════════════════════════════
 #  NotiqAI — one-shot HTTPS setup. Run AFTER DNS is configured.
 #
-#  Prerequisite: 5 A-records must resolve to 45.138.159.219:
+#  Prerequisite: 6 A-records must resolve to 45.138.159.219:
 #    notiqlik.uz, www.notiqlik.uz, admin.notiqlik.uz,
-#    curator.notiqlik.uz, api.notiqlik.uz
+#    curator.notiqlik.uz, api.notiqlik.uz, dokploy.notiqlik.uz
 # ════════════════════════════════════════════════════════════════
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-DOMAINS=(notiqlik.uz www.notiqlik.uz admin.notiqlik.uz curator.notiqlik.uz api.notiqlik.uz)
+DOMAINS=(
+  notiqlik.uz
+  www.notiqlik.uz
+  admin.notiqlik.uz
+  curator.notiqlik.uz
+  api.notiqlik.uz
+  dokploy.notiqlik.uz
+)
 EMAIL="admin@notiqlik.uz"
 
 # ── 1) DNS tekshirish ──
@@ -42,6 +49,7 @@ certbot certonly --webroot \
   -w ./deploy/nginx/certbot/www \
   -d notiqlik.uz -d www.notiqlik.uz \
   -d admin.notiqlik.uz -d curator.notiqlik.uz -d api.notiqlik.uz \
+  -d dokploy.notiqlik.uz \
   --cert-name notiqai \
   --non-interactive --agree-tos -m "$EMAIL"
 
@@ -76,4 +84,5 @@ echo "  https://notiqlik.uz"
 echo "  https://admin.notiqlik.uz"
 echo "  https://curator.notiqlik.uz"
 echo "  https://api.notiqlik.uz/docs"
+echo "  https://dokploy.notiqlik.uz"
 echo "════════════════════════════════════════════"

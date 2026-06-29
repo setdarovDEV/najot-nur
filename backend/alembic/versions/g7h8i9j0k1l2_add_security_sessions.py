@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    security_event_type = sa.Enum(
+    security_event_type = postgresql.ENUM(
         "session_started",
         "session_heartbeat",
         "session_ended",
@@ -33,6 +33,7 @@ def upgrade() -> None:
         "permission_denied_microphone",
         "auto_recording_uploaded",
         name="security_event_type",
+        create_type=False,
     )
     security_event_type.create(op.get_bind(), checkfirst=True)
 
@@ -98,4 +99,4 @@ def downgrade() -> None:
     op.drop_index("ix_security_sessions_device_id", table_name="security_sessions")
     op.drop_index("ix_security_sessions_user_id", table_name="security_sessions")
     op.drop_table("security_sessions")
-    sa.Enum(name="security_event_type").drop(op.get_bind(), checkfirst=True)
+    postgresql.ENUM(name="security_event_type").drop(op.get_bind(), checkfirst=True)

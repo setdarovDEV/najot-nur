@@ -54,6 +54,7 @@ Faqat `nginx` tashqi (host) portlarda eshitadi.
      certbot certonly --webroot -w /var/www/certbot \
        -d notiqlik.uz -d www.notiqlik.uz \
        -d admin.notiqlik.uz -d curator.notiqlik.uz -d api.notiqlik.uz \
+       -d dokploy.notiqlik.uz \
        --cert-name notiqai --non-interactive --agree-tos -m admin@notiqlik.uz
    ```
    yoki qisqacha:

@@ -7,13 +7,13 @@ echo "• Pulling/uploading code…"
 # (skipped — deployment is via scp from local)
 
 echo "• Rebuilding images…"
-docker compose -f docker-compose.production.yml build
+docker compose -f docker-compose.yml build
 
 echo "• Restarting services…"
-docker compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.yml up -d
 
 echo "• Pruning old images…"
 docker image prune -f
 
 echo "✓ Update complete."
-docker compose -f docker-compose.production.yml ps
+docker compose -f docker-compose.yml ps

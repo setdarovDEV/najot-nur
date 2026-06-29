@@ -31,10 +31,10 @@ fi
 
 # ── 2) Build + up ──
 echo "• Docker image'lar build qilinyapti…"
-docker compose -f docker-compose.production.yml build --pull
+docker compose -f docker-compose.yml build --pull
 
 echo "• Servislar ishga tushirilmoqda…"
-docker compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.yml up -d
 
 # ── 3) healthcheck kutamiz ──
 echo "• Backend healthcheck kutilyapti…"
@@ -46,7 +46,7 @@ for i in {1..40}; do
   sleep 2
   if [[ $i -eq 40 ]]; then
     echo "✗ Servislar 80 soniyada tayyor bo'lmadi. Loglarni ko'ring:"
-    docker compose -f docker-compose.production.yml logs --tail=80 nginx
+    docker compose -f docker-compose.yml logs --tail=80 nginx
     exit 1
   fi
 done

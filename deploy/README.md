@@ -81,8 +81,8 @@ deploy/backup.sh               # pg_dump + media tar
 
 Inside the stack:
 ```bash
-docker compose -f docker-compose.production.yml ps
-docker compose -f docker-compose.production.yml logs -f backend
+docker compose -f docker-compose.yml ps
+docker compose -f docker-compose.yml logs -f backend
 docker exec notiq_backend python -m app.seeds.seed   # idempotent
 docker exec -it notiq_postgres psql -U notiq -d notiqai
 ```
@@ -125,6 +125,6 @@ ssh notiqai "cd /opt/notiqai && deploy/update.sh"
 Frontend-only o'zgarishlar uchun tezroq:
 ```bash
 ssh notiqai "cd /opt/notiqai && \
-  docker compose -f docker-compose.production.yml build admin && \
-  docker compose -f docker-compose.production.yml up -d admin"
+  docker compose -f docker-compose.yml build admin && \
+  docker compose -f docker-compose.yml up -d admin"
 ```

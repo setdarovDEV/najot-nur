@@ -43,7 +43,7 @@ najot-nur/
 │   ├── deploy.sh   Birinchi deploy
 │   ├── update.sh   Kod yangilash
 │   └── ...
-├── docker-compose.production.yml   ← YAGONA production compose
+├── docker-compose.yml   ← YAGONA production compose (Dokploy default)
 └── .env.production.example
 ```
 
@@ -98,7 +98,7 @@ cp .env.production.example .env
 #    RUN_SEEDS=true   ← keyin false qilib qo'ying
 
 # 3) Hamma narsani ishga tushirish
-docker compose -f docker-compose.production.yml up -d --build
+docker compose -f docker-compose.yml up -d --build
 ```
 
 Tafsilotlar: **[deploy/README.md](deploy/README.md)**

@@ -1,0 +1,26 @@
+# ════════════════════════════════════════════════════════════════
+#  NotiqAI — Caddy reverse proxy.
+#  Auto-issues Let's Encrypt certs for ALL listed domains on first
+#  start. Certs auto-renew before expiry.
+#
+#  All 4 hostnames route to the same internal nginx (port 8080 on
+#  the host, mapped from the docker network). Nginx then does
+#  Host-based routing to backend/admin/curator/landing.
+#
+#  Add/remove domains here and run `caddy reload` (or just
+#  recreate the caddy container: `docker compose restart caddy`).
+# ════════════════════════════════════════════════════════════════
+
+notiqlik.uz,
+www.notiqlik.uz,
+admin.notiqlik.uz,
+curator.notiqlik.uz,
+api.notiqlik.uz {
+    encode zstd gzip
+
+    # Caddy terminates HTTPS, then talks plain HTTP to our nginx.
+    reverse_proxy host.docker.internal:8080 {
+        header_up X-Forwarded-Proto https
+        header_up X-Real-IP        {remote_host}
+    }
+}

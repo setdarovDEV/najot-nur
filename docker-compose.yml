@@ -1,17 +1,11 @@
 # ════════════════════════════════════════════════════════════════
-#  NotiqAI — PRODUCTION compose (Dokploy, prebuilt images).
-#
-#  Images are built by GitHub Actions (.github/workflows/build.yml)
-#  and published to GitHub Container Registry:
-#    ghcr.io/setdarovdev/najot-nur-{backend,admin,curator,landing}
-#
-#  Dokploy just pulls and runs — no `docker build` here.
+#  NotiqAI — PRODUCTION compose (Caddy + auto-deploy).
 #
 #  Architecture:
 #    ┌──────────────────────────────┐
-#    │  Dokploy Traefik (SSL off)   │  ← terminatsiya HTTPS
+#    │  Caddy (auto-HTTPS)         │  ← Let's Encrypt certs
 #    └──────────────┬───────────────┘
-#                   │  http://nginx:80
+#                   │  http://nginx:80 (internal)
 #    ┌──────────────▼───────────────┐
 #    │  nginx (HTTP, Host routing)  │  ← ushbu compose
 #    └─┬─────┬─────┬─────┬──────────┘
@@ -22,23 +16,21 @@
 #                  │   backend    │
 #                  └──────────────┘
 #
-#  Quick start:
-#    1. Push to main → GitHub Actions builds & pushes images
-#    2. In Dokploy → New → Docker Compose → paste this file
-#    3. In Dokploy's "Domains" tab add 4 hostnames, ALL pointing
-#       to the `nginx` service on port 80
-#    4. Fill env vars (see .env.production.example)
-#    5. Deploy. Traefik issues Let's Encrypt certs automatically.
+#  Auto-deploy: Watchtower watches GHCR for new images and
+#  restarts containers (except caddy, which is pinned).
 #
-#  For local development with hot-reload, use docker-compose.local.yml
-#  (it overrides images with `build:` directives).
+#  How to deploy a new version:
+#    git push origin main
+#    → GH Actions builds 4 images
+#    → Watchtower (5 min) pulls new images, restarts containers
+#    → Users see new version
+#
+#  This file does NOT use `build:`. Images are prebuilt by
+#  GitHub Actions (.github/workflows/build.yml) and pulled from
+#  ghcr.io/setdarovdev/najot-nur-*.
 # ════════════════════════════════════════════════════════════════
 
 name: notiqai
-
-# ─── Pin image tag to commit SHA via :latest fallback ─────────
-# Dokploy can override this with the IMAGE_TAG env var if needed.
-x-image-tag: &image_tag ${IMAGE_TAG:-latest}
 
 services:
   # ─────────────────────────────────────────────────────────────
@@ -69,6 +61,8 @@ services:
           memory: 384M
     networks:
       - notiq
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
   # ─────────────────────────────────────────────────────────────
   #  Redis — cache + rate-limit store
@@ -94,6 +88,8 @@ services:
           memory: 192M
     networks:
       - notiq
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
   # ─────────────────────────────────────────────────────────────
   #  Backend — FastAPI + gunicorn (prebuilt image from GHCR)
@@ -134,6 +130,8 @@ services:
           memory: 512M
     networks:
       - notiq
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
   # ─────────────────────────────────────────────────────────────
   #  Admin SPA — React + Vite (prebuilt image from GHCR)
@@ -160,6 +158,8 @@ services:
           memory: 64M
     networks:
       - notiq
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
   # ─────────────────────────────────────────────────────────────
   #  Curator SPA — React + Vite (prebuilt image from GHCR)
@@ -186,6 +186,8 @@ services:
           memory: 64M
     networks:
       - notiq
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
   # ─────────────────────────────────────────────────────────────
   #  Landing SPA — public marketing page (prebuilt image from GHCR)
@@ -209,15 +211,14 @@ services:
           memory: 32M
     networks:
       - notiq
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
   # ─────────────────────────────────────────────────────────────
-  #  Nginx — single public entry point.
-  #  Listens ONLY on :80 INSIDE the docker network (expose, not
-  #  ports). Dokploy Traefik terminates HTTPS and forwards
-  #  requests to nginx:80 via the internal docker DNS.
-  #
-  #  DO NOT add `ports: ["80:80"]` here — it would clash with
-  #  Dokploy Traefik which is already on host:80.
+  #  Nginx — internal Host-based routing.
+  #  Receives requests from Caddy (host:8080 → container:80) and
+  #  forwards to the right service based on the Host header.
+  #  NOT exposed to the public internet.
   # ─────────────────────────────────────────────────────────────
   nginx:
     image: nginx:1.27-alpine
@@ -232,8 +233,9 @@ services:
         condition: service_healthy
       landing:
         condition: service_healthy
-    expose:
-      - "80"
+    ports:
+      # Only the host can reach this (Caddy forwards here).
+      - "127.0.0.1:8080:80"
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
@@ -252,6 +254,68 @@ services:
           memory: 64M
     networks:
       - notiq
+    # nginx image is official, no need to update via watchtower
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+  # ─────────────────────────────────────────────────────────────
+  #  Caddy — public entry point. Auto-HTTPS via Let's Encrypt.
+  #  Listens on :80 and :443, forwards plain HTTP to nginx:8080
+  #  on the host (which is nginx container's :80).
+  # ─────────────────────────────────────────────────────────────
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: notiq_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data   # certs + ACME account
+      - caddy_config:/config
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - notiq
+    # Pin caddy version, never auto-update
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+  # ─────────────────────────────────────────────────────────────
+  #  Watchtower — auto-pulls new images and restarts containers.
+  #  Polls GHCR every 5 minutes. Updates only containers with
+  #  label `com.centurylinklabs.watchtower.enable: true`.
+  # ─────────────────────────────────────────────────────────────
+  watchtower:
+    image: containrrr/watchtower:1.7
+    container_name: notiq_watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_POLL_INTERVAL: "300"
+      WATCHTOWER_INCLUDE_STOPPED: "false"
+      WATCHTOWER_REVIVE_STOPPED: "false"
+      WATCHTOWER_ROLLING_RESTART: "true"
+      WATCHTOWER_TIMEOUT: "60s"
+    networks:
+      - notiq
+    # Don't update watchtower itself
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
 
 volumes:
   postgres-data:
@@ -259,6 +323,8 @@ volumes:
   media:
   nginx-cache:
   nginx-logs:
+  caddy_data:
+  caddy_config:
 
 networks:
   notiq:

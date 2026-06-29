@@ -40,15 +40,16 @@ najot-nur/
 ├── curator/        React + Vite + TS  → curator.notiqlik.uz (kurator paneli)
 ├── docs/           Brending (logo, ranglar, NN aydentika.pdf)
 ├── deploy/
-│   ├── nginx/      Host-based routing konfiguratsiya
-│   ├── deploy.sh   Birinchi deploy (serverda)
+│   ├── Caddyfile   Auto-HTTPS reverse proxy
+│   ├── nginx/      Host-based routing
+│   ├── setup-server.sh
 │   └── ...
-├── docker-compose.yml          ← Production: prebuilt GHCR image'lardan
+├── docker-compose.yml          ← Caddy + nginx + apps + watchtower
 ├── docker-compose.local.yml    ← Dev override: build + hot-reload
 └── .env.production.example
 ```
 
-### Domenlar (Dokploy Traefik → bitta nginx → Host header routing)
+### Domenlar (Caddy → nginx → Host header routing)
 
 | Domen | Service | Prod | Tavsif |
 |-------|---------|------|--------|
@@ -57,8 +58,9 @@ najot-nur/
 | `curator.notiqlik.uz` | `curator` | 443 | Kurator paneli |
 | `api.notiqlik.uz` | `backend` | 443 | FastAPI API |
 
-Dokploy'da 4 ta domenning **har biri** `nginx` service'ga (port 80)
-ulanadi. Nginx `Host` header orqali to'g'ri service'ga yo'naltiradi.
+Caddy avtomatik HTTPS bilan 4 ta domenni bitta `nginx` service'ga
+(port 8080) yo'naltiradi. Nginx `Host` header orqali to'g'ri
+service'ga yo'naltiradi.
 
 ## 🎨 Brending
 
@@ -87,28 +89,29 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up
 `docker-compose.local.yml` prebuilt image'lar o'rniga `build:` ishlatadi
 va source kodni mount qiladi (hot-reload).
 
-### Production (Dokploy / GitHub Actions)
+### Production (serverda Caddy + Watchtower)
 
-Build **GitHub Actions**'da, deploy **Dokploy**'da:
+Build **GitHub Actions**'da, deploy **serverda** (Caddy + Watchtower):
 
 ```
 git push origin main
    ↓
 GitHub Actions: 4 image build qiladi → ghcr.io/setdarovdev/najot-nur-*
    ↓
-Dokploy: image'larni pull qilib konteynerlarni ishga tushiradi
+Watchtower (serverda, har 5 daqiqada) yangi image bor-yo'qligini tekshiradi
+   ↓
+Yangi image topilsa → konteyner restart (zero downtime)
 ```
 
-Birinchi marta serverda:
+**Dokploy kerak emas.** Birinchi marta serverda:
 ```bash
-cp .env.production.example .env
-# CHANGE_ME_* larni haqiqiy qiymatlar bilan almashtiring
-# (kamida POSTGRES_PASSWORD va JWT_SECRET_KEY)
-docker compose -f docker-compose.yml up -d
+sudo bash deploy/setup-server.sh
+# Bu .env yaratadi, kuchli parollar generatsiya qiladi, image'lar tortadi,
+# Caddy + nginx + apps + watchtower ni ishga tushiradi.
 ```
 
-Keyingi deploylar uchun faqat `git push` yetarli — qolganini GH Actions
-va Dokploy o'zi qiladi.
+Keyingi yangilanishlar uchun **hech narsa qilish shart emas** — `git push`
+va kuting. Watchtower avtomatik yangilaydi.
 
 Tafsilotlar: **[deploy/README.md](deploy/README.md)**
 

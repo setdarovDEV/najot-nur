@@ -1,104 +1,114 @@
-# NotiqAI — server deployment (Dokploy)
+# NotiqAI — server deployment (Caddy + auto-deploy)
 
 Production stack lives on **`45.138.159.219`** at **`/opt/notiqai/`**.
-Dokploy is the deployment platform (Traefik handles HTTPS in front
-of the stack).
 
-## Build / deploy pipeline
+## Architecture
 
 ```
 git push origin main
-      ↓
+   ↓
 GitHub Actions (.github/workflows/build.yml)
   → builds 4 images on GitHub's infrastructure
-  → pushes to GitHub Container Registry (ghcr.io/setdarovdev/najot-nur-*)
-      ↓
-Dokploy pulls :latest images and starts containers (no build on server)
+  → pushes to GitHub Container Registry
+   ↓
+Watchtower (server, polls every 5 min)
+  → detects new image tag in GHCR
+  → pulls the image, restarts the container
+   ↓
+Internet
+   ↓ :80, :443
+Caddy (in compose)
+  → auto-issues / renews Let's Encrypt certs
+  → forwards all traffic to nginx:8080 (host) → nginx container
+   ↓
+nginx (in compose)
+  → Host-based routing
+  → api.notiqlik.uz   → backend:8000
+  → admin.notiqlik.uz → admin:80
+  → curator.*.uz      → curator:80
+  → notiqlik.uz / www → landing:80
 ```
 
-**Why this is fast**: Dokploy's server is small, building Docker images
-on it took 5-10 minutes per deploy. With GH Actions, builds are parallel
-on GitHub's runners and finish in 2-4 minutes total.
+**No Dokploy, no manual certificate management, no Traefik labels.**
 
 ## Public endpoints
 
 | Subdomain | Service | Notes |
 |---|---|---|
-| `notiqlik.uz` / `www.notiqlik.uz` | Landing (static) | Marketing page |
+| `notiqlik.uz` / `www.notiqlik.uz` | Landing | Marketing SPA |
 | `admin.notiqlik.uz` | Admin panel | React + Vite SPA |
 | `curator.notiqlik.uz` | Curator panel | React + Vite SPA |
-| `api.notiqlik.uz` | FastAPI backend | `/api/v1/*`, `/docs`, `/openapi.json`, `/health`, `/media/*` |
-
-Dokploy'ning Traefik'i 4 ta domenni **bitta** `nginx` service'ga
-(port 80) yo'naltiradi. Nginx `Host` header orqali ichki
-service'larga ajratadi (single-entry-point arxitekturasi).
+| `api.notiqlik.uz` | FastAPI backend | `/api/v1/*`, `/docs`, `/health`, `/media/*` |
 
 ## Container layout
 
 ```
-notiq_nginx      nginx:1.27-alpine  ── public entry point (HTTP)
-notiq_admin      ghcr.io/...admin   ── React SPA (vite build, internal nginx)
-notiq_curator    ghcr.io/...curator ── React SPA (vite build, internal nginx)
-notiq_landing    ghcr.io/...landing ── React SPA (vite build, internal nginx)
-notiq_backend    ghcr.io/...backend ── FastAPI + gunicorn
-notiq_postgres   postgres:16-alpine ── primary DB
-notiq_redis      redis:7-alpine     ── cache + rate-limit
+notiq_caddy        caddy:2.8-alpine      ── public entry, auto-HTTPS
+notiq_nginx        nginx:1.27-alpine     ── Host-based routing
+notiq_admin        ghcr.io/...admin      ── React SPA
+notiq_curator      ghcr.io/...curator    ── React SPA
+notiq_landing      ghcr.io/...landing    ── React SPA
+notiq_backend      ghcr.io/...backend    ── FastAPI + gunicorn
+notiq_postgres     postgres:16-alpine    ── primary DB
+notiq_redis        redis:7-alpine        ── cache + rate-limit
+notiq_watchtower   watchtower            ── auto-pull new images
 ```
 
-## First-time setup on a fresh server
-
-1. **DNS**: 4 ta A-record `45.138.159.219` ga qarating:
-   `notiqlik.uz`, `www.notiqlik.uz`, `admin.notiqlik.uz`,
-   `curator.notiqlik.uz`, `api.notiqlik.uz`.
-2. **Kodni ko'chirish**:
-   ```bash
-   rsync -avz --delete /home/abbbose/projects/najot-nur/ \
-     notiqai@45.138.159.219:/opt/notiqai/
-   ```
-3. **`.env` tayyorlash** (serverda):
-   ```bash
-   cd /opt/notiqai
-   cp .env.production.example .env
-   nano .env          # CHANGE_ME larni haqiqiy qiymatga almashtiring
-   chmod 600 .env
-   ```
-4. **Birinchi deploy** (serverda):
-   ```bash
-   bash deploy/deploy.sh
-   ```
-5. **Dokploy'ga 4 ta domen ulash** — eng muhim qadam:
-   - Login: `http://45.138.159.219:3000`
-   - `Projects` → `notiqai` → `Domains` tab
-   - Quyidagi 4 ta domenni qo'shing, **har biri `nginx` service'ga
-     va `port 80`** ga ulangan bo'lsin:
-
-     | Host | Service | Port |
-     |---|---|---|
-     | `notiqlik.uz` | nginx | 80 |
-     | `www.notiqlik.uz` | nginx | 80 |
-     | `admin.notiqlik.uz` | nginx | 80 |
-     | `curator.notiqlik.uz` | nginx | 80 |
-     | `api.notiqlik.uz` | nginx | 80 |
-
-   - HTTPS toggle'ni yoqing (Let's Encrypt avtomatik beradi).
-
-## Deploy keyingi kod o'zgarishlarida
-
-Oddiy ish jarayoni endi shunday:
+## One-time setup on a fresh server
 
 ```bash
-# 1) Lokal'da kodni o'zgartiring
+# 1) Local: rsync the project to the server
+rsync -avz --delete \
+  --exclude='.env' --exclude='.git' --exclude='node_modules' \
+  /home/abbbose/projects/najot-nur/ \
+  notiqai@45.138.159.219:/opt/notiqai/
+
+# 2) SSH into the server, then run setup
+ssh notiqai
+sudo bash /opt/notiqai/deploy/setup-server.sh
+
+# 3) Edit .env, then re-run setup to actually deploy
+sudo nano /opt/notiqai/.env
+sudo bash /opt/notiqai/deploy/setup-server.sh
+```
+
+`setup-server.sh` will:
+- Generate strong `POSTGRES_PASSWORD` and `JWT_SECRET_KEY` automatically
+- Pull all 4 images from GHCR
+- Start Caddy, nginx, backend, admin, curator, landing, postgres, redis, watchtower
+- Caddy auto-issues Let's Encrypt certs (1-2 min)
+
+**DNS must be configured first**: 5 A-records → `45.138.159.219`:
+`notiqlik.uz`, `www.notiqlik.uz`, `admin.notiqlik.uz`,
+`curator.notiqlik.uz`, `api.notiqlik.uz`.
+
+## Migrating from Dokploy (if upgrading from old setup)
+
+```bash
+ssh notiqai
+cd /opt/notiqai
+sudo bash deploy/teardown-dokploy.sh     # removes Dokploy
+sudo bash deploy/setup-server.sh         # installs the new stack
+```
+
+## Deploying new code
+
+```bash
+# Local
 git add -A
 git commit -m "..."
 git push origin main
-# 2) GitHub Actions 2-4 daqiqada image'larni quradi
-# 3) Dokploy avtomatik (yoki qo'lda) yangilangan image'larni tortadi
-# 4) Eski konteynerlar yangilanadi, downtime ~10 soniya
 ```
 
-Dokploy'ning image-watch funksiyasi yoqilgan bo'lsa, **hech narsa
-qilish shart emas** — push qilish bilanoq yangilanadi. Aks holda
-Dokploy UI → notiqai → **Deploy** tugmasini bosing.
+That's it. **No manual deploy needed.** Watchtower detects the new image within 5 minutes and restarts the container. The app keeps running with zero downtime (Watchtower starts the new container, waits for healthy, then stops the old one).
+
+## Manual deploy (if Watchtower is off)
+
+```bash
+ssh notiqai
+cd /opt/notiqai
+sudo bash deploy/update.sh
+```
 
 ## Daily operations
 
@@ -109,29 +119,37 @@ cd /opt/notiqai
 deploy/logs.sh                 # tail all containers
 deploy/logs.sh backend         # tail one service
 deploy/backup.sh               # pg_dump + media tar
+deploy/update.sh                # manual deploy (no Watchtower)
 ```
 
 Inside the stack:
 ```bash
-docker compose -f docker-compose.yml ps
-docker compose -f docker-compose.yml logs -f backend
-docker exec notiq_backend python -m app.seeds.seed   # idempotent
+docker compose ps
+docker compose logs -f backend
+docker compose restart backend
+docker exec notiq_backend python -m app.seeds.seed
 docker exec -it notiq_postgres psql -U notiq -d notiqai
 ```
 
-## Security baseline already applied
+## Required: GHCR images must be PUBLIC
 
-- `POSTGRES_PASSWORD` va `JWT_SECRET_KEY` serverda 256-bit hex bilan
-  generatsiya qilingan (`/opt/notiqai/.env`, mode 600).
-- UFW: faqat 22, 80, 443 ochiq.
-- `DOCKER-USER` chain tashqi trafikni backend (8000), postgres (5432),
-  redis (6379) ga tushiradi.
-- Backend non-root `app` user bilan ishlaydi, `tini` PID 1.
-- Rate-limit zones:
-  - 30 r/s umumiy API
-  - 5 r/min `/api/v1/auth/*` (OTP brute-force guard)
-- HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy
-  (Dokploy Traefik tomonidan qo'shiladi).
+GitHub Actions pushes images to `ghcr.io/setdarovdev/najot-nur-{backend,admin,curator,landing}`. Watchtower on the server can only pull them if they're **public**.
+
+Verify at: <https://github.com/setdarovDEV?tab=packages>
+
+Each package → **Package settings** → **Change visibility** → **Public**.
+
+## Adding/removing domains
+
+Edit `deploy/Caddyfile` and add/remove the hostname. Then:
+
+```bash
+ssh notiqai
+cd /opt/notiqai
+docker compose restart caddy
+```
+
+Caddy will auto-issue a Let's Encrypt cert for the new domain within seconds.
 
 ## Backup policy
 
@@ -140,3 +158,12 @@ docker exec -it notiq_postgres psql -U notiq -d notiqai
 - `.env` nusxasi (chmod 600)
 - `media` volume tar
 - 14 kun retention
+
+## Security baseline
+
+- `POSTGRES_PASSWORD` and `JWT_SECRET_KEY` generated by setup script (256-bit hex)
+- UFW: faqat 22, 80, 443 ochiq
+- Backend non-root, `tini` PID 1
+- Rate-limit zones: 30 r/s API, 5 r/min auth
+- Auto-HTTPS (Let's Encrypt) + auto-renewal
+- All GHCR images scanned by GitHub

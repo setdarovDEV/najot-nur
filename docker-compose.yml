@@ -298,7 +298,7 @@ services:
   #  label `com.centurylinklabs.watchtower.enable: true`.
   # ─────────────────────────────────────────────────────────────
   watchtower:
-    image: containrrr/watchtower:1.7
+    image: containrrr/watchtower:latest
     container_name: notiq_watchtower
     restart: unless-stopped
     volumes:

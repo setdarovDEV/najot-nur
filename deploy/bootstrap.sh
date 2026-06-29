@@ -154,7 +154,15 @@ if [[ ! -f "$INSTALL_DIR/.env" ]]; then
   echo
   read -rp "Hozir tahrirlaysizmi? (y/n): " edit_now
   if [[ "$edit_now" == "y" ]]; then
-    ${EDITOR:-nano} "$INSTALL_DIR/.env"
+    # Editor tanlash: nano > vi > apt install nano
+    if command -v nano >/dev/null 2>&1; then
+      EDITOR_CMD=nano
+    elif command -v vi >/dev/null 2>&1; then
+      EDITOR_CMD=vi
+    else
+      apt-get install -y -qq nano >/dev/null 2>&1 && EDITOR_CMD=nano || EDITOR_CMD=vi
+    fi
+    $EDITOR_CMD "$INSTALL_DIR/.env"
     echo
     yellow "Davom etish uchun Enter bosing (yoki Ctrl+C bilan chiqing va keyin qayta ishga tushiring)..."
     read -r

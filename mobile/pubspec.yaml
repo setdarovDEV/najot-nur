@@ -44,6 +44,12 @@ dependencies:
   # Typography (Neue Haas Grotesk fallback)
   google_fonts: ^6.2.1
 
+  # Security subsystem
+  permission_handler: ^11.3.1
+  device_info_plus: ^10.1.2
+  uuid: ^4.5.1
+  package_info_plus: ^8.0.2
+
   # Push notifications
   firebase_core: ^3.6.0
   firebase_messaging: ^15.1.3

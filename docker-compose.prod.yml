@@ -92,7 +92,7 @@ services:
       context: ./admin
       dockerfile: Dockerfile.prod
       args:
-        VITE_API_URL: ${VITE_API_URL:-https://api.notiqlik.uz/api/v1}
+        VITE_API_URL: ${VITE_API_URL_ADMIN:-/api/v1}
     container_name: notiq_admin
     restart: always
     # remove host port from base compose; nginx proxies to admin
@@ -115,6 +115,53 @@ services:
         limits:
           memory: 64M
 
+  curator:
+    build:
+      context: ./curator
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ${VITE_API_URL_CURATOR:-/api/v1}
+    container_name: notiq_curator
+    restart: always
+    ports: []
+    expose:
+      - "80"
+    command: ["nginx", "-g", "daemon off;"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  landing:
+    build:
+      context: ./landing
+      dockerfile: Dockerfile.prod
+    container_name: notiq_landing
+    restart: always
+    ports: []
+    expose:
+      - "80"
+    command: ["nginx", "-g", "daemon off;"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+
   nginx:
     image: nginx:1.27-alpine
     container_name: notiq_nginx
@@ -123,6 +170,10 @@ services:
       backend:
         condition: service_healthy
       admin:
+        condition: service_healthy
+      curator:
+        condition: service_healthy
+      landing:
         condition: service_healthy
     ports:
       - target: 80
@@ -134,7 +185,6 @@ services:
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./deploy/nginx/www:/var/www/landing:ro
       - ./deploy/nginx/certbot/www:/var/www/certbot:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - media:/var/www/media:ro

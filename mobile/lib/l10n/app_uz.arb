@@ -534,5 +534,7 @@
   "yourAnswer": "SIZNING JAVOBINGIZ",
   "curatorFeedback": "KURATOR IZOHI",
   "sending": "Yuborilmoqda...",
-  "cancel": "Bekor qilish"
+  "cancel": "Bekor qilish",
+  "securityCaptureDetected": "Ekran yozilayotgani aniqlandi",
+  "securityCaptureSubtitle": "Sizning ekraningiz yozib olinmoqda. Maxfiy kontent yashirilgan. Davom etish uchun yozishni to'xtating."
 }

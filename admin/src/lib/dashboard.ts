@@ -11,11 +11,6 @@ import type {
   Stats,
 } from "./types";
 
-// ─── Composite dashboard queries ────────────────────────────────────────────
-//
-// Each dashboard fetches everything in a single parallel batch via useQueries,
-// so the UI never has to wait sequentially.
-
 export type AdminDashboardQueries = readonly [
   UseQueryResult<Stats, unknown>,
   UseQueryResult<Page<ClientRow>, unknown>,
@@ -77,55 +72,4 @@ export function useAdminDashboard(): AdminDashboardQueries {
       },
     ],
   }) as unknown as AdminDashboardQueries;
-}
-
-export type CuratorDashboardQueries = readonly [
-  UseQueryResult<Stats, unknown>,
-  UseQueryResult<Homework[], unknown>,
-  UseQueryResult<Homework[], unknown>,
-  UseQueryResult<AdminCourse[], unknown>,
-  UseQueryResult<Page<ClientRow>, unknown>,
-];
-
-export function useCuratorDashboard(): CuratorDashboardQueries {
-  return useQueries({
-    queries: [
-      {
-        queryKey: ["admin", "stats"],
-        queryFn: async () => (await api.get<Stats>("/admin/stats")).data,
-      },
-      {
-        queryKey: ["admin", "dashboard-homeworks", "submitted"],
-        queryFn: async () =>
-          (
-            await api.get<Homework[]>("/admin/homeworks", {
-              params: { status: "submitted" },
-            })
-          ).data,
-      },
-      {
-        queryKey: ["admin", "dashboard-homeworks", "reviewed"],
-        queryFn: async () =>
-          (
-            await api.get<Homework[]>("/admin/homeworks", {
-              params: { status: "reviewed" },
-            })
-          ).data,
-      },
-      {
-        queryKey: ["admin", "courses"],
-        queryFn: async () =>
-          (await api.get<AdminCourse[]>("/admin/courses")).data,
-      },
-      {
-        queryKey: ["admin", "dashboard-leaderboard", 20],
-        queryFn: async () =>
-          (
-            await api.get<Page<ClientRow>>("/admin/clients", {
-              params: { size: 20 },
-            })
-          ).data,
-      },
-    ],
-  }) as unknown as CuratorDashboardQueries;
 }

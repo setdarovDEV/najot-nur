@@ -31,6 +31,11 @@ from app.models.order import Order
 from app.models.payment import Payment
 from app.models.practicum import Practicum
 from app.models.practicum_submission import PracticumSubmission
+from app.models.security_session import (
+    SecurityEventType,
+    SecuritySession,
+    SecuritySessionEvent,
+)
 from app.models.support import SupportMessage
 from app.models.user import AuthIdentity, User
 
@@ -63,4 +68,7 @@ __all__ = [
     "PracticumSubmission",
     "Homework",
     "SupportMessage",
+    "SecuritySession",
+    "SecuritySessionEvent",
+    "SecurityEventType",
 ]

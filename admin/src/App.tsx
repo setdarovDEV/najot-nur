@@ -20,7 +20,7 @@ import { QuizzesPage } from "./pages/QuizzesPage";
 import { CertificateRequestsPage } from "./pages/CertificateRequestsPage";
 
 export default function App() {
-  const { isAuthed, perms } = useAuth();
+  const { isAuthed } = useAuth();
 
   if (!isAuthed) {
     return (
@@ -35,28 +35,12 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<DashboardPage />} />
-
-        {/* Admin-only routes */}
-        {perms.canManageClients && (
-          <Route path="clients" element={<ClientsPage />} />
-        )}
-        {perms.canManageClients && (
-          <Route path="clients/:id" element={<ClientDetailPage />} />
-        )}
-        {perms.canManageCurators && (
-          <Route path="curators" element={<CuratorsPage />} />
-        )}
-        {perms.canSendPush && (
-          <Route path="notifications" element={<NotificationsPage />} />
-        )}
-        {perms.canViewReports && (
-          <Route path="payments" element={<PaymentsPage />} />
-        )}
-        {perms.canViewReports && (
-          <Route path="orders" element={<OrdersPage />} />
-        )}
-
-        {/* Curator + admin routes (content management) */}
+        <Route path="clients" element={<ClientsPage />} />
+        <Route path="clients/:id" element={<ClientDetailPage />} />
+        <Route path="curators" element={<CuratorsPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="payments" element={<PaymentsPage />} />
+        <Route path="orders" element={<OrdersPage />} />
         <Route path="homeworks" element={<HomeworksPage />} />
         <Route path="certificate-requests" element={<CertificateRequestsPage />} />
         <Route path="references" element={<ReferencesPage />} />
@@ -65,7 +49,6 @@ export default function App() {
         <Route path="audiobooks" element={<AudiobooksPage />} />
         <Route path="video-lessons" element={<VideoLessonsPage />} />
         <Route path="support-chats" element={<SupportChatsPage />} />
-
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
       <Route path="/login" element={<Navigate to="/" replace />} />

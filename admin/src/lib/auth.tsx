@@ -2,11 +2,12 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { AxiosError } from "axios";
 import { api, TOKEN_KEY, isTokenExpired, setUnauthorizedHandler } from "./api";
-import { detectSite, roleErrorForSite } from "./subdomain";
 
 export type UserRole = "admin" | "curator" | "user";
 
@@ -18,40 +19,11 @@ export interface UserProfile {
   avatar_url: string | null;
 }
 
-export interface Permissions {
-  /** Can upload audiobooks / video lessons and grade homework. */
-  canUpload: boolean;
-  /** Can publish audiobooks (admin only). */
-  canPublish: boolean;
-  /** Can manage curators (admin only). */
-  canManageCurators: boolean;
-  /** Can view payments and read-only access to all sections. */
-  canViewReports: boolean;
-  /** Can send push notifications. */
-  canSendPush: boolean;
-  /** Can manage end-users (clients). */
-  canManageClients: boolean;
-}
-
-function permissionsFor(role: UserRole | null): Permissions {
-  const isAdmin = role === "admin";
-  const isCurator = role === "curator";
-  return {
-    canUpload: isCurator || isAdmin,
-    canPublish: isAdmin,
-    canManageCurators: isAdmin,
-    canViewReports: isAdmin,
-    canSendPush: isAdmin,
-    canManageClients: isAdmin,
-  };
-}
-
 interface AuthState {
   token: string | null;
   role: UserRole | null;
   user: UserProfile | null;
   isAuthed: boolean;
-  perms: Permissions;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -70,6 +42,7 @@ const AuthContext = createContext<AuthState | null>(null);
 
 /** Read a non-expired token from storage; clears it if already expired. */
 function initialToken(): string | null {
+  if (typeof window === "undefined") return null;
   const t = localStorage.getItem(TOKEN_KEY);
   if (!t) return null;
   if (isTokenExpired(t)) {
@@ -86,20 +59,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return t ? parseRole(t) : null;
   });
   const [user, setUser] = useState<UserProfile | null>(null);
+  // Guard against concurrent /auth/me fetches and double-firing on rapid
+  // re-renders or token changes.
+  const inflight = useRef<Promise<void> | null>(null);
 
   function logout() {
-    localStorage.removeItem(TOKEN_KEY);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(TOKEN_KEY);
+    }
     setToken(null);
     setRole(null);
     setUser(null);
   }
 
   async function fetchUser() {
+    // De-duplicate: if a fetch is already running, reuse it.
+    if (inflight.current) return inflight.current;
+    const p = (async () => {
+      try {
+        const res = await api.get<UserProfile>("/auth/me");
+        setUser(res.data);
+      } catch (err) {
+        // 401 already handled by the global interceptor (calls logout()).
+        // For any other failure (network, 5xx), just clear the cached profile
+        // so the UI doesn't show a stale name.
+        if (err instanceof AxiosError && err.response?.status !== 401) {
+          setUser(null);
+        }
+      }
+    })();
+    inflight.current = p;
     try {
-      const res = await api.get<UserProfile>("/auth/me");
-      setUser(res.data);
-    } catch {
-      setUser(null);
+      await p;
+    } finally {
+      inflight.current = null;
     }
   }
 
@@ -111,20 +104,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (token && !user) {
+    if (token && !user && !inflight.current) {
       void fetchUser();
     }
   }, [token]);
 
   async function login(email: string, password: string) {
+    // Reset cached profile so a previous user's name doesn't flash on the
+    // dashboard between login and the /auth/me response.
+    setUser(null);
     const res = await api.post("/auth/login", { email, password });
     const access = res.data.access_token as string;
     const parsedRole = parseRole(access);
 
-    // Reject if the server role doesn't match the subdomain (e.g., a curator
-    // trying to log in on admin.notiqlik.uz with a valid password).
-    const roleErr = roleErrorForSite(parsedRole ?? "", detectSite());
-    if (roleErr) throw new Error(roleErr);
+    if (parsedRole !== "admin") {
+      throw new Error("Bu panel faqat adminlar uchun ochiq.");
+    }
 
     localStorage.setItem(TOKEN_KEY, access);
     setToken(access);
@@ -132,7 +127,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchUser();
   }
 
-  const perms = permissionsFor(role);
   return (
     <AuthContext.Provider
       value={{
@@ -140,7 +134,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role,
         user,
         isAuthed: !!token,
-        perms,
         login,
         logout,
         refreshUser: fetchUser,

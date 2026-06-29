@@ -2157,6 +2157,18 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Bekor qilish'**
   String get cancel;
+
+  /// No description provided for @securityCaptureDetected.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ekran yozilayotgani aniqlandi'**
+  String get securityCaptureDetected;
+
+  /// No description provided for @securityCaptureSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Sizning ekraningiz yozib olinmoqda. Maxfiy kontent yashirilgan. Davom etish uchun yozishni to\'xtating.'**
+  String get securityCaptureSubtitle;
 }
 
 class _AppLocalizationsDelegate

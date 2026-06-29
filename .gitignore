@@ -65,3 +65,11 @@ postgres-data/
 redis-data/
 uploads/
 media/
+# Dokploy / Letsencrypt live under a Docker named volume
+# (letsencrypt), but skip any accidentally bind-mounted copies.
+deploy/nginx/certbot/conf/
+deploy/dokploy/certbot-logs/
+docker-compose.override.yml
+
+bugs
+docs

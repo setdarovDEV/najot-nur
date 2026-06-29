@@ -12,6 +12,7 @@ import '../models/app_language.dart';
 import '../models/profile.dart';
 import '../models/user.dart';
 import '../services/push_service.dart';
+import '../services/security_service.dart';
 
 /// Overridden in main() once SharedPreferences is loaded.
 final sharedPreferencesProvider = Provider<SharedPreferences>(
@@ -99,7 +100,12 @@ class AuthController extends StateNotifier<AuthState> {
       : super(AuthState(
           isLoggedIn: _ref.read(tokenStoreProvider).isLoggedIn,
         )) {
-    if (state.isLoggedIn) loadMe();
+    if (state.isLoggedIn) {
+      // Re-open the security session for users who come back to the app
+      // without re-authenticating (e.g. after a cold start with a stored
+      // access token).
+      Future.microtask(_resumeSecuritySession);
+    }
   }
 
   final Ref _ref;
@@ -109,17 +115,31 @@ class AuthController extends StateNotifier<AuthState> {
     // Re-arm the 401 handler so a future expiry can fire again.
     _ref.read(apiClientProvider).resetSessionExpiredFlag();
     state = const AuthState(isLoggedIn: true);
-    await loadMe();
+    final user = await _loadUser();
+    if (user != null) {
+      // Fire-and-forget: the security session is best-effort and never
+      // blocks login.
+      // ignore: discarded_futures
+      _ref.read(securityServiceProvider).onLogin(user);
+    }
   }
 
-  Future<void> loadMe() async {
+  Future<AppUser?> _loadUser() async {
     try {
       final user = await _ref.read(authRepositoryProvider).me();
       state = AuthState(isLoggedIn: true, user: user);
+      return user;
     } catch (_) {
-      // token invalid -> sign out
       await logout();
+      return null;
     }
+  }
+
+  Future<void> _resumeSecuritySession() async {
+    final user = state.user;
+    if (user == null) return;
+    // ignore: discarded_futures
+    _ref.read(securityServiceProvider).onLogin(user);
   }
 
   void updateUser(AppUser user) {
@@ -127,6 +147,12 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    // Close the security session first so the server can revoke the token
+    // jti before we wipe the local credentials.
+    try {
+      // ignore: discarded_futures
+      await _ref.read(securityServiceProvider).onLogout();
+    } catch (_) {}
     await _ref.read(tokenStoreProvider).clear();
     state = const AuthState(isLoggedIn: false);
   }

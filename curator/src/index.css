@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-wine: #5bc2e7;
+  --color-wine-dark: #3a8aa8;
+  --color-wine-deep: #1f5870;
+  --color-wine-50: #eef9fd;
+  --color-wine-100: #d9f1f9;
+  --color-wine-200: #b3e2f1;
+  --color-orange: #ff5c39;
+  --color-skyblue: #5bc2e7;
+  --color-ink: #0f1d2b;
+  --color-muted: #6b7c8e;
+  --color-line: #e3eaf1;
+  --color-surface: #f5f9fc;
+  --color-card: #ffffff;
+
+  --font-sans: "Manrope", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .dark {
+    --color-ink: #e6eef5;
+    --color-muted: #8e9eb0;
+    --color-line: #23303d;
+    --color-wine-50: #15212c;
+    --color-wine-100: #1a2a37;
+    --color-wine-200: #23364a;
+    --color-surface: #0d1620;
+    --color-card: #14202b;
+    color-scheme: dark;
+  }
+
+  .dark body { background: #0d1620; }
+}
+
+@keyframes toast-in {
+  0% { opacity: 0; transform: translateX(20px) scale(0.96); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}

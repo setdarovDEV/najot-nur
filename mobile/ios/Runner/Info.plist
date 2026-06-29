@@ -4,6 +4,10 @@
 <dict>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Nutq va talaffuzni tahlil qilish uchun mikrofon kerak.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Kirish vaqtida identifikatsiya va xavfsizlik uchun kamera kerak.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Rasm tanlash uchun ruxsat kerak.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

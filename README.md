@@ -24,20 +24,33 @@ mashq qildiradigan va baholaydigan mobil ilova. Foydalanuvchi:
 - **Video darslar** sotib oladi, har dars yakunida test/AI mashqlar bajaradi.
 - **Audiokitoblar** tinglaydi (bepul + sotuvga).
 
-Kuratorlar admin paneldan uy vazifalarini tekshiradi, ball qo'yadi; kursni
-tugatganlarga **PDF sertifikat** beriladi.
+Kuratorlar **curator paneli** orqali uy vazifalarini tekshiradi, ball qo'yadi;
+adminlar esa **admin paneli** orqali mijozlar, to'lovlar va kontentni boshqaradi;
+kursni tugatganlarga **PDF sertifikat** beriladi.
 
-## 🏗 Arxitektura (monorepo)
+## 🏗 Arxitektura (monorepo, 3 ta alohida frontend)
 
 ```
 najot-nur/
 ├── backend/        FastAPI · SQLAlchemy(async) · Alembic · Redis · Claude AI
 ├── mobile/         Flutter ilova (premium UI, brand: #8A1538)
-├── admin/          React + Vite + TS admin panel (kuratorlar, mijozlar, push)
+├── landing/        React + Vite + TS  → notiqlik.uz         (marketing)
+├── admin/          React + Vite + TS  → admin.notiqlik.uz   (super admin panel)
+├── curator/        React + Vite + TS  → curator.notiqlik.uz (kurator paneli)
 ├── docs/           Brending (logo, ranglar, NN aydentika.pdf)
+├── deploy/         Nginx konfiguratsiyalar, SSL, Dokploy
 ├── docker-compose.yml
 └── .env.example
 ```
+
+### Domenlar
+
+| Domen | Frontend | Port (dev) | Prod | Tavsif |
+|-------|----------|-----------|------|--------|
+| `notiqlik.uz` / `www.notiqlik.uz` | `landing/` | 5175 | 443 | Marketing sahifa |
+| `admin.notiqlik.uz` | `admin/` | 5173 | 443 | Super admin paneli |
+| `curator.notiqlik.uz` | `curator/` | 5174 | 443 | Kurator paneli |
+| `api.notiqlik.uz` | — (FastAPI) | 8000 | 443 | Backend API |
 
 ## 🎨 Brending
 
@@ -51,36 +64,63 @@ najot-nur/
 
 ## 🚀 Ishga tushirish
 
+### Lokal development
+
 ```bash
-# 1. Env tayyorlash
+# 1) Env tayyorlash
 cp .env.example .env        # qiymatlarni to'ldiring
 
-# 2. Hammasini Docker bilan
-docker compose up -d        # postgres + redis + backend + admin
+# 2) Hammasini Docker bilan
+docker compose up -d        # postgres + redis + backend + admin + curator + landing
 
 # Backend:  http://localhost:8000/docs   (Swagger / OpenAPI)
+# Landing:  http://localhost:5175
 # Admin:    http://localhost:5173
+# Curator:  http://localhost:5174
 ```
 
+### Production (Dokploy / self-hosted) — **bitta komanda**
+
+```bash
+# 1) Production env tayyorlash
+cp .env.production.example .env
+# CHANGE_ME_* larni haqiqiy qiymatlar bilan almashtiring
+# (kamida POSTGRES_PASSWORD va JWT_SECRET_KEY)
+
+# 2) Birinchi marta seed ma'lumotlarni yuklash uchun .env ga:
+#    RUN_SEEDS=true   ← keyin false qilib qo'ying
+
+# 3) Hamma narsani ishga tushirish
+docker compose -f docker-compose.deploy.yml up -d --build
+```
+
+Tafsilotlar: **[deploy/dokploy/README.md](deploy/dokploy/README.md)**
+
+U yerda:
+- Dokploy'da 3 ta qadamda deploy
+- Traefik orqali yoki o'zining certbot bilan SSL
+- Backup, yangilash, troubleshooting
+
 Har bir qism alohida ham ishga tushadi — `backend/README.md`,
-`mobile/README.md`, `admin/README.md` ga qarang.
+`mobile/README.md`, `admin/README.md`, `curator/README.md`, `landing/README.md`
+ga qarang.
 
 > **Eslatma:** bu kompyuterda tizim PostgreSQL'i `5432`-portni egallagani uchun
 > loyiha bazasi Docker'da `5544`-portga joylangan (`.env` shunga sozlangan).
 > Toza muhitda standart `5432` ishlatilaveradi.
 
 ## 🔐 Demo hisoblar
-| Rol | Login | Parol |
-|-----|-------|-------|
-| Admin | `admin@najotnur.uz` | `admin123` |
-| Kurator | `curator@najotnur.uz` | `curator123` |
-| Foydalanuvchi (mobil) | telefon OTP | `DEBUG` rejimda kod javobda qaytadi |
+| Panel | Domen | Login | Parol |
+|-------|-------|-------|-------|
+| Admin | `admin.notiqlik.uz` | `admin@najotnur.uz` | `admin123` |
+| Kurator | `curator.notiqlik.uz` | `curator@najotnur.uz` | `curator123` |
+| Foydalanuvchi (mobil) | — | telefon OTP | `DEBUG` rejimda kod javobda qaytadi |
 
 ## ✅ Tekshirildi
 - Backend: 36 API endpoint, migratsiya + seed, auth (OTP→JWT), RBAC (user→admin = 403),
   ovoz tahlili xato so'zlarni aniqladi (`muhim→muxim` h/x tovushi), gating (anon = 401).
 - Mobil: `flutter analyze` — **0 xato**.
-- Admin: `tsc` (strict) + `vite build` — **muvaffaqiyatli**.
+- Admin, Curator, Landing: `tsc` (strict) + `vite build` — **muvaffaqiyatli**.
 
 ## 🗺 Yo'l xaritasi
 

@@ -70,9 +70,51 @@ export function mediaUrl(path: string | null | undefined): string | null {
 export function apiError(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const data = err.response?.data as
-      | { error?: { message?: string } }
+      | { error?: { code?: string; message?: string; details?: unknown } }
       | undefined;
-    return data?.error?.message ?? err.message;
+    const error = data?.error;
+    if (error?.message) {
+      // Pydantic 422 validation errors: surface the first field-level message
+      // so the user sees "Parol kamida 6 ta belgidan iborat bo'lishi kerak"
+      // instead of a generic "Validation failed".
+      if (error.code === "validation_error" && Array.isArray(error.details)) {
+        const first = (error.details as Array<{ msg?: string; loc?: unknown[] }>)[0];
+        const field = Array.isArray(first?.loc)
+          ? String((first!.loc as unknown[]).slice(-1)[0] ?? "")
+          : "";
+        const msg = first?.msg ? translateValidationMsg(first.msg) : null;
+        if (msg) {
+          return field ? `${humanField(field)}: ${msg}` : msg;
+        }
+      }
+      return error.message;
+    }
+    // Network / CORS / no response.
+    if (err.code === "ERR_NETWORK") return "Server bilan bogʻlanib boʻlmadi.";
+    if (err.code === "ECONNABORTED") return "Soʻrov vaqti tugadi.";
+    return err.message || "Kutilmagan xatolik";
   }
+  if (err instanceof Error && err.message) return err.message;
   return "Kutilmagan xatolik";
+}
+
+function humanField(name: string): string {
+  const map: Record<string, string> = {
+    email: "Email",
+    password: "Parol",
+    phone: "Telefon",
+    code: "Kod",
+    full_name: "Ism",
+  };
+  return map[name] ?? name;
+}
+
+function translateValidationMsg(msg: string): string | null {
+  const m = msg.toLowerCase();
+  if (m.includes("at least 6 characters")) return "kamida 6 ta belgidan iborat boʻlishi kerak";
+  if (m.includes("at least")) return `kamida ${(m.match(/at least (\d+)/)?.[1] ?? "0")} ta belgi kerak`;
+  if (m.includes("at most")) return `koʻpi bilan ${(m.match(/at most (\d+)/)?.[1] ?? "0")} ta belgi`;
+  if (m.includes("value is not a valid email")) return "toʻgʻri email formatida emas";
+  if (m.includes("field required")) return "toʻldirilishi shart";
+  return null;
 }

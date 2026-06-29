@@ -1,0 +1,333 @@
+# ════════════════════════════════════════════════════════════════
+#  NotiqAI — PRODUCTION deployment (single-file, Dokploy-ready).
+#
+#  What it brings up:
+#    • postgres     — primary database (volume: postgres-data)
+#    • redis        — cache + rate-limit (volume: redis-data)
+#    • backend      — FastAPI + gunicorn (uvicorn workers, 2 procs)
+#    • admin        — React/Vite SPA (built with VITE_API_URL)
+#    • nginx        — reverse proxy + rate-limit + static landing
+#    • certbot      — Let's Encrypt (profile: ssl, off by default)
+#
+#  Quick start (Dokploy → New → Docker Compose → paste this file):
+#    1. Fill in .env / environment variables (see .env.production.example)
+#    2. (Optional) set ENABLE_HTTPS=true and start the `certbot` profile
+#    3. Deploy. All services come up over the internal `notiq` network.
+#
+#  Health checks: every service. Nginx is the public entry point.
+# ════════════════════════════════════════════════════════════════
+
+name: notiqai
+
+# ════════════════════════════════════════════════════════════════
+#  NotiqAI — PRODUCTION deployment (single-file, Dokploy-ready).
+#
+#  Three independent frontends, each on its own subdomain:
+#    • landing   — notiqlik.uz / www.notiqlik.uz (public marketing)
+#    • admin     — admin.notiqlik.uz   (super admin panel)
+#    • curator   — curator.notiqlik.uz (curator panel)
+#  Plus a single API behind api.notiqlik.uz.
+#
+#  What it brings up:
+#    • postgres     — primary database (volume: postgres-data)
+#    • redis        — cache + rate-limit (volume: redis-data)
+#    • backend      — FastAPI + gunicorn (uvicorn workers, 2 procs)
+#    • admin        — React/Vite SPA
+#    • curator      — React/Vite SPA
+#    • landing      — React/Vite SPA
+#    • nginx        — reverse proxy + rate-limit
+#    • certbot      — Let's Encrypt (profile: ssl, off by default)
+# ════════════════════════════════════════════════════════════════
+
+services:
+  # ─────────────────────────────────────────────────────────────
+  #  PostgreSQL — primary database
+  # ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: notiq_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-notiq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-notiqai}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    expose:
+      - "5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-notiq} -d ${POSTGRES_DB:-notiqai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    networks:
+      - notiq
+
+  # ─────────────────────────────────────────────────────────────
+  #  Redis — cache + rate-limit store
+  # ─────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: notiq_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "192mb", "--maxmemory-policy", "allkeys-lru"]
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+    networks:
+      - notiq
+
+  # ─────────────────────────────────────────────────────────────
+  #  Backend — FastAPI + gunicorn (2 uvicorn workers by default)
+  #  Auto-runs alembic migrations on every start. Set RUN_SEEDS=true
+  #  on the FIRST deploy to populate demo data (idempotent afterwards).
+  # ─────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    image: notiqai-backend:latest
+    container_name: notiq_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-notiq}:${POSTGRES_PASSWORD:?required}@postgres:5432/${POSTGRES_DB:-notiqai}
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: production
+      DEBUG: "false"
+      # Inside the container we use the persistent media volume.
+      LOCAL_MEDIA_DIR: /app/media
+    expose:
+      - "8000"
+    volumes:
+      - media:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        echo "▶ Running alembic migrations…"
+        alembic upgrade heads
+        if [ "$${RUN_SEEDS:-false}" = "true" ]; then
+          echo "▶ Seeding initial data (idempotent)…"
+          python -m app.seeds.seed || echo "  seed exited with non-zero, continuing"
+        fi
+        echo "▶ Starting gunicorn with $${WEB_CONCURRENCY:-2} workers…"
+        exec gunicorn app.main:app \
+          -k uvicorn.workers.UvicornWorker \
+          -b 0.0.0.0:8000 \
+          --workers $${WEB_CONCURRENCY:-2} \
+          --timeout 60 \
+          --graceful-timeout 30 \
+          --access-logfile - \
+          --error-logfile -
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - notiq
+
+  # ─────────────────────────────────────────────────────────────
+  #  Admin — React + Vite SPA, served by an internal nginx.
+  #  VITE_API_URL controls where the SPA calls the backend.
+  #    /api/v1                  → same-origin (recommended, nginx proxies)
+  #    https://api.domain/api/v1 → cross-origin (set CORS in backend env)
+  # ─────────────────────────────────────────────────────────────
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ${VITE_API_URL_ADMIN:-/api/v1}
+    image: notiqai-admin:latest
+    container_name: notiq_admin
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - notiq
+
+  # ─────────────────────────────────────────────────────────────
+  #  Curator — React + Vite SPA (served on curator.* subdomain).
+  # ─────────────────────────────────────────────────────────────
+  curator:
+    build:
+      context: ./curator
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ${VITE_API_URL_CURATOR:-/api/v1}
+    image: notiqai-curator:latest
+    container_name: notiq_curator
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - notiq
+
+  # ─────────────────────────────────────────────────────────────
+  #  Landing — public marketing SPA (served on notiqlik.uz root).
+  # ─────────────────────────────────────────────────────────────
+  landing:
+    build:
+      context: ./landing
+      dockerfile: Dockerfile.prod
+    image: notiqai-landing:latest
+    container_name: notiq_landing
+    restart: unless-stopped
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+    networks:
+      - notiq
+
+  # ─────────────────────────────────────────────────────────────
+  #  Nginx — public entry point.
+  #  Image is built from deploy/dokploy/Dockerfile.nginx and has a
+  #  smart entrypoint that flips to HTTPS automatically when
+  #  /etc/letsencrypt/live/notiqai/fullchain.pem is mounted.
+  # ─────────────────────────────────────────────────────────────
+  nginx:
+    build:
+      context: ./deploy/dokploy
+      dockerfile: Dockerfile.nginx
+    image: notiqai-nginx:latest
+    container_name: notiq_nginx
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+      admin:
+        condition: service_healthy
+      curator:
+        condition: service_healthy
+      landing:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./deploy/nginx/conf.d-ssl:/etc/nginx/conf.d-ssl:ro
+      - ./deploy/nginx/certbot/www:/var/www/certbot:ro
+      - letsencrypt:/etc/letsencrypt
+      - media:/var/www/media:ro
+      - nginx-cache:/var/cache/nginx
+      - nginx-logs:/var/log/nginx
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - notiq
+
+  # ─────────────────────────────────────────────────────────────
+  #  Certbot — Let's Encrypt certificate issuer + auto-renewer.
+  #  OFF by default. Enable with: --profile ssl
+  #
+  #  First-time issuance:
+  #    docker compose -f docker-compose.deploy.yml --profile ssl run --rm \
+  #        certbot certonly --webroot -w /var/www/certbot \
+  #        -d notiqlik.uz -d www.notiqlik.uz -d admin.notiqlik.uz \
+  #        -d curator.notiqlik.uz -d api.notiqlik.uz \
+  #        --cert-name notiqai --non-interactive --agree-tos \
+  #        -m ${SSL_EMAIL}
+  #
+  #  Or just:  bash deploy/dokploy/init-letsencrypt.sh
+  # ─────────────────────────────────────────────────────────────
+  certbot:
+    image: certbot/certbot
+    container_name: notiq_certbot
+    profiles: ["ssl"]
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - ./deploy/nginx/certbot/www:/var/www/certbot:ro
+      - ./deploy/dokploy/certbot-logs:/var/log/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h; done'"
+    networks:
+      - notiq
+
+volumes:
+  postgres-data:
+  redis-data:
+  media:
+  letsencrypt:
+  nginx-cache:
+  nginx-logs:
+
+networks:
+  notiq:
+    driver: bridge

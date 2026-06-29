@@ -365,5 +365,7 @@
   "yourAnswer": "YOUR ANSWER",
   "curatorFeedback": "CURATOR FEEDBACK",
   "sending": "Sending...",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "securityCaptureDetected": "Screen capture detected",
+  "securityCaptureSubtitle": "Your screen is being recorded. Sensitive content is hidden. Stop the recording to continue."
 }

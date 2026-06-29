@@ -1125,4 +1125,11 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get cancel => 'Bekor qilish';
+
+  @override
+  String get securityCaptureDetected => 'Ekran yozilayotgani aniqlandi';
+
+  @override
+  String get securityCaptureSubtitle =>
+      'Sizning ekraningiz yozib olinmoqda. Maxfiy kontent yashirilgan. Davom etish uchun yozishni to\'xtating.';
 }

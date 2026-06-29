@@ -681,3 +681,131 @@ class QuizRepository {
     }
   }
 }
+
+/// Security session repository. Maps the `/security/...` backend endpoints.
+class SecurityRepository {
+  SecurityRepository(this._api);
+  final ApiClient _api;
+
+  /// Open a new tracked session for the current user.
+  Future<SecuritySessionStart> startSession({
+    required String platform,
+    String? osVersion,
+    String? appVersion,
+    String? deviceModel,
+    String? deviceId,
+    String? locale,
+  }) async {
+    try {
+      final r = await _api.dio.post('/security/sessions/start', data: {
+        'platform': platform,
+        if (osVersion != null) 'os_version': osVersion,
+        if (appVersion != null) 'app_version': appVersion,
+        if (deviceModel != null) 'device_model': deviceModel,
+        if (deviceId != null) 'device_id': deviceId,
+        if (locale != null) 'locale': locale,
+      });
+      return SecuritySessionStart.fromJson(
+        r.data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  Future<String> heartbeat({
+    required String sessionId,
+    String? watermarkText,
+  }) async {
+    try {
+      final r = await _api.dio.post(
+        '/security/sessions/$sessionId/heartbeat',
+        data: {
+          if (watermarkText != null) 'watermark_text': watermarkText,
+        },
+      );
+      return (r.data['watermark_text'] as String?) ?? '';
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  Future<void> endSession(String sessionId, {String? reason}) async {
+    try {
+      await _api.dio.post(
+        '/security/sessions/$sessionId/end',
+        data: {if (reason != null) 'reason': reason},
+      );
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  Future<void> reportEvent({
+    required String sessionId,
+    required String type,
+    Map<String, dynamic>? payload,
+    String? note,
+  }) async {
+    try {
+      await _api.dio.post(
+        '/security/sessions/$sessionId/events',
+        data: {
+          'type': type,
+          'payload': payload ?? const <String, dynamic>{},
+          if (note != null) 'note': note,
+        },
+      );
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  Future<void> uploadRecording({
+    required String sessionId,
+    required String filePath,
+    String kind = 'audio',
+    int durationSec = 0,
+    String? note,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'kind': kind,
+        'duration_sec': durationSec,
+        if (note != null) 'note': note,
+        'file': await MultipartFile.fromFile(filePath, filename: 'login.m4a'),
+      });
+      await _api.dio.post(
+        '/security/sessions/$sessionId/recording',
+        data: formData,
+        options: Options(
+          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+}
+
+class SecuritySessionStart {
+  SecuritySessionStart({
+    required this.sessionId,
+    required this.watermarkText,
+    required this.serverTime,
+  });
+  final String sessionId;
+  final String watermarkText;
+  final DateTime serverTime;
+
+  factory SecuritySessionStart.fromJson(Map<String, dynamic> j) {
+    final sess = (j['session'] as Map).cast<String, dynamic>();
+    return SecuritySessionStart(
+      sessionId: sess['id'] as String,
+      watermarkText: j['watermark_text'] as String? ?? '',
+      serverTime: DateTime.tryParse(j['server_time'] as String? ?? '') ??
+          DateTime.now().toUtc(),
+    );
+  }
+}

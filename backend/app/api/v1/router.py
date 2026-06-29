@@ -12,6 +12,7 @@ from app.api.v1 import (
     payments,
     practicums,
     quizzes,
+    security,
     speech,
     support,
     telegram_webhook,
@@ -21,6 +22,7 @@ from app.api.v1 import (
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
+api_router.include_router(security.router, prefix="/security", tags=["security"])
 api_router.include_router(speech.router, prefix="/speech", tags=["speech"])
 api_router.include_router(
     observation.router, prefix="/observation", tags=["observation"]

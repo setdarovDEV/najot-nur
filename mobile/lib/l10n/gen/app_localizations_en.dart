@@ -1118,4 +1118,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancel => 'Cancel';
+
+  @override
+  String get securityCaptureDetected => 'Screen capture detected';
+
+  @override
+  String get securityCaptureSubtitle =>
+      'Your screen is being recorded. Sensitive content is hidden. Stop the recording to continue.';
 }

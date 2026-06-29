@@ -5,6 +5,8 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'providers/providers.dart';
+import 'shared/widgets/security_capture_overlay.dart';
+import 'shared/widgets/security_watermark.dart';
 
 class NotiqAiApp extends ConsumerStatefulWidget {
   const NotiqAiApp({super.key});
@@ -67,6 +69,16 @@ class _NotiqAiAppState extends ConsumerState<NotiqAiApp> {
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      // Wrap every route with the security watermark + capture overlay.
+      // The watermark is only rendered when the user is authenticated and
+      // the server has returned a watermark text; otherwise the wrapper
+      // passes the child through unchanged.
+      builder: (context, child) {
+        final body = child ?? const SizedBox.shrink();
+        return SecurityWatermark(
+          child: SecurityCaptureOverlay(child: body),
+        );
+      },
     );
   }
 }

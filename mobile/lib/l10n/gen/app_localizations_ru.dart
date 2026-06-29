@@ -1117,4 +1117,11 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get cancel => 'Отмена';
+
+  @override
+  String get securityCaptureDetected => 'Обнаружена запись экрана';
+
+  @override
+  String get securityCaptureSubtitle =>
+      'Ваш экран записывается. Конфиденциальный контент скрыт. Остановите запись, чтобы продолжить.';
 }

@@ -49,34 +49,20 @@ const ADMIN_NAV: NavItem[] = [
   { to: "/references", labelKey: "references", icon: Mic },
   { to: "/practicums", labelKey: "practicums", icon: Headphones },
   { to: "/quizzes", labelKey: "quizzes", icon: BookOpen },
-  { to: "/certificate-requests", labelKey: "certificateRequests", icon: Award },
-];
-
-const CURATOR_NAV: NavItem[] = [
-  { to: "/", labelKey: "dashboard", icon: LayoutDashboard, end: true },
   { to: "/homeworks", labelKey: "homeworks", icon: ClipboardList },
   { to: "/certificate-requests", labelKey: "certificateRequests", icon: Award },
-  { to: "/references", labelKey: "references", icon: Mic },
-  { to: "/practicums", labelKey: "practicums", icon: Headphones },
-  { to: "/quizzes", labelKey: "quizzes", icon: BookOpen },
-  { to: "/audiobooks", labelKey: "audiobooks", icon: Headphones },
-  { to: "/video-lessons", labelKey: "videoLessons", icon: Video },
-  { to: "/support-chats", labelKey: "supportChats", icon: MessageCircle },
 ];
 
 export function Layout() {
-  const { logout, role, user } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const { theme, toggle: toggleTheme } = useTheme();
   const { lang, setLang, t } = useLang();
   const [menuOpen, setMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
 
-  const nav = role === "curator" ? CURATOR_NAV : ADMIN_NAV;
-  const isCurator = role === "curator";
-  const initials = isCurator ? "KR" : "SA";
-  const fullName = user?.full_name ?? (isCurator ? "Kurator" : "Super admin");
-  const email = user?.email ?? (isCurator ? "curator@najotnur.uz" : "admin@najotnur.uz");
+  const fullName = user?.full_name ?? "Super admin";
+  const email = user?.email ?? "admin@najotnur.uz";
 
   return (
     <div className="flex min-h-screen bg-surface">
@@ -92,13 +78,13 @@ export function Layout() {
             </div>
             <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-white/70">
               <ShieldCheck size={11} />
-              {isCurator ? t.sidebar.curatorPanel : t.sidebar.adminPanel}
+              {t.sidebar.adminPanel}
             </div>
           </div>
         </div>
 
         <nav className="flex flex-1 flex-col gap-1">
-          {nav.map((n) => (
+          {ADMIN_NAV.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
@@ -152,7 +138,7 @@ export function Layout() {
               />
               <input
                 type="text"
-                placeholder={isCurator ? t.topbar.searchCurator : t.topbar.searchAdmin}
+                placeholder={t.topbar.searchAdmin}
                 className="w-full rounded-xl border border-line bg-card py-2.5 pl-10 pr-4 text-sm text-ink placeholder:text-muted outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10 dark:bg-[#251d20]"
               />
             </div>
@@ -199,14 +185,8 @@ export function Layout() {
               )}
             </div>
 
-            <span
-              className={`hidden rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide sm:inline-flex ${
-                isCurator
-                  ? "bg-skyblue/15 text-skyblue"
-                  : "bg-wine/10 text-wine"
-              }`}
-            >
-              {isCurator ? t.topbar.curator : t.topbar.admin}
+            <span className="hidden rounded-full bg-wine/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-wine sm:inline-flex">
+              {t.topbar.admin}
             </span>
 
             <div className="relative">
@@ -214,14 +194,8 @@ export function Layout() {
                 onClick={() => { setMenuOpen((v) => !v); setLangOpen(false); }}
                 className="flex items-center gap-2.5 rounded-xl border border-line bg-card py-1.5 pl-1.5 pr-3 text-left transition hover:border-wine/30"
               >
-                <div
-                  className={`grid h-8 w-8 place-items-center rounded-lg text-xs font-black ${
-                    isCurator
-                      ? "bg-skyblue/20 text-skyblue"
-                      : "bg-wine text-white"
-                  }`}
-                >
-                  {initials}
+                <div className="grid h-8 w-8 place-items-center rounded-lg bg-wine text-xs font-black text-white">
+                  SA
                 </div>
                 <div className="hidden sm:block">
                   <div className="text-sm font-bold leading-none text-ink">

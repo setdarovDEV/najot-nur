@@ -33,7 +33,7 @@ npm run dev      # http://localhost:5175
 npm run build    # dist/ ichida statik fayllar
 ```
 
-Production uchun `docker-compose.deploy.yml` orqali
+Production uchun `docker-compose.production.yml` orqali
 `notiq_landing` konteyneriga o'raladi (nginx:alpine SPA).
 
 ## Domen

@@ -40,7 +40,7 @@ npm run build      # dist/ ichida statik fayllar
 npm run preview    # lokal preview
 ```
 
-Production uchun `docker-compose.deploy.yml` orqali
+Production uchun `docker-compose.production.yml` orqali
 `notiq_curator` konteyneriga o'raladi (nginx:alpine SPA).
 
 ## Domenlar

@@ -1,98 +1,130 @@
 # NotiqAI — server deployment
 
 Production stack lives on **`45.138.159.219`** at **`/opt/notiqai/`**.
+Dokploy is the deployment platform (Traefik handles HTTPS in front of
+the stack).
 
 ## Public endpoints
 
 | Subdomain | Service | Notes |
 |---|---|---|
-| `notiqlik.uz` / `www.notiqlik.uz` | Landing (static) | Marketing page, links to admin/curator/API |
-| `admin.notiqlik.uz` | Admin panel | React + Vite SPA, served by `notiq_admin` container |
-| `curator.notiqlik.uz` | Curator panel | Same SPA, curator role login |
+| `notiqlik.uz` / `www.notiqlik.uz` | Landing (static) | Marketing page |
+| `admin.notiqlik.uz` | Admin panel | React + Vite SPA |
+| `curator.notiqlik.uz` | Curator panel | React + Vite SPA |
 | `api.notiqlik.uz` | FastAPI backend | `/api/v1/*`, `/docs`, `/openapi.json`, `/health`, `/media/*` |
 
-All routed by `notiq_nginx` (nginx 1.27) with HTTP→HTTPS redirect
-(once TLS is enabled via `setup-https.sh`).
+Dokploy'ning Traefik'i 4 ta domenni **bitta** `nginx` service'ga
+(port 80) yo'naltiradi. Nginx `Host` header orqali ichki
+service'larga ajratadi (single-entry-point arxitekturasi).
 
 ## Container layout
 
 ```
-notiq_nginx      nginx:1.27-alpine  ── public entry point
-notiq_admin      notiqai-admin      ── React SPA (vite build, served by internal nginx)
-notiq_backend    notiqai-backend    ── FastAPI + gunicorn (2 uvicorn workers)
+notiq_nginx      nginx:1.27-alpine  ── public entry point (HTTP)
+notiq_admin      notiqai-admin      ── React SPA (vite build, internal nginx)
+notiq_curator    notiqai-curator    ── React SPA (vite build, internal nginx)
+notiq_landing    notiqai-landing    ── React SPA (vite build, internal nginx)
+notiq_backend    notiqai-backend    ── FastAPI + gunicorn
 notiq_postgres   postgres:16-alpine ── primary DB
-notiq_redis      redis:7-alpine     ── cache + rate-limit store
+notiq_redis      redis:7-alpine     ── cache + rate-limit
 ```
 
-## Daily operations (SSH into the server first)
+## First-time setup on a fresh server
+
+1. **DNS**: 4 ta A-record `45.138.159.219` ga qarating:
+   `notiqlik.uz`, `www.notiqlik.uz`, `admin.notiqlik.uz`,
+   `curator.notiqlik.uz`, `api.notiqlik.uz`.
+2. **Kodni ko'chirish**:
+   ```bash
+   rsync -avz --delete /home/abbbose/projects/najot-nur/ notiqai@45.138.159.219:/opt/notiqai/
+   ```
+3. **`.env` tayyorlash** (serverda):
+   ```bash
+   cd /opt/notiqai
+   cp .env.production.example .env
+   nano .env          # CHANGE_ME larni haqiqiy qiymatga almashtiring
+   chmod 600 .env
+   ```
+4. **Birinchi deploy** (serverda):
+   ```bash
+   bash deploy/deploy.sh
+   ```
+5. **Dokploy'ga 4 ta domen ulash** — eng muhim qadam:
+   - Login: `http://45.138.159.219:3000`
+   - `Projects` → `notiqai` → `Domains` tab
+   - Quyidagi 4 ta domenni qo'shing, **har biri `nginx` service'ga
+     va `port 80`** ga ulangan bo'lsin:
+
+     | Host | Service | Port |
+     |---|---|---|
+     | `notiqlik.uz` | nginx | 80 |
+     | `www.notiqlik.uz` | nginx | 80 |
+     | `admin.notiqlik.uz` | nginx | 80 |
+     | `curator.notiqlik.uz` | nginx | 80 |
+     | `api.notiqlik.uz` | nginx | 80 |
+
+   - HTTPS toggle'ni yoqing (Let's Encrypt avtomatik beradi).
+
+Batafsil: [`deploy/dokploy/README.md`](./dokploy/README.md).
+
+## Daily operations
 
 ```bash
-ssh notiqai                                 # passwordless via ed25519
+ssh notiqai
 cd /opt/notiqai
 
-deploy/logs.sh                              # tail all containers
-deploy/logs.sh backend                      # tail one service
-deploy/update.sh                            # rebuild images + restart
-deploy/backup.sh                            # pg_dump + media tar to /var/backups/notiqai
-deploy/setup-https.sh                       # one-shot Let's Encrypt enable (needs DNS first)
+deploy/logs.sh                 # tail all containers
+deploy/logs.sh backend         # tail one service
+deploy/update.sh               # rebuild + restart (env o'zgarmasa)
+deploy/backup.sh               # pg_dump + media tar
 ```
 
-Inside the container, common commands:
+Inside the stack:
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
-docker compose ... logs -f backend
+docker compose -f docker-compose.production.yml ps
+docker compose -f docker-compose.production.yml logs -f backend
 docker exec notiq_backend python -m app.seeds.seed   # idempotent
 docker exec -it notiq_postgres psql -U notiq -d notiqai
 ```
 
-## How to enable HTTPS
-
-1. Point DNS A-records for these 5 hosts to `45.138.159.219`:
-   `notiqlik.uz`, `www.notiqlik.uz`, `admin.notiqlik.uz`,
-   `curator.notiqlik.uz`, `api.notiqlik.uz`.
-2. Wait for propagation (`dig +short notiqlik.uz @8.8.8.8` should return `45.138.159.219`).
-3. Run:
-   ```bash
-   ssh notiqai
-   cd /opt/notiqai && deploy/setup-https.sh
-   ```
-4. The script installs Let's Encrypt certs at
-   `/etc/letsencrypt/live/notiqai/`, switches nginx to SSL, and
-   registers a daily 03:00 cron for `certbot renew`.
-
 ## Security baseline already applied
 
-- `POSTGRES_PASSWORD` and `JWT_SECRET_KEY` are unique 256-bit random
-  hex strings generated on the server (`/opt/notiqai/.env`, mode 600).
-- UFW: only 22, 80, 443 open. Everything else dropped.
-- `DOCKER-USER` chain drops external traffic to backend (8000),
-  admin dev (5173), postgres (5432), redis (6382).
-- Backend runs as non-root user `app`, image has `tini` PID 1.
+- `POSTGRES_PASSWORD` va `JWT_SECRET_KEY` serverda 256-bit hex bilan
+  generatsiya qilingan (`/opt/notiqai/.env`, mode 600).
+- UFW: faqat 22, 80, 443 ochiq.
+- `DOCKER-USER` chain tashqi trafikni backend (8000), postgres (5432),
+  redis (6379) ga tushiradi.
+- Backend non-root `app` user bilan ishlaydi, `tini` PID 1.
 - Rate-limit zones:
-  - 30 r/s for the API.
-  - 5 r/min for `/api/v1/auth/*` (OTP brute-force guard).
-- HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy on all responses (after HTTPS is on).
-- Daily `certbot renew` cron after HTTPS is enabled.
+  - 30 r/s umumiy API
+  - 5 r/min `/api/v1/auth/*` (OTP brute-force guard)
+- HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy
+  (Dokploy Traefik tomonidan qo'shiladi).
 
 ## Backup policy
 
-`deploy/backup.sh` (run via `0 3 * * *` after wiring up cron) does:
-- `pg_dump` of the live database → `/var/backups/notiqai/db-YYYYMMDDTHHMMSS.sql.gz`
-- copy of `.env` (chmod 600)
-- `tar` of the `media` volume
-- 14-day retention
+`deploy/backup.sh` (`0 3 * * *` cron orqali):
+- `pg_dump` → `/var/backups/notiqai/db-YYYYMMDDTHHMMSS.sql.gz`
+- `.env` nusxasi (chmod 600)
+- `media` volume tar
+- 14 kun retention
 
 ## Updating the application
 
-1. Edit code locally in `/home/abbbose/projects/najot-nur`.
-2. `rsync` or `scp` the changed files to `/opt/notiqai/` on the server.
-3. `ssh notiqai "cd /opt/notiqai && deploy/update.sh"` rebuilds images
-   and restarts containers in-place (DB volumes are preserved).
+```bash
+# local'da
+rsync -avz --delete \
+  --exclude='.env' --exclude='node_modules' --exclude='.git' \
+  /home/abbbose/projects/najot-nur/ \
+  notiqai@45.138.159.219:/opt/notiqai/
 
-For frontend-only changes, only the `admin` image needs rebuilding —
-faster:
+# serverda
+ssh notiqai "cd /opt/notiqai && deploy/update.sh"
+```
+
+Frontend-only o'zgarishlar uchun tezroq:
 ```bash
 ssh notiqai "cd /opt/notiqai && \
-  docker compose -f docker-compose.yml -f docker-compose.prod.yml build admin && \
-  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d admin"
+  docker compose -f docker-compose.production.yml build admin && \
+  docker compose -f docker-compose.production.yml up -d admin"
 ```

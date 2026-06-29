@@ -1,43 +1,34 @@
 # ════════════════════════════════════════════════════════════════
-#  NotiqAI — PRODUCTION deployment (single-file, Dokploy-ready).
+#  NotiqAI — PRODUCTION compose (Dokploy-ready, single file).
 #
-#  What it brings up:
-#    • postgres     — primary database (volume: postgres-data)
-#    • redis        — cache + rate-limit (volume: redis-data)
-#    • backend      — FastAPI + gunicorn (uvicorn workers, 2 procs)
-#    • admin        — React/Vite SPA (built with VITE_API_URL)
-#    • nginx        — reverse proxy + rate-limit + static landing
-#    • certbot      — Let's Encrypt (profile: ssl, off by default)
+#  Architecture:
+#    ┌──────────────────────────────┐
+#    │  Dokploy Traefik (SSL off)   │  ← terminatsiya HTTPS
+#    └──────────────┬───────────────┘
+#                   │  http://nginx:80
+#    ┌──────────────▼───────────────┐
+#    │  nginx (HTTP, Host routing)  │  ← ushbu compose
+#    └─┬─────┬─────┬─────┬──────────┘
+#      │     │     │     │
+#   landing admin curator  │
+#                          │
+#                  ┌───────▼──────┐
+#                  │   backend    │
+#                  └──────────────┘
 #
-#  Quick start (Dokploy → New → Docker Compose → paste this file):
-#    1. Fill in .env / environment variables (see .env.production.example)
-#    2. (Optional) set ENABLE_HTTPS=true and start the `certbot` profile
-#    3. Deploy. All services come up over the internal `notiq` network.
+#  Public entry: ONE container (nginx:80) — Dokploy routes ALL
+#  subdomains to it via Traefik labels; nginx picks the right
+#  upstream by the `Host` header.
 #
-#  Health checks: every service. Nginx is the public entry point.
+#  Quick start:
+#    1. Paste this file in Dokploy → New → Compose
+#    2. In Dokploy's "Domains" tab add 4 hostnames, ALL pointing
+#       to the `nginx` service on port 80 (see deploy/dokploy/README.md)
+#    3. Fill .env (copy from .env.production.example)
+#    4. Deploy. Traefik issues Let's Encrypt certs automatically.
 # ════════════════════════════════════════════════════════════════
 
 name: notiqai
-
-# ════════════════════════════════════════════════════════════════
-#  NotiqAI — PRODUCTION deployment (single-file, Dokploy-ready).
-#
-#  Three independent frontends, each on its own subdomain:
-#    • landing   — notiqlik.uz / www.notiqlik.uz (public marketing)
-#    • admin     — admin.notiqlik.uz   (super admin panel)
-#    • curator   — curator.notiqlik.uz (curator panel)
-#  Plus a single API behind api.notiqlik.uz.
-#
-#  What it brings up:
-#    • postgres     — primary database (volume: postgres-data)
-#    • redis        — cache + rate-limit (volume: redis-data)
-#    • backend      — FastAPI + gunicorn (uvicorn workers, 2 procs)
-#    • admin        — React/Vite SPA
-#    • curator      — React/Vite SPA
-#    • landing      — React/Vite SPA
-#    • nginx        — reverse proxy + rate-limit
-#    • certbot      — Let's Encrypt (profile: ssl, off by default)
-# ════════════════════════════════════════════════════════════════
 
 services:
   # ─────────────────────────────────────────────────────────────
@@ -95,9 +86,7 @@ services:
       - notiq
 
   # ─────────────────────────────────────────────────────────────
-  #  Backend — FastAPI + gunicorn (2 uvicorn workers by default)
-  #  Auto-runs alembic migrations on every start. Set RUN_SEEDS=true
-  #  on the FIRST deploy to populate demo data (idempotent afterwards).
+  #  Backend — FastAPI + gunicorn
   # ─────────────────────────────────────────────────────────────
   backend:
     build:
@@ -115,7 +104,6 @@ services:
       REDIS_URL: redis://redis:6379/0
       ENVIRONMENT: production
       DEBUG: "false"
-      # Inside the container we use the persistent media volume.
       LOCAL_MEDIA_DIR: /app/media
     expose:
       - "8000"
@@ -160,10 +148,7 @@ services:
       - notiq
 
   # ─────────────────────────────────────────────────────────────
-  #  Admin — React + Vite SPA, served by an internal nginx.
-  #  VITE_API_URL controls where the SPA calls the backend.
-  #    /api/v1                  → same-origin (recommended, nginx proxies)
-  #    https://api.domain/api/v1 → cross-origin (set CORS in backend env)
+  #  Admin SPA — React + Vite, served by an internal nginx
   # ─────────────────────────────────────────────────────────────
   admin:
     build:
@@ -193,7 +178,7 @@ services:
       - notiq
 
   # ─────────────────────────────────────────────────────────────
-  #  Curator — React + Vite SPA (served on curator.* subdomain).
+  #  Curator SPA — React + Vite
   # ─────────────────────────────────────────────────────────────
   curator:
     build:
@@ -223,7 +208,7 @@ services:
       - notiq
 
   # ─────────────────────────────────────────────────────────────
-  #  Landing — public marketing SPA (served on notiqlik.uz root).
+  #  Landing SPA — public marketing page
   # ─────────────────────────────────────────────────────────────
   landing:
     build:
@@ -248,16 +233,15 @@ services:
       - notiq
 
   # ─────────────────────────────────────────────────────────────
-  #  Nginx — public entry point.
-  #  Image is built from deploy/dokploy/Dockerfile.nginx and has a
-  #  smart entrypoint that flips to HTTPS automatically when
-  #  /etc/letsencrypt/live/notiqai/fullchain.pem is mounted.
+  #  Nginx — single public entry point.
+  #  Listens ONLY on :80 (HTTP). Dokploy Traefik terminates HTTPS
+  #  in front of us, so nginx does NOT need ssl_certificate files.
+  #
+  #  All 4 subdomains from Dokploy point to THIS service.
+  #  Routing is by `Host` header → correct upstream container.
   # ─────────────────────────────────────────────────────────────
   nginx:
-    build:
-      context: ./deploy/dokploy
-      dockerfile: Dockerfile.nginx
-    image: notiqai-nginx:latest
+    image: nginx:1.27-alpine
     container_name: notiq_nginx
     restart: unless-stopped
     depends_on:
@@ -271,23 +255,14 @@ services:
         condition: service_healthy
     ports:
       - "80:80"
-      - "443:443"
-    # Dokploy lives on the host (separate Docker stack, not on the
-    # `notiq` network). Map `host.docker.internal` to the host's
-    # gateway so nginx can reach it for reverse-proxying.
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./deploy/nginx/conf.d-ssl:/etc/nginx/conf.d-ssl:ro
-      - ./deploy/nginx/certbot/www:/var/www/certbot:ro
-      - letsencrypt:/etc/letsencrypt
       - media:/var/www/media:ro
       - nginx-cache:/var/cache/nginx
       - nginx-logs:/var/log/nginx
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
       interval: 30s
       timeout: 3s
       retries: 5
@@ -299,37 +274,10 @@ services:
     networks:
       - notiq
 
-  # ─────────────────────────────────────────────────────────────
-  #  Certbot — Let's Encrypt certificate issuer + auto-renewer.
-  #  OFF by default. Enable with: --profile ssl
-  #
-  #  First-time issuance:
-  #    docker compose -f docker-compose.deploy.yml --profile ssl run --rm \
-  #        certbot certonly --webroot -w /var/www/certbot \
-  #        -d notiqlik.uz -d www.notiqlik.uz -d admin.notiqlik.uz \
-  #        -d curator.notiqlik.uz -d api.notiqlik.uz \
-  #        --cert-name notiqai --non-interactive --agree-tos \
-  #        -m ${SSL_EMAIL}
-  #
-  #  Or just:  bash deploy/dokploy/init-letsencrypt.sh
-  # ─────────────────────────────────────────────────────────────
-  certbot:
-    image: certbot/certbot
-    container_name: notiq_certbot
-    profiles: ["ssl"]
-    volumes:
-      - letsencrypt:/etc/letsencrypt
-      - ./deploy/nginx/certbot/www:/var/www/certbot:ro
-      - ./deploy/dokploy/certbot-logs:/var/log/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h; done'"
-    networks:
-      - notiq
-
 volumes:
   postgres-data:
   redis-data:
   media:
-  letsencrypt:
   nginx-cache:
   nginx-logs:
 

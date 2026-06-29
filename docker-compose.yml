@@ -212,11 +212,12 @@ services:
 
   # ─────────────────────────────────────────────────────────────
   #  Nginx — single public entry point.
-  #  Listens ONLY on :80 (HTTP). Dokploy Traefik terminates HTTPS
-  #  in front of us, so nginx does NOT need ssl_certificate files.
+  #  Listens ONLY on :80 INSIDE the docker network (expose, not
+  #  ports). Dokploy Traefik terminates HTTPS and forwards
+  #  requests to nginx:80 via the internal docker DNS.
   #
-  #  All 4 subdomains from Dokploy point to THIS service.
-  #  Routing is by `Host` header → correct upstream container.
+  #  DO NOT add `ports: ["80:80"]` here — it would clash with
+  #  Dokploy Traefik which is already on host:80.
   # ─────────────────────────────────────────────────────────────
   nginx:
     image: nginx:1.27-alpine
@@ -231,8 +232,8 @@ services:
         condition: service_healthy
       landing:
         condition: service_healthy
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro

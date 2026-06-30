@@ -118,19 +118,37 @@ jobs:
       url: https://notiqlik.uz
 
     steps:
-      - name: Write known_hosts
+      - name: Debug: list received secrets names (no values)
+        run: |
+          echo "HOST='${{ secrets.SSH_HOST }}'"
+          echo "USER='${{ secrets.SSH_USER }}'"
+          echo "KEY length=${#SSH_KEY_PLACEHOLDER}"
+          [ -n "${{ secrets.SSH_HOST }}" ] && echo "✓ SSH_HOST set" || echo "✗ SSH_HOST MISSING"
+          [ -n "${{ secrets.SSH_USER }}" ] && echo "✓ SSH_USER set" || echo "✗ SSH_USER MISSING"
+          [ -n "${{ secrets.SSH_KEY }}" ] && echo "✓ SSH_KEY set" || echo "✗ SSH_KEY MISSING"
+          [ -n "${{ secrets.SSH_KNOWN_HOSTS }}" ] && echo "✓ SSH_KNOWN_HOSTS set" || echo "✗ SSH_KNOWN_HOSTS MISSING"
+        env:
+          SSH_KEY_PLACEHOLDER: ${{ secrets.SSH_KEY }}
+
+      - name: Setup SSH key & known_hosts
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          echo "✓ files written"
+          ls -la ~/.ssh/
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          known_hosts: ~/.ssh/known_hosts
+          key_path: ~/.ssh/deploy_key
           command_timeout: 10m
           script: |
             set -euo pipefail

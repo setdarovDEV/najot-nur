@@ -1,5 +1,4 @@
-import { ArrowRight, Sparkles, Mic, Headphones, Eye, Play } from "lucide-react";
-import { BRAND } from "../lib/config";
+import { ArrowRight, Sparkles, Mic, Headphones, Eye } from "lucide-react";
 import { useReveal } from "../lib/hooks";
 
 export function Hero() {
@@ -53,13 +52,6 @@ export function Hero() {
               Bepul sinab ko'rish
               <ArrowRight size={16} className="transition group-hover:translate-x-1" />
             </a>
-            <a
-              href={BRAND.links.api}
-              className="group inline-flex items-center gap-2 rounded-2xl border border-line bg-white px-6 py-3.5 text-sm font-bold text-ink transition hover:scale-[1.02] hover:border-wine/30 hover:text-wine"
-            >
-              <Play size={14} className="fill-current" />
-              API hujjati
-            </a>
           </div>
 
           <div className="mt-10 flex items-center gap-6 text-sm text-muted">
@@ -105,11 +97,11 @@ export function Hero() {
               aria-hidden
               className="absolute left-1/2 top-1/2 -z-10 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 animate-spin-slow"
             >
-              <svg viewBox="0 0 200 200" className="h-full w-full opacity-30">
+              <svg viewBox="0 0 200 200" className="h-full w-full">
                 <defs>
                   <path id="circle-path" d="M 100,100 m -80,0 a 80,80 0 1,1 160,0 a 80,80 0 1,1 -160,0" />
                 </defs>
-                <text fontSize="11" fontWeight="700" fill="#8A1538" letterSpacing="3">
+                <text fontSize="12" fontWeight="800" fill="#14181F" letterSpacing="3">
                   <textPath href="#circle-path">
                     NOTIQ · AI · NOTIQLIK · NUTQ · OVOZ · NOTIQ · AI ·
                   </textPath>

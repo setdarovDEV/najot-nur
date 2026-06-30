@@ -92,7 +92,7 @@ export function QRPlaceholder({ label, store, href, size = 160 }: QRPlaceholderP
       href={href}
       target={href === "#" ? undefined : "_blank"}
       rel="noreferrer noopener"
-      className="group flex w-full max-w-[260px] flex-col items-center gap-3 rounded-3xl border border-line bg-white p-5 transition hover:-translate-y-1 hover:border-wine/30 hover:shadow-xl hover:shadow-wine/10"
+      className="group flex w-[180px] flex-col items-center gap-3 rounded-3xl border border-line bg-white p-5 transition hover:-translate-y-1 hover:border-wine/30 hover:shadow-xl hover:shadow-wine/10"
     >
       <div className="relative">
         <div

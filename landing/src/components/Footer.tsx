@@ -168,7 +168,7 @@ export function Footer() {
             QR kodni skaner qilib iOS yoki Android uchun NotiqAI ilovasini o'rnating.
             Demo-versiya — tez orada rasmiy reliz.
           </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="mt-4 flex flex-row flex-wrap items-center gap-3">
             <QRPlaceholder
               label="Google Play"
               store="play"

@@ -64,20 +64,10 @@ export function Navbar() {
 
         <div className="hidden items-center gap-2 md:flex">
           <a
-            href={BRAND.links.curator}
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-ink/80 transition hover:bg-wine-50 hover:text-wine"
+            href="#contact"
+            className="rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-wine/25 transition hover:scale-[1.02] hover:bg-wine-dark hover:shadow-lg hover:shadow-wine/30"
           >
-            Kurator
-          </a>
-          <a
-            href={BRAND.links.admin}
-            className="group relative overflow-hidden rounded-xl bg-wine px-4 py-2 text-sm font-bold text-white shadow-md shadow-wine/20 transition hover:shadow-lg hover:shadow-wine/30"
-          >
-            <span className="relative z-10">Admin panel</span>
-            <span
-              aria-hidden
-              className="absolute inset-0 -translate-x-full bg-gradient-to-r from-wine-dark via-orange to-wine-dark transition-transform duration-700 group-hover:translate-x-0"
-            />
+            Bog'lanish
           </a>
         </div>
 
@@ -112,18 +102,13 @@ export function Navbar() {
                 {l.label}
               </a>
             ))}
-            <div className="flex gap-2 pt-2">
+            <div className="pt-2">
               <a
-                href={BRAND.links.curator}
-                className="flex-1 rounded-xl border border-line px-4 py-2.5 text-center text-sm font-bold text-ink"
+                href="#contact"
+                onClick={() => setOpen(false)}
+                className="block w-full rounded-xl bg-wine px-4 py-3 text-center text-sm font-bold text-white shadow-md shadow-wine/20"
               >
-                Kurator
-              </a>
-              <a
-                href={BRAND.links.admin}
-                className="flex-1 rounded-xl bg-wine px-4 py-2.5 text-center text-sm font-bold text-white"
-              >
-                Admin panel
+                Bog'lanish
               </a>
             </div>
           </div>

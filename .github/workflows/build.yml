@@ -118,7 +118,7 @@ jobs:
       url: https://notiqlik.uz
 
     steps:
-      - name: Debug: list received secrets names (no values)
+      - name: "Debug: list received secrets names (no values)"
         run: |
           echo "HOST='${{ secrets.SSH_HOST }}'"
           echo "USER='${{ secrets.SSH_USER }}'"

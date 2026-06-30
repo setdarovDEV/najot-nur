@@ -132,23 +132,25 @@ jobs:
 
       - name: Setup SSH key & known_hosts
         run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
+          mkdir -p /home/runner/.ssh
+          printf '%s\n' "$SSH_KEY" > /home/runner/.ssh/deploy_key
+          chmod 600 /home/runner/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > /home/runner/.ssh/known_hosts
+          chmod 644 /home/runner/.ssh/known_hosts
           echo "✓ files written"
-          ls -la ~/.ssh/
+          ls -la /home/runner/.ssh/
         env:
           SSH_KEY: ${{ secrets.SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
+        env:
+          HOME: /home/runner
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key_path: ~/.ssh/deploy_key
+          key_path: /home/runner/.ssh/deploy_key
           command_timeout: 10m
           script: |
             set -euo pipefail

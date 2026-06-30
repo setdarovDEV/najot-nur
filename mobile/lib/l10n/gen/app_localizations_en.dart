@@ -866,13 +866,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'After payment confirmation, access will be granted automatically.';
 
   @override
-  String get methodClick => 'Click';
+  String get methodUzum => 'Uzum';
 
   @override
-  String get methodPayme => 'Payme';
+  String get methodUzumNasiya => 'Uzum Nasiya';
 
   @override
   String get methodCash => 'Cash';
+
+  @override
+  String get uzumRedirectHint =>
+      'You will be redirected to Uzum to complete the payment.';
+
+  @override
+  String get uzumNasiyaRedirectHint =>
+      'You will be redirected to Uzum Nasiya to pay in installments.';
 
   @override
   String get audiobookOrderPending =>

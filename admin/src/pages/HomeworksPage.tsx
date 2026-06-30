@@ -4,10 +4,12 @@ import { api, apiError } from "../lib/api";
 import type { Homework } from "../lib/types";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
+import { useToast } from "../lib/toast";
 
 export function HomeworksPage() {
   const qc = useQueryClient();
   const { t } = useLang();
+  const toast = useToast();
   const [filter, setFilter] = useState<"submitted" | "reviewed" | "">("submitted");
 
   const { data, isLoading } = useQuery({
@@ -26,7 +28,11 @@ export function HomeworksPage() {
         score: vars.score,
         feedback: vars.feedback,
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["homeworks"] }),
+    onSuccess: () => {
+      toast.success(t.homeworks.gradeSuccess);
+      qc.invalidateQueries({ queryKey: ["homeworks"] });
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
 
   return (

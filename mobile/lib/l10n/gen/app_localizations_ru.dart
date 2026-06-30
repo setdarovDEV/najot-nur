@@ -865,13 +865,21 @@ class AppLocalizationsRu extends AppLocalizations {
       'После подтверждения оплаты доступ будет открыт автоматически.';
 
   @override
-  String get methodClick => 'Click';
+  String get methodUzum => 'Uzum';
 
   @override
-  String get methodPayme => 'Payme';
+  String get methodUzumNasiya => 'Uzum Nasiya';
 
   @override
   String get methodCash => 'Наличные';
+
+  @override
+  String get uzumRedirectHint =>
+      'Для оплаты вы будете перенаправлены на сайт Uzum.';
+
+  @override
+  String get uzumNasiyaRedirectHint =>
+      'Для оплаты в рассрочку вы будете перенаправлены на сайт Uzum Nasiya.';
 
   @override
   String get audiobookOrderPending =>

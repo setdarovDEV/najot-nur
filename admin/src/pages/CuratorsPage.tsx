@@ -15,10 +15,15 @@ import { api, apiError } from "../lib/api";
 import type { Curator } from "../lib/types";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
+import { useToast } from "../lib/toast";
+
 
 export function CuratorsPage() {
   const qc = useQueryClient();
   const { t } = useLang();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<Curator | null>(null);
 
@@ -30,13 +35,21 @@ export function CuratorsPage() {
   const toggleActive = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       api.patch(`/admin/curators/${id}`, { is_active }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "curators"] }),
+    onSuccess: () => {
+      toast.success(t.curators.toggleSuccess);
+      qc.invalidateQueries({ queryKey: ["admin", "curators"] });
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
 
   const hardDelete = useMutation({
     mutationFn: (id: string) =>
       api.delete(`/admin/curators/${id}`, { params: { force: true } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "curators"] }),
+    onSuccess: () => {
+      toast.success(t.curators.deleteSuccess);
+      qc.invalidateQueries({ queryKey: ["admin", "curators"] });
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
 
   return (
@@ -141,9 +154,17 @@ export function CuratorsPage() {
               </button>
               <button
                 title={c.is_active ? t.curators.block : t.curators.activate}
-                onClick={() =>
-                  toggleActive.mutate({ id: c.id, is_active: !c.is_active })
-                }
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: c.is_active
+                      ? t.curators.confirmBlock(c.full_name ?? c.email ?? "")
+                      : t.curators.confirmActivate(c.full_name ?? c.email ?? ""),
+                    variant: c.is_active ? "warning" : "primary",
+                    confirmText: c.is_active ? t.modal.block : t.modal.activate,
+                  });
+                  if (ok)
+                    toggleActive.mutate({ id: c.id, is_active: !c.is_active });
+                }}
                 disabled={toggleActive.isPending}
                 className={`rounded-lg p-2 hover:bg-wine-50 disabled:opacity-50 ${
                   c.is_active ? "text-amber-600" : "text-green-600"
@@ -153,14 +174,19 @@ export function CuratorsPage() {
               </button>
               <button
                 title={t.common.delete}
-                onClick={() => {
-                  if (
-                    confirm(
-                      t.curators.confirmDelete(c.full_name ?? c.email ?? ""),
-                    )
-                  ) {
-                    hardDelete.mutate(c.id);
-                  }
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: t.curators.confirmDelete(
+                      c.full_name ?? c.email ?? "",
+                    ),
+                    description: t.modal.deleteDesc(
+                      "kurator",
+                      c.full_name ?? c.email ?? "",
+                    ),
+                    variant: "danger",
+                    confirmText: t.modal.delete,
+                  });
+                  if (ok) hardDelete.mutate(c.id);
                 }}
                 disabled={hardDelete.isPending}
                 className="rounded-lg p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
@@ -184,6 +210,9 @@ function CreateCuratorForm({
   onDone: () => void;
   onSuccess: () => void;
 }) {
+  const { t } = useLang();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -196,17 +225,27 @@ function CreateCuratorForm({
         email: email.trim(),
         password,
       }),
-    onSuccess,
+    onSuccess: () => {
+      toast.success(t.curators.createSuccess);
+      onSuccess();
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setEmailError(null);
     if (!email.toLowerCase().trim().endsWith("@najotnur.uz")) {
       setEmailError("Email @najotnur.uz bilan tugashi kerak.");
       return;
     }
-    create.mutate();
+    const ok = await confirm({
+      title: t.modal.createTitle("kurator"),
+      description: t.modal.createDesc("Kurator"),
+      variant: "primary",
+      confirmText: t.modal.create,
+    });
+    if (ok) create.mutate();
   }
 
   return (
@@ -300,6 +339,9 @@ function EditCuratorForm({
   onDone: () => void;
   onSuccess: () => void;
 }) {
+  const { t } = useLang();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [fullName, setFullName] = useState(curator.full_name ?? "");
   const [password, setPassword] = useState("");
   const [isActive, setIsActive] = useState(curator.is_active);
@@ -313,15 +355,27 @@ function EditCuratorForm({
       if (password) body.password = password;
       return api.patch(`/admin/curators/${curator.id}`, body);
     },
-    onSuccess,
+    onSuccess: () => {
+      toast.success(t.curators.updateSuccess);
+      onSuccess();
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const ok = await confirm({
+      title: t.modal.updateTitle("Kurator"),
+      description: t.modal.updateDesc("Kurator"),
+      variant: "primary",
+      confirmText: t.modal.save,
+    });
+    if (ok) update.mutate();
+  }
 
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        update.mutate();
-      }}
+      onSubmit={handleSubmit}
       className="mb-6 rounded-2xl border border-wine/20 bg-wine/5 p-5"
     >
       <div className="mb-4 flex items-center justify-between">

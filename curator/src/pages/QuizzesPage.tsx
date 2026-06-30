@@ -13,9 +13,12 @@ import {
   Play,
   Pause,
 } from "lucide-react";
-import { api, mediaUrl } from "../lib/api";
+import { api, apiError, mediaUrl } from "../lib/api";
+import { useAuth } from "../lib/auth";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
+import { useToast } from "../lib/toast";
 
 interface QuizSummary {
   id: string;
@@ -61,8 +64,11 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export function QuizzesPage() {
+  const { role } = useAuth();
   const { t } = useLang();
-  const isAdmin = false;
+  const toast = useToast();
+  const confirm = useConfirm();
+  const isAdmin = role === "admin";
 
   const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,14 +102,40 @@ export function QuizzesPage() {
     setQuizDetail({ id, questions: data.questions });
   };
 
-  const approve = async (id: string) => {
-    await api.patch(`/quizzes/admin/${id}/approve`);
-    setQuizzes((prev) => prev.map((q) => q.id === id ? { ...q, status: "approved" } : q));
+  const approve = async (quiz: QuizSummary) => {
+    const ok = await confirm({
+      title: `"${quiz.title}" testini tasdiqlashni tasdiqlaysizmi?`,
+      variant: "primary",
+      confirmText: t.modal.approve,
+    });
+    if (!ok) return;
+    try {
+      await api.patch(`/quizzes/admin/${quiz.id}/approve`);
+      setQuizzes((prev) =>
+        prev.map((q) => q.id === quiz.id ? { ...q, status: "approved" } : q)
+      );
+      toast.success("Test tasdiqlandi.");
+    } catch (e) {
+      toast.error(apiError(e));
+    }
   };
 
-  const reject = async (id: string) => {
-    await api.patch(`/quizzes/admin/${id}/reject`);
-    setQuizzes((prev) => prev.map((q) => q.id === id ? { ...q, status: "rejected" } : q));
+  const reject = async (quiz: QuizSummary) => {
+    const ok = await confirm({
+      title: `"${quiz.title}" testini rad etishni tasdiqlaysizmi?`,
+      variant: "danger",
+      confirmText: t.modal.reject,
+    });
+    if (!ok) return;
+    try {
+      await api.patch(`/quizzes/admin/${quiz.id}/reject`);
+      setQuizzes((prev) =>
+        prev.map((q) => q.id === quiz.id ? { ...q, status: "rejected" } : q)
+      );
+      toast.success("Test rad etildi.");
+    } catch (e) {
+      toast.error(apiError(e));
+    }
   };
 
   const onMediaChanged = (updated: QuizSummary) => {
@@ -187,14 +219,14 @@ export function QuizzesPage() {
                   {isAdmin && quiz.status === "draft" && (
                     <>
                       <button
-                        onClick={() => approve(quiz.id)}
+                        onClick={() => approve(quiz)}
                         className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200"
                       >
                         <Check size={14} />
                         Tasdiqlash
                       </button>
                       <button
-                        onClick={() => reject(quiz.id)}
+                        onClick={() => reject(quiz)}
                         className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200"
                       >
                         <X size={14} />
@@ -474,6 +506,9 @@ function QuizMediaEditor({
 }
 
 function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const { t } = useLang();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
@@ -528,6 +563,13 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
     if (!title.trim()) { setError("Sarlavha kiritilishi shart."); return; }
     const invalid = questions.find((q) => !q.question.trim() || q.options.some((o) => !o.trim()));
     if (invalid) { setError("Barcha savol va variantlarni to'ldiring."); return; }
+    const ok = await confirm({
+      title: `"${title}" testini yaratishni tasdiqlaysizmi?`,
+      description: "Test va unga tegishli barcha savollar saqlanadi.",
+      variant: "primary",
+      confirmText: t.modal.create,
+    });
+    if (!ok) return;
     setSaving(true);
     try {
       const { data: created } = await api.post<QuizSummary>("/quizzes", {
@@ -554,6 +596,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
         await api.post(`/quizzes/${created.id}/video`, form);
       }
 
+      toast.success("Test yaratildi.");
       onCreated();
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } }).response?.data?.detail;

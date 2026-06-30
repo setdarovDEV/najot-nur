@@ -4,12 +4,16 @@ import { api, apiError } from "../lib/api";
 import type { CertificateRequest } from "../lib/types";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
+import { useToast } from "../lib/toast";
 
 type StatusFilter = "pending" | "approved" | "rejected" | "";
 
 export function CertificateRequestsPage() {
   const qc = useQueryClient();
   const { t } = useLang();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [filter, setFilter] = useState<StatusFilter>("pending");
 
   const { data, isLoading } = useQuery({
@@ -25,7 +29,11 @@ export function CertificateRequestsPage() {
   const approve = useMutation({
     mutationFn: (id: string) =>
       api.post(`/admin/certificate-requests/${id}/approve`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["certificate-requests"] }),
+    onSuccess: () => {
+      toast.success(t.certificateRequests.approveSuccess);
+      qc.invalidateQueries({ queryKey: ["certificate-requests"] });
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
 
   const reject = useMutation({
@@ -33,7 +41,11 @@ export function CertificateRequestsPage() {
       api.post(`/admin/certificate-requests/${vars.id}/reject`, {
         reason: vars.reason || null,
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["certificate-requests"] }),
+    onSuccess: () => {
+      toast.success(t.certificateRequests.rejectSuccess);
+      qc.invalidateQueries({ queryKey: ["certificate-requests"] });
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
 
   const cr = t.certificateRequests;
@@ -80,15 +92,21 @@ export function CertificateRequestsPage() {
           <CertRequestCard
             key={req.id}
             req={req}
-            onApprove={() => {
-              if (window.confirm(cr.confirmApprove(req.full_name))) {
-                approve.mutate(req.id);
-              }
+            onApprove={async () => {
+              const ok = await confirm({
+                title: cr.confirmApprove(req.full_name),
+                variant: "primary",
+                confirmText: t.modal.approve,
+              });
+              if (ok) approve.mutate(req.id);
             }}
-            onReject={(reason) => {
-              if (window.confirm(cr.confirmReject)) {
-                reject.mutate({ id: req.id, reason });
-              }
+            onReject={async (reason) => {
+              const ok = await confirm({
+                title: cr.confirmReject,
+                variant: "danger",
+                confirmText: t.modal.reject,
+              });
+              if (ok) reject.mutate({ id: req.id, reason });
             }}
           />
         ))}

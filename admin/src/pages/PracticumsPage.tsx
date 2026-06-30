@@ -12,10 +12,12 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { api, mediaUrl } from "../lib/api";
+import { api, apiError, mediaUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
+import { useToast } from "../lib/toast";
 
 interface Practicum {
   id: string;
@@ -45,6 +47,8 @@ function formatPrice(price: number) {
 export function PracticumsPage() {
   const { role } = useAuth();
   const { t } = useLang();
+  const toast = useToast();
+  const confirm = useConfirm();
   const p = t.practicums;
   const isAdmin = role === "admin";
 
@@ -54,8 +58,6 @@ export function PracticumsPage() {
   const [editTarget, setEditTarget] = useState<Practicum | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const fetchPracticums = useCallback(async () => {
     try {
@@ -71,32 +73,57 @@ export function PracticumsPage() {
 
   useEffect(() => { fetchPracticums(); }, [fetchPracticums]);
 
-  const approve = async (id: string) => {
-    await api.patch(`/practicums/admin/${id}/approve`);
-    setPracticums((prev) =>
-      prev.map((pr) => pr.id === id ? { ...pr, status: "approved" } : pr)
-    );
-  };
-
-  const reject = async (id: string) => {
-    await api.patch(`/practicums/admin/${id}/reject`);
-    setPracticums((prev) =>
-      prev.map((pr) => pr.id === id ? { ...pr, status: "rejected" } : pr)
-    );
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    setDeleting(true);
+  const approve = async (pr: Practicum) => {
+    const ok = await confirm({
+      title: p.confirmApprove(pr.title),
+      variant: "primary",
+      confirmText: t.modal.approve,
+    });
+    if (!ok) return;
     try {
-      await api.delete(`/practicums/${deleteId}`);
-      setPracticums((prev) => prev.filter((pr) => pr.id !== deleteId));
-      if (expandedId === deleteId) setExpandedId(null);
-    } catch {
-      // ignore
-    } finally {
-      setDeleting(false);
-      setDeleteId(null);
+      await api.patch(`/practicums/admin/${pr.id}/approve`);
+      setPracticums((prev) =>
+        prev.map((x) => x.id === pr.id ? { ...x, status: "approved" } : x)
+      );
+      toast.success(p.approveSuccess);
+    } catch (e) {
+      toast.error(apiError(e));
+    }
+  };
+
+  const reject = async (pr: Practicum) => {
+    const ok = await confirm({
+      title: p.confirmReject(pr.title),
+      variant: "danger",
+      confirmText: t.modal.reject,
+    });
+    if (!ok) return;
+    try {
+      await api.patch(`/practicums/admin/${pr.id}/reject`);
+      setPracticums((prev) =>
+        prev.map((x) => x.id === pr.id ? { ...x, status: "rejected" } : x)
+      );
+      toast.success(p.rejectSuccess);
+    } catch (e) {
+      toast.error(apiError(e));
+    }
+  };
+
+  const deletePracticum = async (pr: Practicum) => {
+    const ok = await confirm({
+      title: p.confirmDelete(pr.title),
+      description: t.modal.deleteDesc("praktikum", pr.title),
+      variant: "danger",
+      confirmText: t.modal.delete,
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/practicums/${pr.id}`);
+      setPracticums((prev) => prev.filter((x) => x.id !== pr.id));
+      if (expandedId === pr.id) setExpandedId(null);
+      toast.success(p.deleteSuccess);
+    } catch (e) {
+      toast.error(apiError(e));
     }
   };
 
@@ -199,10 +226,10 @@ export function PracticumsPage() {
               isAdmin={isAdmin}
               isExpanded={expandedId === pr.id}
               onToggle={() => setExpandedId(expandedId === pr.id ? null : pr.id)}
-              onApprove={() => approve(pr.id)}
-              onReject={() => reject(pr.id)}
+              onApprove={() => approve(pr)}
+              onReject={() => reject(pr)}
               onEdit={() => setEditTarget(pr)}
-              onDelete={() => setDeleteId(pr.id)}
+              onDelete={() => deletePracticum(pr)}
               onAudioUploaded={(updated) =>
                 setPracticums((prev) =>
                   prev.map((x) => x.id === updated.id ? updated : x)
@@ -210,38 +237,6 @@ export function PracticumsPage() {
               }
             />
           ))}
-        </div>
-      )}
-
-      {/* Delete confirmation */}
-      {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-line bg-card p-6 shadow-2xl">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100">
-              <Trash2 size={22} className="text-red-600" />
-            </div>
-            <h3 className="mb-2 text-lg font-extrabold text-ink">
-              O'chirishni tasdiqlang
-            </h3>
-            <p className="mb-6 text-sm text-muted">
-              Bu praktikum butunlay o'chiriladi. Bu amalni qaytarib bo'lmaydi.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteId(null)}
-                className="flex-1 rounded-xl border border-line py-2.5 text-sm font-semibold text-ink hover:bg-surface"
-              >
-                Bekor qilish
-              </button>
-              <button
-                onClick={confirmDelete}
-                disabled={deleting}
-                className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-60"
-              >
-                {deleting ? "O'chirilmoqda…" : "O'chirish"}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
@@ -565,6 +560,8 @@ function CreatePracticumModal({
   onCreated: () => void;
 }) {
   const { t } = useLang();
+  const toast = useToast();
+  const confirm = useConfirm();
   const p = t.practicums;
 
   const [title, setTitle] = useState("");
@@ -579,6 +576,13 @@ function CreatePracticumModal({
 
   const submit = async () => {
     if (!title.trim()) { setError("Sarlavha kiritilishi shart."); return; }
+    const ok = await confirm({
+      title: t.modal.createTitle("praktikum"),
+      description: t.modal.createDesc("Praktikum"),
+      variant: "primary",
+      confirmText: t.modal.create,
+    });
+    if (!ok) return;
     setSaving(true);
     try {
       const { data } = await api.post<Practicum>("/practicums", {
@@ -596,6 +600,7 @@ function CreatePracticumModal({
         await api.post(`/practicums/${data.id}/audio`, form);
       }
 
+      toast.success(p.createSuccess);
       onCreated();
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } }).response?.data?.detail;
@@ -632,6 +637,8 @@ function EditPracticumModal({
   onSaved: (updated: Practicum) => void;
 }) {
   const { t } = useLang();
+  const toast = useToast();
+  const confirm = useConfirm();
   const p = t.practicums;
 
   const [title, setTitle] = useState(practicum.title);
@@ -646,6 +653,13 @@ function EditPracticumModal({
 
   const submit = async () => {
     if (!title.trim()) { setError("Sarlavha kiritilishi shart."); return; }
+    const ok = await confirm({
+      title: t.modal.updateTitle("Praktikum"),
+      description: t.modal.updateDesc("Praktikum"),
+      variant: "primary",
+      confirmText: t.modal.save,
+    });
+    if (!ok) return;
     setSaving(true);
     try {
       const { data } = await api.patch<Practicum>(`/practicums/${practicum.id}`, {
@@ -668,6 +682,7 @@ function EditPracticumModal({
         final = withAudio;
       }
 
+      toast.success(p.updateSuccess);
       onSaved(final);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } }).response?.data?.detail;

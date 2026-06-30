@@ -12,13 +12,27 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import AppError, NotFoundError
 from app.core.logging import get_logger
-from app.models.enums import PaymentProvider, PaymentPurpose, PaymentStatus
+from app.models.audiobook import Audiobook, AudiobookAccess
+from app.models.course import Course, Enrollment, Lesson
+from app.models.enums import (
+    EnrollmentStatus,
+    HomeworkStatus,
+    PaymentProvider,
+    PaymentPurpose,
+    PaymentStatus,
+    PushAudience,
+)
+from app.models.grading import Homework
+from app.models.notification import PushNotification, PushToken
 from app.models.payment import Payment
+from app.services import fcm
 
 log = get_logger("payment_service")
 
@@ -244,6 +258,158 @@ async def initiate_atmos(
 
 
 # ──────────────────────────────────────────────
+#  Access-grant + homework-assignment helpers
+# ──────────────────────────────────────────────
+
+
+async def _ensure_homework_for_enrollment(
+    db: AsyncSession,
+    *,
+    user_id: uuid.UUID,
+    course_id: uuid.UUID,
+) -> int:
+    """Create a placeholder Homework row for every lesson in the course that
+    the user does not yet have a submission for. Idempotent.
+
+    Returns the number of placeholder rows created.
+    """
+    lesson_ids = (
+        await db.execute(
+            select(Lesson.id).where(Lesson.course_id == course_id)
+        )
+    ).scalars().all()
+    if not lesson_ids:
+        return 0
+
+    existing_lesson_ids = set(
+        (
+            await db.execute(
+                select(Homework.lesson_id).where(
+                    Homework.user_id == user_id,
+                    Homework.lesson_id.in_(lesson_ids),
+                )
+            )
+        ).scalars().all()
+    )
+
+    created = 0
+    for lid in lesson_ids:
+        if lid in existing_lesson_ids:
+            continue
+        db.add(
+            Homework(
+                user_id=user_id,
+                lesson_id=lid,
+                status=HomeworkStatus.submitted,
+            )
+        )
+        created += 1
+    return created
+
+
+async def _grant_access_for_payment(
+    db: AsyncSession,
+    payment: Payment,
+) -> None:
+    """Idempotently grant the user access to the course/audiobook that
+    `payment` refers to and pre-create Homework placeholders.
+    """
+    if payment.reference_id is None or payment.purpose is None:
+        log.warning(
+            "payment.grant_skipped",
+            payment_id=str(payment.id),
+            reason="missing reference_id or purpose",
+        )
+        return
+
+    if payment.purpose == PaymentPurpose.course:
+        existing = (
+            await db.execute(
+                select(Enrollment).where(
+                    Enrollment.user_id == payment.user_id,
+                    Enrollment.course_id == payment.reference_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing:
+            existing.status = EnrollmentStatus.active
+        else:
+            db.add(
+                Enrollment(
+                    user_id=payment.user_id,
+                    course_id=payment.reference_id,
+                    status=EnrollmentStatus.active,
+                )
+            )
+        await _ensure_homework_for_enrollment(
+            db,
+            user_id=payment.user_id,
+            course_id=payment.reference_id,
+        )
+    elif payment.purpose == PaymentPurpose.audiobook:
+        stmt = (
+            pg_insert(AudiobookAccess)
+            .values(
+                user_id=payment.user_id,
+                audiobook_id=payment.reference_id,
+            )
+            .on_conflict_do_nothing(constraint="user_audiobook_access")
+        )
+        await db.execute(stmt)
+
+
+async def _notify_payment_success(
+    db: AsyncSession,
+    payment: Payment,
+) -> None:
+    """Best-effort FCM + in-app push to the user announcing access granted."""
+    title = "To'lov tasdiqlandi ✅"
+    if payment.purpose == PaymentPurpose.course and payment.reference_id:
+        course = await db.get(Course, payment.reference_id)
+        body = (
+            f'"{course.title if course else "kurs"}" uchun to\'lovingiz muvaffaqiyatli '
+            f"amalga oshirildi. Kurs ochildi — o'rganishni boshlashingiz mumkin!"
+        )
+    elif payment.purpose == PaymentPurpose.audiobook and payment.reference_id:
+        book = await db.get(Audiobook, payment.reference_id)
+        body = (
+            f'"{book.title if book else "audiokitob"}" uchun to\'lovingiz muvaffaqiyatli '
+            f"amalga oshirildi. Audiokitob ochildi — tinglashni boshlashingiz mumkin!"
+        )
+    else:
+        body = "To'lovingiz muvaffaqiyatli amalga oshirildi."
+
+    try:
+        tokens = (
+            await db.execute(
+                select(PushToken.token).where(PushToken.user_id == payment.user_id)
+            )
+        ).scalars().all()
+        if tokens:
+            await fcm.send_to_tokens(
+                tokens,
+                title=title,
+                body=body,
+                data={"kind": "order_status", "payment_id": str(payment.id)},
+            )
+        db.add(
+            PushNotification(
+                title=title,
+                body=body,
+                audience=PushAudience.user,
+                target_id=payment.user_id,
+                sent_at=datetime.now(UTC),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        log.error(
+            "payment.notify_failed",
+            payment_id=str(payment.id),
+            error=str(exc),
+        )
+
+
+# ──────────────────────────────────────────────
 #  Callback handlers
 # ──────────────────────────────────────────────
 
@@ -283,6 +449,8 @@ async def handle_uzum_callback(db: AsyncSession, payload: dict[str, Any]) -> Pay
         payment.status = PaymentStatus.paid
         payment.paid_at = datetime.now(UTC)
         log.info("uzum.payment_paid", payment_id=str(payment.id))
+        await _grant_access_for_payment(db, payment)
+        await _notify_payment_success(db, payment)
     elif uzum_status in ("failed", "cancelled", "declined"):
         payment.status = PaymentStatus.failed
         log.info("uzum.payment_failed", payment_id=str(payment.id), uzum_status=uzum_status)
@@ -308,6 +476,8 @@ async def handle_uzum_nasiya_callback(db: AsyncSession, payload: dict[str, Any])
         payment.status = PaymentStatus.paid
         payment.paid_at = datetime.now(UTC)
         log.info("uzum_nasiya.payment_paid", payment_id=str(payment.id))
+        await _grant_access_for_payment(db, payment)
+        await _notify_payment_success(db, payment)
     elif nasiya_status in ("rejected", "cancelled", "failed"):
         payment.status = PaymentStatus.failed
         log.info(
@@ -365,6 +535,8 @@ async def handle_atmos_callback(db: AsyncSession, payload: dict[str, Any]) -> Pa
         payment.status = PaymentStatus.paid
         payment.paid_at = datetime.now(UTC)
         log.info("atmos.payment_paid", payment_id=str(payment.id))
+        await _grant_access_for_payment(db, payment)
+        await _notify_payment_success(db, payment)
     elif code in ("1", "failed", "cancelled"):
         payment.status = PaymentStatus.failed
         log.info("atmos.payment_failed", payment_id=str(payment.id), code=code)

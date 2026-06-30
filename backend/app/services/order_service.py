@@ -2,7 +2,8 @@
 
 Supports both courses and audiobooks. On approval, the user is granted
 access: an `Enrollment` row for a course, or an `AudiobookAccess` row
-for an audiobook.
+for a audiobook. For courses, a placeholder `Homework` row is also
+created for every lesson (the "uyga vazifa berish" flow).
 """
 from __future__ import annotations
 
@@ -16,14 +17,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import AppError, NotFoundError
 from app.core.logging import get_logger
 from app.models.audiobook import Audiobook, AudiobookAccess
-from app.models.course import Course, Enrollment
+from app.models.course import Course, Enrollment, Lesson
 from app.models.enums import (
     EnrollmentStatus,
+    HomeworkStatus,
     OrderPaymentMethod,
     OrderPurpose,
     OrderStatus,
     PushAudience,
 )
+from app.models.grading import Homework
 from app.models.notification import PushNotification, PushToken
 from app.models.order import Order
 from app.services import fcm
@@ -166,6 +169,12 @@ async def approve_order(
                     status=EnrollmentStatus.active,
                 )
             )
+        # Auto-assign homework for every lesson in the course (idempotent)
+        await _ensure_homework_for_enrollment(
+            db,
+            user_id=order.user_id,
+            course_id=order.course_id,  # type: ignore[arg-type]
+        )
     else:
         # Idempotent: insert audiobook_access (unique on user+audiobook)
         stmt = (
@@ -281,6 +290,49 @@ async def _resolve_target_title(
         book = await db.get(Audiobook, order.audiobook_id)
         return (book.title if book else "audiokitob", "audiokitob")
     return ("buyum", "buyum")
+
+
+async def _ensure_homework_for_enrollment(
+    db: AsyncSession,
+    *,
+    user_id: uuid.UUID,
+    course_id: uuid.UUID,
+) -> int:
+    """Create a placeholder Homework row for every lesson in the course
+    that the user does not yet have a row for. Idempotent.
+
+    Returns the number of placeholder rows created.
+    """
+    lesson_ids = (
+        await db.execute(select(Lesson.id).where(Lesson.course_id == course_id))
+    ).scalars().all()
+    if not lesson_ids:
+        return 0
+
+    existing_lesson_ids = set(
+        (
+            await db.execute(
+                select(Homework.lesson_id).where(
+                    Homework.user_id == user_id,
+                    Homework.lesson_id.in_(lesson_ids),
+                )
+            )
+        ).scalars().all()
+    )
+
+    created = 0
+    for lid in lesson_ids:
+        if lid in existing_lesson_ids:
+            continue
+        db.add(
+            Homework(
+                user_id=user_id,
+                lesson_id=lid,
+                status=HomeworkStatus.submitted,
+            )
+        )
+        created += 1
+    return created
 
 
 async def _notify_user(

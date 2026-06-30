@@ -9,6 +9,7 @@ import { AuthProvider } from "./lib/auth";
 import { ToastProvider } from "./lib/toast";
 import { ThemeProvider } from "./lib/theme";
 import { LanguageProvider } from "./lib/i18n";
+import { ConfirmProvider } from "./lib/confirm";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -22,7 +23,9 @@ createRoot(document.getElementById("root")!).render(
           <BrowserRouter>
             <AuthProvider>
               <ToastProvider>
-                <App />
+                <ConfirmProvider>
+                  <App />
+                </ConfirmProvider>
               </ToastProvider>
             </AuthProvider>
           </BrowserRouter>

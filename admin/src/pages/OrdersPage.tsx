@@ -5,18 +5,20 @@ import { api, apiError } from "../lib/api";
 import type { Order, Page } from "../lib/types";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
+import { useToast } from "../lib/toast";
 
 // ─── Label maps ───────────────────────────────────────────────────────────────
 
 const METHOD_LABELS: Record<Order["payment_method"], string> = {
-  click: "Click",
-  payme: "Payme",
+  uzum: "Uzum",
+  uzum_nasiya: "Uzum Nasiya",
   cash: "Naqd pul",
 };
 
 const METHOD_STYLES: Record<Order["payment_method"], string> = {
-  click: "bg-blue-100 text-blue-700",
-  payme: "bg-teal-100 text-teal-700",
+  uzum: "bg-purple-100 text-purple-700",
+  uzum_nasiya: "bg-orange-100 text-orange-700",
   cash: "bg-green-100 text-green-700 font-extrabold",
 };
 
@@ -37,6 +39,8 @@ type MethodFilter = "all" | Order["payment_method"];
 export function OrdersPage() {
   const qc = useQueryClient();
   const { t } = useLang();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
   const [methodFilter, setMethodFilter] = useState<MethodFilter>("all");
@@ -57,14 +61,40 @@ export function OrdersPage() {
   const approve = useMutation({
     mutationFn: ({ id, note }: { id: string; note: string }) =>
       api.patch(`/admin/orders/${id}/approve`, { admin_note: note || null }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders"] }),
+    onSuccess: () => {
+      toast.success("Buyurtma tasdiqlandi.");
+      qc.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
 
   const reject = useMutation({
     mutationFn: ({ id, note }: { id: string; note: string }) =>
       api.patch(`/admin/orders/${id}/reject`, { admin_note: note || null }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders"] }),
+    onSuccess: () => {
+      toast.success("Buyurtma rad etildi.");
+      qc.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
+
+  async function handleApprove(id: string, note: string) {
+    const ok = await confirm({
+      title: "Buyurtmani tasdiqlashni tasdiqlaysizmi?",
+      variant: "primary",
+      confirmText: t.modal.approve,
+    });
+    if (ok) approve.mutate({ id, note });
+  }
+
+  async function handleReject(id: string, note: string) {
+    const ok = await confirm({
+      title: "Buyurtmani rad etishni tasdiqlaysizmi?",
+      variant: "danger",
+      confirmText: t.modal.reject,
+    });
+    if (ok) reject.mutate({ id, note });
+  }
 
   const totalPages = data ? Math.ceil(data.total / size) : 1;
 
@@ -91,7 +121,7 @@ export function OrdersPage() {
 
       {/* Method filter */}
       <div className="mb-5 flex flex-wrap gap-2">
-        {(["all", "click", "payme", "cash"] as MethodFilter[]).map((m) => (
+        {(["all", "uzum", "uzum_nasiya", "cash"] as MethodFilter[]).map((m) => (
           <button
             key={m}
             onClick={() => { setMethodFilter(m); setPage(1); }}
@@ -208,7 +238,7 @@ export function OrdersPage() {
                     />
                     <button
                       disabled={busy}
-                      onClick={() => approve.mutate({ id: order.id, note })}
+                      onClick={() => handleApprove(order.id, note)}
                       className="flex items-center gap-1.5 rounded-xl bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
                     >
                       <Check size={14} />
@@ -216,7 +246,7 @@ export function OrdersPage() {
                     </button>
                     <button
                       disabled={busy}
-                      onClick={() => reject.mutate({ id: order.id, note })}
+                      onClick={() => handleReject(order.id, note)}
                       className="flex items-center gap-1.5 rounded-xl bg-red-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                     >
                       <X size={14} />

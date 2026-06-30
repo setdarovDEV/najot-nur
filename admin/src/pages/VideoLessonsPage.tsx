@@ -9,9 +9,11 @@ import {
   Lock,
   Settings2,
 } from "lucide-react";
-import { api, mediaUrl } from "../lib/api";
+import { api, apiError, mediaUrl } from "../lib/api";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
+import { useToast } from "../lib/toast";
 import type { AdminCourse } from "../lib/types";
 import { CourseContentModal } from "../components/CourseContentModal";
 
@@ -25,6 +27,8 @@ const fetchCourses = () =>
 export function VideoLessonsPage() {
   const qc = useQueryClient();
   const { t } = useLang();
+  const toast = useToast();
+  const confirm = useConfirm();
   const canEdit = true;
   const [creating, setCreating] = useState(false);
   const [managingCourse, setManagingCourse] = useState<AdminCourse | null>(null);
@@ -36,13 +40,21 @@ export function VideoLessonsPage() {
 
   const deleteCourse = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/courses/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "courses"] }),
+    onSuccess: () => {
+      toast.success(t.videoLessons.deleteSuccess);
+      qc.invalidateQueries({ queryKey: ["admin", "courses"] });
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
 
   const togglePublish = useMutation({
     mutationFn: ({ id, value }: { id: string; value: boolean }) =>
       api.patch(`/admin/courses/${id}`, { is_published: value }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "courses"] }),
+    onSuccess: () => {
+      toast.success(t.videoLessons.toggleSuccess);
+      qc.invalidateQueries({ queryKey: ["admin", "courses"] });
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
 
   return (
@@ -144,18 +156,36 @@ export function VideoLessonsPage() {
                     </button>
                     <button
                       title={c.is_published ? "Yashirish" : "Nashr qilish"}
-                      onClick={() =>
-                        togglePublish.mutate({ id: c.id, value: !c.is_published })
-                      }
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: c.is_published
+                            ? t.videoLessons.confirmUnpublish(c.title)
+                            : t.videoLessons.confirmPublish(c.title),
+                          variant: c.is_published ? "warning" : "primary",
+                          confirmText: c.is_published
+                            ? t.modal.unpublish
+                            : t.modal.publish,
+                        });
+                        if (ok)
+                          togglePublish.mutate({
+                            id: c.id,
+                            value: !c.is_published,
+                          });
+                      }}
                       className="rounded-lg p-2 text-muted hover:bg-surface"
                     >
                       {c.is_published ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                     <button
                       title="O'chirish"
-                      onClick={() => {
-                        if (confirm(`"${c.title}" kursini o'chirmoqchimisiz?`))
-                          deleteCourse.mutate(c.id);
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: t.videoLessons.confirmDelete(c.title),
+                          description: t.modal.deleteDesc("kurs", c.title),
+                          variant: "danger",
+                          confirmText: t.modal.delete,
+                        });
+                        if (ok) deleteCourse.mutate(c.id);
                       }}
                       className="rounded-lg p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
@@ -192,15 +222,24 @@ function CreateCourseForm({
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
+  const { t } = useLang();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("0");
   const [level, setLevel] = useState("beginner");
   const [saving, setSaving] = useState(false);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleConfirmCreate() {
     if (!title.trim()) return;
+    const ok = await confirm({
+      title: t.modal.createTitle("kurs"),
+      description: t.modal.createDesc("Kurs"),
+      variant: "primary",
+      confirmText: t.modal.create,
+    });
+    if (!ok) return;
     setSaving(true);
     try {
       const { data } = await api.post("/admin/courses", {
@@ -209,10 +248,18 @@ function CreateCourseForm({
         price: parseFloat(price) || 0,
         level,
       });
+      toast.success(t.videoLessons.createSuccess);
       onCreated(data.id);
+    } catch (e) {
+      toast.error(apiError(e));
     } finally {
       setSaving(false);
     }
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    await handleConfirmCreate();
   }
 
   return (

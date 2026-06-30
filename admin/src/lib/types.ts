@@ -185,7 +185,7 @@ export interface Order {
   target_title: string | null;
   amount: string;
   currency: string;
-  payment_method: "click" | "payme" | "cash";
+  payment_method: "uzum" | "uzum_nasiya" | "cash";
   status: "pending" | "approved" | "rejected";
   payment_proof_url: string | null;
   admin_note: string | null;

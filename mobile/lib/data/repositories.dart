@@ -507,6 +507,29 @@ class LearningRepository {
     }
   }
 
+  Future<PaymentRedirect> initiatePayment({
+    required String provider,
+    required String purpose,
+    required num amount,
+    String? courseId,
+    String? audiobookId,
+    String? returnUrl,
+  }) async {
+    try {
+      final r = await _api.dio.post('/payments/initiate', data: {
+        'provider': provider,
+        'purpose': purpose,
+        'amount': amount,
+        if (courseId != null) 'reference_id': courseId,
+        if (audiobookId != null) 'reference_id': audiobookId,
+        if (returnUrl != null) 'return_url': returnUrl,
+      });
+      return PaymentRedirect.fromJson(r.data as Map<String, dynamic>);
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
   Future<CourseProgress> courseProgress(String courseId) async {
     try {
       final r = await _api.dio.get('/courses/$courseId/my-progress');

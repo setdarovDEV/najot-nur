@@ -14,6 +14,7 @@ import { api, apiError, mediaUrl } from "../lib/api";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
+import { useConfirm } from "../lib/confirm";
 
 interface Reference {
   id: string;
@@ -31,6 +32,7 @@ export function ReferencesPage() {
   const qc = useQueryClient();
   const { t } = useLang();
   const toast = useToast();
+  const confirm = useConfirm();
   const r = t.references;
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<Reference | null>(null);
@@ -44,7 +46,7 @@ export function ReferencesPage() {
     mutationFn: (id: string) => api.delete(`/admin/references/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["references"] });
-      toast.success("O'chirildi.");
+      toast.success(t.references.deleteSuccess);
     },
     onError: (err) => toast.error(apiError(err)),
   });
@@ -88,10 +90,14 @@ export function ReferencesPage() {
             key={ref.id}
             ref_={ref}
             onEdit={() => { setEditing(ref); setShowCreate(false); }}
-            onDelete={() => {
-              if (window.confirm(r.deleteConfirm(ref.title))) {
-                deleteMutation.mutate(ref.id);
-              }
+            onDelete={async () => {
+              const ok = await confirm({
+                title: r.deleteConfirm(ref.title),
+                description: t.modal.deleteDesc("matn", ref.title),
+                variant: "danger",
+                confirmText: t.modal.delete,
+              });
+              if (ok) deleteMutation.mutate(ref.id);
             }}
           />
         ))}
@@ -257,6 +263,7 @@ function ReferenceForm({
   const { t } = useLang();
   const r = t.references;
   const toast = useToast();
+  const confirm = useConfirm();
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [text, setText] = useState(initial?.text ?? "");
@@ -292,11 +299,28 @@ function ReferenceForm({
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["references"] });
-      toast.success(isEdit ? "Matn yangilandi." : "Matn qo'shildi.");
+      toast.success(
+        isEdit ? t.references.updateSuccess : t.references.createSuccess,
+      );
       onDone();
     },
     onError: (err) => toast.error(apiError(err)),
   });
+
+  async function handleSave() {
+    if (!title.trim() || !text.trim()) return;
+    const ok = await confirm({
+      title: isEdit
+        ? t.modal.updateTitle("matn")
+        : t.modal.createTitle("matn"),
+      description: isEdit
+        ? t.modal.updateDesc("Matn")
+        : t.modal.createDesc("Matn"),
+      variant: "primary",
+      confirmText: t.modal.save,
+    });
+    if (ok) saveMutation.mutate();
+  }
 
   return (
     <div className="mb-6 rounded-2xl border border-wine/20 bg-wine-50 p-6">
@@ -391,7 +415,7 @@ function ReferenceForm({
 
       <div className="mt-5 flex gap-3">
         <button
-          onClick={() => saveMutation.mutate()}
+          onClick={handleSave}
           disabled={saveMutation.isPending || !title.trim() || !text.trim()}
           className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark disabled:opacity-50"
         >

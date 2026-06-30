@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { api, apiError, mediaUrl } from "../lib/api";
 import { useToast } from "../lib/toast";
+import { useConfirm } from "../lib/confirm";
+import { useLang } from "../lib/i18n";
 import type { AdminCourseDetail, AdminLesson, LessonQuestion } from "../lib/types";
 
 // ─── props ─────────────────────────────────────────────────────────────────
@@ -43,6 +45,8 @@ const fetchCourse = (id: string) =>
 export function CourseContentModal({ courseId, courseTitle, onClose }: Props) {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
+  const { t } = useLang();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addingLesson, setAddingLesson] = useState(false);
 
@@ -61,6 +65,16 @@ export function CourseContentModal({ courseId, courseTitle, onClose }: Props) {
     },
     onError: (e) => toast.error(apiError(e)),
   });
+
+  async function handleDeleteLesson(lesson: AdminLesson) {
+    const ok = await confirm({
+      title: `"${lesson.title}" darsini o'chirishni tasdiqlaysizmi?`,
+      description: t.modal.deleteDesc("dars", lesson.title),
+      variant: "danger",
+      confirmText: t.modal.delete,
+    });
+    if (ok) deleteLessonMut.mutate(lesson.id);
+  }
 
   const lessons = course?.lessons ?? [];
   const selected = lessons.find((l) => l.id === selectedId) ?? null;
@@ -136,10 +150,7 @@ export function CourseContentModal({ courseId, courseTitle, onClose }: Props) {
                 index={i + 1}
                 isActive={l.id === selectedId}
                 onSelect={() => setSelectedId(l.id)}
-                onDelete={() => {
-                  if (confirm(`"${l.title}" darsini o'chirmoqchimisiz?`))
-                    deleteLessonMut.mutate(l.id);
-                }}
+                onDelete={() => handleDeleteLesson(l)}
               />
             ))}
             {!isLoading && lessons.length === 0 && (
@@ -250,6 +261,8 @@ function AddLessonInline({
   onCancel: () => void;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
+  const { t } = useLang();
   const [title, setTitle] = useState("");
   const mut = useMutation({
     mutationFn: () =>
@@ -257,6 +270,17 @@ function AddLessonInline({
     onSuccess: (res) => onDone(res.data.id),
     onError: (e) => toast.error(apiError(e)),
   });
+
+  async function handleCreate() {
+    if (!title.trim()) return;
+    const ok = await confirm({
+      title: t.modal.createTitle("dars"),
+      description: `"${title.trim()}" — ${t.modal.createDesc("Dars")}`,
+      variant: "primary",
+      confirmText: t.modal.create,
+    });
+    if (ok) mut.mutate();
+  }
 
   return (
     <div className="mx-3 mb-2 rounded-xl border border-wine/30 bg-surface p-3">
@@ -266,14 +290,14 @@ function AddLessonInline({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && title.trim()) mut.mutate();
+          if (e.key === "Enter" && title.trim()) handleCreate();
           if (e.key === "Escape") onCancel();
         }}
         className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine"
       />
       <div className="mt-2 flex gap-2">
         <button
-          onClick={() => title.trim() && mut.mutate()}
+          onClick={handleCreate}
           disabled={mut.isPending || !title.trim()}
           className="rounded-lg bg-wine px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
         >
@@ -341,8 +365,24 @@ function LessonTitleEditor({
   lesson: AdminLesson;
   onSave: (title: string) => void;
 }) {
+  const confirm = useConfirm();
+  const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(lesson.title);
+
+  async function handleSave() {
+    if (!title.trim()) return;
+    const ok = await confirm({
+      title: t.modal.updateTitle("dars"),
+      description: t.modal.updateDesc("Dars"),
+      variant: "primary",
+      confirmText: t.modal.save,
+    });
+    if (ok) {
+      onSave(title.trim());
+      setEditing(false);
+    }
+  }
 
   if (!editing) {
     return (
@@ -367,16 +407,13 @@ function LessonTitleEditor({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && title.trim()) {
-            onSave(title.trim());
-            setEditing(false);
-          }
+          if (e.key === "Enter" && title.trim()) handleSave();
           if (e.key === "Escape") setEditing(false);
         }}
         className="flex-1 rounded-xl border border-wine/40 bg-card px-4 py-2 text-lg font-bold text-ink outline-none focus:ring-2 focus:ring-wine/10"
       />
       <button
-        onClick={() => { onSave(title.trim()); setEditing(false); }}
+        onClick={handleSave}
         className="rounded-xl bg-wine px-4 py-2 text-sm font-bold text-white"
       >
         Saqlash
@@ -507,6 +544,8 @@ function TestSection({
   onRefresh: () => void;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
+  const { t } = useLang();
   const [showForm, setShowForm] = useState(false);
 
   const deleteMut = useMutation({
@@ -515,6 +554,16 @@ function TestSection({
     onSuccess: () => { toast.success("Savol o'chirildi."); onRefresh(); },
     onError: (e) => toast.error(apiError(e)),
   });
+
+  async function handleDelete(q: LessonQuestion) {
+    const ok = await confirm({
+      title: "Bu savolni o'chirishni tasdiqlaysizmi?",
+      description: `"${q.question}" — ${t.modal.deleteDesc("savol", q.question)}`,
+      variant: "danger",
+      confirmText: t.modal.delete,
+    });
+    if (ok) deleteMut.mutate(q.id);
+  }
 
   return (
     <CollapsibleSection
@@ -535,10 +584,7 @@ function TestSection({
             key={q.id}
             q={q}
             index={i + 1}
-            onDelete={() => {
-              if (confirm("Bu savolni o'chirishni tasdiqlaysizmi?"))
-                deleteMut.mutate(q.id);
-            }}
+            onDelete={() => handleDelete(q)}
           />
         ))}
 
@@ -616,6 +662,8 @@ function AddQuestionForm({
   onCancel: () => void;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
+  const { t } = useLang();
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", "", "", ""]);
   const [correctIndex, setCorrectIndex] = useState(0);
@@ -627,12 +675,26 @@ function AddQuestionForm({
         options: options.filter((o) => o.trim()),
         correct_index: correctIndex,
       }),
-    onSuccess: onDone,
+    onSuccess: () => {
+      toast.success("Savol qo'shildi.");
+      onDone();
+    },
     onError: (e) => toast.error(apiError(e)),
   });
 
   const validOptions = options.filter((o) => o.trim());
   const canSubmit = question.trim().length > 0 && validOptions.length >= 2;
+
+  async function handleAdd() {
+    if (!canSubmit) return;
+    const ok = await confirm({
+      title: t.modal.createTitle("savol"),
+      description: t.modal.createDesc("Savol"),
+      variant: "primary",
+      confirmText: t.modal.create,
+    });
+    if (ok) mut.mutate();
+  }
 
   return (
     <div className="rounded-xl border border-wine/20 bg-wine/5 p-4">
@@ -674,7 +736,7 @@ function AddQuestionForm({
       </div>
       <div className="mt-3 flex gap-2">
         <button
-          onClick={() => mut.mutate()}
+          onClick={handleAdd}
           disabled={mut.isPending || !canSubmit}
           className="flex items-center gap-1.5 rounded-xl bg-wine px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
         >
@@ -701,9 +763,24 @@ function VoiceSection({
   lesson: AdminLesson;
   onSave: (p: Record<string, unknown>) => void;
 }) {
+  const { t } = useLang();
+  const confirm = useConfirm();
   const [enabled, setEnabled] = useState(lesson.is_voice_exercise);
   const [prompt, setPrompt] = useState(lesson.voice_exercise_prompt ?? "");
   const [dirty, setDirty] = useState(false);
+
+  async function handleSave() {
+    const ok = await confirm({
+      title: t.modal.updateTitle("dars"),
+      description: t.modal.updateDesc("Dars"),
+      variant: "primary",
+      confirmText: t.modal.save,
+    });
+    if (ok) {
+      onSave({ is_voice_exercise: enabled, voice_exercise_prompt: prompt });
+      setDirty(false);
+    }
+  }
 
   return (
     <CollapsibleSection
@@ -753,10 +830,7 @@ function VoiceSection({
         {dirty && (
           <div className="flex gap-2">
             <button
-              onClick={() => {
-                onSave({ is_voice_exercise: enabled, voice_exercise_prompt: prompt });
-                setDirty(false);
-              }}
+              onClick={handleSave}
               className="flex items-center gap-1.5 rounded-xl bg-wine px-4 py-2 text-sm font-bold text-white"
             >
               <CheckCircle2 size={14} />

@@ -213,12 +213,12 @@ class _OrderCard extends StatelessWidget {
 
   String _methodLabel(AppLocalizations l, OrderPaymentMethod m) {
     switch (m) {
-      case OrderPaymentMethod.payme:
-        return l.methodPayme;
+      case OrderPaymentMethod.uzum:
+        return l.methodUzum;
+      case OrderPaymentMethod.uzumNasiya:
+        return l.methodUzumNasiya;
       case OrderPaymentMethod.cash:
         return l.methodCash;
-      case OrderPaymentMethod.click:
-        return l.methodClick;
     }
   }
 

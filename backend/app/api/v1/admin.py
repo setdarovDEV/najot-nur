@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, File, Form, Query, UploadFile
 from slugify import slugify  # type: ignore
 from sqlalchemy import func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import AdminUser, CuratorUser, DbSession
@@ -198,7 +199,76 @@ async def grade_homework(
     hw.status = HomeworkStatus.reviewed
     hw.reviewed_at = datetime.now(UTC)
     await db.flush()
+
+    # Notify the student about the grade. Bad grades (<60) get a strong
+    # "⚠️ yomon baho" tone in the body; good grades get a celebratory one.
+    try:
+        await _notify_homework_graded(db, hw, payload.feedback)
+    except Exception as exc:  # noqa: BLE001
+        log.error(
+            "homework.grade_notify_failed",
+            homework_id=str(homework_id),
+            error=str(exc),
+        )
+
     return hw
+
+
+async def _notify_homework_graded(
+    db: AsyncSession,
+    hw: Homework,
+    feedback: str | None,
+) -> None:
+    """Best-effort FCM + in-app push to the student for a graded homework."""
+    from app.services import fcm
+
+    lesson = await db.get(Lesson, hw.lesson_id)
+    lesson_title = lesson.title if lesson else "dars"
+    score = hw.curator_score or 0
+
+    BAD_GRADE_THRESHOLD = 60
+    is_bad = score < BAD_GRADE_THRESHOLD
+    title = (
+        "⚠️ Yomon baho — qayta ko'rib chiqing"
+        if is_bad
+        else "Uy vazifasi baholandi ✅"
+    )
+    feedback_suffix = f"\n💬 Curator izohi: {feedback}" if feedback else ""
+    body = (
+        f'"{lesson_title}" darsi uchun uy vazifangiz {score}/100 baho oldi.'
+        f"{feedback_suffix}"
+    )
+
+    tokens = (
+        await db.execute(
+            select(PushToken.token).where(PushToken.user_id == hw.user_id)
+        )
+    ).scalars().all()
+    if tokens:
+        await fcm.send_to_tokens(
+            tokens,
+            title=title,
+            body=body,
+            data={
+                "kind": "homework_graded",
+                "homework_id": str(hw.id),
+                "lesson_id": str(hw.lesson_id),
+                "score": str(score),
+                "is_bad_grade": "1" if is_bad else "0",
+            },
+        )
+
+    db.add(
+        PushNotification(
+            title=title,
+            body=body,
+            audience=PushAudience.user,
+            target_id=hw.user_id,
+            sent_by=hw.curator_id,
+            sent_at=datetime.now(UTC),
+        )
+    )
+    await db.flush()
 
 
 # ───────────────────── Audiobooks management (curator) ─────────────────────

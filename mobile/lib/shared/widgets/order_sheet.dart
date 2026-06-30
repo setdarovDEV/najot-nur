@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../l10n/gen/app_localizations.dart';
@@ -70,6 +70,46 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
       _error = null;
     });
     try {
+      if (_method == OrderPaymentMethod.uzum ||
+          _method == OrderPaymentMethod.uzumNasiya) {
+        final provider = _method == OrderPaymentMethod.uzum
+            ? 'uzum'
+            : 'uzum_nasiya';
+        final redirect = await ref.read(learningRepositoryProvider).initiatePayment(
+              provider: provider,
+              purpose: widget.purpose.apiValue,
+              amount: widget.amount,
+              courseId: widget.purpose == OrderPurpose.course
+                  ? widget.targetId
+                  : null,
+              audiobookId: widget.purpose == OrderPurpose.audiobook
+                  ? widget.targetId
+                  : null,
+            );
+        if (!mounted) return;
+        final uri = Uri.tryParse(redirect.redirectUrl);
+        if (uri == null) {
+          throw Exception("To'lov sahifasiga o'tishda xatolik.");
+        }
+        final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!ok) throw Exception("Brauzer ochilmadi.");
+        if (!mounted) return;
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _method == OrderPaymentMethod.uzum
+                  ? l.uzumRedirectHint
+                  : l.uzumNasiyaRedirectHint,
+            ),
+            backgroundColor: AppColors.wine,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+
       await ref.read(learningRepositoryProvider).submitOrder(
             purpose: widget.purpose,
             courseId:
@@ -182,32 +222,20 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
           const SizedBox(height: 18),
           if (_method == OrderPaymentMethod.cash)
             _CashInstructions()
-          else ...[
-            Text(l.paymentProofHint,
-                style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.muted)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _proofCtrl,
-              keyboardType: TextInputType.url,
-              inputFormatters: [LengthLimitingTextInputFormatter(512)],
-              decoration: InputDecoration(
-                hintText: l.paymentProofHint,
-                prefixIcon:
-                    const Icon(Icons.link_rounded, color: AppColors.muted),
-                filled: true,
-                fillColor: AppColors.bg,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              ),
+          else if (_method == OrderPaymentMethod.uzum)
+            _RedirectHintCard(
+              icon: Icons.account_balance_wallet_rounded,
+              title: 'Uzum orqali to\'lash',
+              body: l.uzumRedirectHint,
+              color: const Color(0xFF7B2CBF),
+            )
+          else
+            _RedirectHintCard(
+              icon: Icons.credit_card_rounded,
+              title: 'Uzum Nasiya orqali to\'lash',
+              body: l.uzumNasiyaRedirectHint,
+              color: const Color(0xFFFF6B35),
             ),
-          ],
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(_error!,
@@ -220,7 +248,11 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
             child: ElevatedButton(
               onPressed: _submitting ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.wine,
+                backgroundColor: _method == OrderPaymentMethod.uzum
+                    ? const Color(0xFF7B2CBF)
+                    : _method == OrderPaymentMethod.uzumNasiya
+                        ? const Color(0xFFFF6B35)
+                        : AppColors.wine,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -338,6 +370,71 @@ class _CashInstructions extends StatelessWidget {
   }
 }
 
+class _RedirectHintCard extends StatelessWidget {
+  const _RedirectHintCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.inkSoft,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Step extends StatelessWidget {
   const _Step({required this.number, required this.text});
   final String number;
@@ -387,57 +484,47 @@ class _MethodPicker extends StatelessWidget {
   final OrderPaymentMethod selected;
   final ValueChanged<OrderPaymentMethod> onChanged;
 
-  static const _comingSoon = {
-    OrderPaymentMethod.click,
-    OrderPaymentMethod.payme,
-  };
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final items = <(OrderPaymentMethod, String, IconData)>[
-      (OrderPaymentMethod.click, l.methodClick, Icons.phone_android_rounded),
-      (OrderPaymentMethod.payme, l.methodPayme, Icons.account_balance_wallet_rounded),
-      (OrderPaymentMethod.cash, l.methodCash, Icons.payments_rounded),
+    final items = <(OrderPaymentMethod, String, IconData, Color)>[
+      (
+        OrderPaymentMethod.uzum,
+        l.methodUzum,
+        Icons.account_balance_wallet_rounded,
+        const Color(0xFF7B2CBF),
+      ),
+      (
+        OrderPaymentMethod.uzumNasiya,
+        l.methodUzumNasiya,
+        Icons.credit_card_rounded,
+        const Color(0xFFFF6B35),
+      ),
+      (
+        OrderPaymentMethod.cash,
+        l.methodCash,
+        Icons.payments_rounded,
+        AppColors.wine,
+      ),
     ];
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: items.map((it) {
-        final isSoon = _comingSoon.contains(it.$1);
-        final active = it.$1 == selected && !isSoon;
+        final active = it.$1 == selected;
+        final accent = it.$4;
         return Expanded(
           child: Padding(
             padding: const EdgeInsets.only(right: 8),
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
-              onTap: isSoon
-                  ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              '${it.$2} to\'lov tez kunda ulashiladi'),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: AppColors.inkSoft,
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  : () => onChanged(it.$1),
+              onTap: () => onChanged(it.$1),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: isSoon
-                      ? AppColors.bg
-                      : active
-                          ? AppColors.wine
-                          : Colors.white,
+                  color: active ? accent : Colors.white,
                   border: Border.all(
-                    color: isSoon
-                        ? AppColors.line
-                        : active
-                            ? AppColors.wine
-                            : AppColors.line,
+                    color: active ? accent : AppColors.line,
                     width: 1.4,
                   ),
                   borderRadius: BorderRadius.circular(14),
@@ -445,49 +532,25 @@ class _MethodPicker extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
-                      height: 16,
-                      child: isSoon
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.orange,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'Tez kunda',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 10),
                     Icon(
                       it.$3,
-                      color: isSoon
-                          ? AppColors.muted.withValues(alpha: 0.5)
-                          : active
-                              ? Colors.white
-                              : AppColors.wine,
+                      color: active ? Colors.white : accent,
                       size: 22,
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      it.$2,
-                      style: TextStyle(
-                        color: isSoon
-                            ? AppColors.muted.withValues(alpha: 0.5)
-                            : active
-                                ? Colors.white
-                                : AppColors.ink,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        it.$2,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: active ? Colors.white : AppColors.ink,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],

@@ -1672,23 +1672,35 @@ abstract class AppLocalizations {
   /// **'To\'lov tasdiqlanganidan so\'ng kirish avtomatik beriladi.'**
   String get orderSheetFooter;
 
-  /// No description provided for @methodClick.
+  /// No description provided for @methodUzum.
   ///
   /// In uz, this message translates to:
-  /// **'Click'**
-  String get methodClick;
+  /// **'Uzum'**
+  String get methodUzum;
 
-  /// No description provided for @methodPayme.
+  /// No description provided for @methodUzumNasiya.
   ///
   /// In uz, this message translates to:
-  /// **'Payme'**
-  String get methodPayme;
+  /// **'Uzum Nasiya'**
+  String get methodUzumNasiya;
 
   /// No description provided for @methodCash.
   ///
   /// In uz, this message translates to:
   /// **'Naqd'**
   String get methodCash;
+
+  /// No description provided for @uzumRedirectHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'lovni yakunlash uchun Uzum saytiga yo\'naltirilasiz.'**
+  String get uzumRedirectHint;
+
+  /// No description provided for @uzumNasiyaRedirectHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bo\'lib to\'lash uchun Uzum Nasiya saytiga yo\'naltirilasiz.'**
+  String get uzumNasiyaRedirectHint;
 
   /// No description provided for @audiobookOrderPending.
   ///

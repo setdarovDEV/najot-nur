@@ -60,8 +60,8 @@ class PaymentProvider(str, enum.Enum):
 
 
 class OrderPaymentMethod(str, enum.Enum):
-    click = "click"
-    payme = "payme"
+    uzum = "uzum"
+    uzum_nasiya = "uzum_nasiya"
     cash = "cash"
 
 

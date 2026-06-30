@@ -5,6 +5,8 @@ import { api, apiError } from "../lib/api";
 import type { AdminCourse, PushNotification, PushStatus } from "../lib/types";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
+import { useToast } from "../lib/toast";
 
 type Audience = "all" | "course" | "user";
 
@@ -27,6 +29,8 @@ const fetchUsers = (q: string) =>
 export function NotificationsPage() {
   const qc = useQueryClient();
   const { t } = useLang();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState<Audience>("all");
@@ -67,9 +71,11 @@ export function NotificationsPage() {
       setTitle("");
       setBody("");
       setTargetId("");
+      toast.success(t.notifications.sent);
       qc.invalidateQueries({ queryKey: ["push"] });
       qc.invalidateQueries({ queryKey: ["push", "status"] });
     },
+    onError: (e) => toast.error(apiError(e)),
   });
 
   const sendTest = useMutation({
@@ -81,9 +87,34 @@ export function NotificationsPage() {
         target_id: null, // → server sends to current admin's own tokens
       }),
     onSuccess: () => {
+      toast.success("Test xabar yuborildi.");
       qc.invalidateQueries({ queryKey: ["push"] });
     },
+    onError: (e) => toast.error(apiError(e)),
   });
+
+  async function handleSend() {
+    const ok = await confirm({
+      title: audience === "all"
+        ? "Barcha foydalanuvchilarga xabar yuborishni tasdiqlaysizmi?"
+        : audience === "course"
+          ? "Tanlangan kursga xabar yuborishni tasdiqlaysizmi?"
+          : "Tanlangan foydalanuvchiga xabar yuborishni tasdiqlaysizmi?",
+      description: title,
+      variant: "primary",
+      confirmText: t.modal.send,
+    });
+    if (ok) send.mutate();
+  }
+
+  async function handleTestSend() {
+    const ok = await confirm({
+      title: "Test xabar yuborishni tasdiqlaysizmi?",
+      variant: "primary",
+      confirmText: t.modal.send,
+    });
+    if (ok) sendTest.mutate();
+  }
 
   const audienceLabel = (a: PushNotification["audience"]) => {
     if (a === "course") return "Kursga";
@@ -101,7 +132,7 @@ export function NotificationsPage() {
     <div className="p-8">
       <PageHeader title={t.notifications.title} subtitle={t.notifications.subtitle} />
 
-      <FcmStatusBanner status={status} onTestPush={() => sendTest.mutate()} testing={sendTest.isPending} />
+      <FcmStatusBanner status={status} onTestPush={handleTestSend} testing={sendTest.isPending} />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-line bg-card p-6">
@@ -185,7 +216,7 @@ export function NotificationsPage() {
           />
           <button
             disabled={!ready}
-            onClick={() => send.mutate()}
+            onClick={handleSend}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-wine py-3 font-bold text-white hover:bg-wine-dark disabled:opacity-60"
           >
             {send.isPending ? (

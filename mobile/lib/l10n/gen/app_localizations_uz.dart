@@ -873,13 +873,21 @@ class AppLocalizationsUz extends AppLocalizations {
       'To\'lov tasdiqlanganidan so\'ng kirish avtomatik beriladi.';
 
   @override
-  String get methodClick => 'Click';
+  String get methodUzum => 'Uzum';
 
   @override
-  String get methodPayme => 'Payme';
+  String get methodUzumNasiya => 'Uzum Nasiya';
 
   @override
   String get methodCash => 'Naqd';
+
+  @override
+  String get uzumRedirectHint =>
+      'To\'lovni yakunlash uchun Uzum saytiga yo\'naltirilasiz.';
+
+  @override
+  String get uzumNasiyaRedirectHint =>
+      'Bo\'lib to\'lash uchun Uzum Nasiya saytiga yo\'naltirilasiz.';
 
   @override
   String get audiobookOrderPending =>

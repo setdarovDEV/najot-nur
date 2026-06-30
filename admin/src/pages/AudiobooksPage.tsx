@@ -18,6 +18,7 @@ import type { Audiobook, AudiobookDetail, AudiobookPage } from "../lib/types";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
+import { useConfirm } from "../lib/confirm";
 
 // ─── AudiobooksPage ────────────────────────────────────────────────────────────
 
@@ -25,6 +26,7 @@ export function AudiobooksPage() {
   const qc = useQueryClient();
   const { t } = useLang();
   const toast = useToast();
+  const confirm = useConfirm();
   const canEdit = true;
   const canPublish = true;
   const [showCreate, setShowCreate] = useState(false);
@@ -39,7 +41,11 @@ export function AudiobooksPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/audiobooks/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["audiobooks"] }),
+    onSuccess: () => {
+      toast.success(t.audiobooks.deleteSuccess);
+      qc.invalidateQueries({ queryKey: ["audiobooks"] });
+    },
+    onError: (e) => toast.error(apiError(e)),
   });
 
   const publishMutation = useMutation({
@@ -158,7 +164,14 @@ export function AudiobooksPage() {
                         </div>
                       ) : (
                         <button
-                          onClick={() => publishMutation.mutate(b.id)}
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: t.audiobooks.confirmPublish(b.title),
+                              variant: "primary",
+                              confirmText: t.modal.publish,
+                            });
+                            if (ok) publishMutation.mutate(b.id);
+                          }}
                           disabled={publishMutation.isPending}
                           className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-wine py-2 text-sm font-semibold text-wine transition hover:bg-wine hover:text-white disabled:opacity-60"
                         >
@@ -183,10 +196,17 @@ export function AudiobooksPage() {
                     )}
                     {canPublish && (
                       <button
-                        onClick={() => {
-                          if (confirm("Audiokitobni o'chirishni tasdiqlaysizmi?")) {
-                            deleteMutation.mutate(b.id);
-                          }
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: t.audiobooks.confirmDelete(b.title),
+                            description: t.modal.deleteDesc(
+                              "audiokitob",
+                              b.title,
+                            ),
+                            variant: "danger",
+                            confirmText: t.modal.delete,
+                          });
+                          if (ok) deleteMutation.mutate(b.id);
                         }}
                         disabled={deleteMutation.isPending}
                         className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
@@ -224,6 +244,9 @@ export function AudiobooksPage() {
 
 function CreateForm({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient();
+  const { t } = useLang();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [description, setDescription] = useState("");
@@ -264,10 +287,22 @@ function CreateForm({ onDone }: { onDone: () => void }) {
       return book;
     },
     onSuccess: () => {
+      toast.success(t.audiobooks.createSuccess);
       qc.invalidateQueries({ queryKey: ["audiobooks"] });
       onDone();
     },
+    onError: (e) => toast.error(apiError(e)),
   });
+
+  async function handleCreate() {
+    const ok = await confirm({
+      title: t.modal.createTitle("audiokitob"),
+      description: t.modal.createDesc("Audiokitob"),
+      variant: "primary",
+      confirmText: t.modal.create,
+    });
+    if (ok) create.mutate();
+  }
 
   return (
     <div className="mb-6 rounded-2xl border border-line bg-card p-5">
@@ -360,7 +395,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
       <div className="mt-4 flex gap-2">
         <button
           disabled={!title || create.isPending}
-          onClick={() => create.mutate()}
+          onClick={handleCreate}
           className="rounded-lg bg-wine px-5 py-2 text-sm font-bold text-white disabled:opacity-60"
         >
           {create.isPending ? "Saqlanmoqda…" : "Saqlash"}
@@ -473,6 +508,9 @@ function PageEditor({
   onDone: () => void;
 }) {
   const qc = useQueryClient();
+  const { t } = useLang();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [pageNumber, setPageNumber] = useState(
     page ? page.page_number : (defaultPageNumber ?? 1)
   );
@@ -485,20 +523,38 @@ function PageEditor({
         content,
       }),
     onSuccess: () => {
+      toast.success(t.audiobooks.pageSaveSuccess);
       qc.invalidateQueries({ queryKey: ["audiobook", audiobookId] });
       qc.invalidateQueries({ queryKey: ["audiobooks"] });
     },
+    onError: (e) => toast.error(apiError(e)),
   });
 
   const deletePage = useMutation({
     mutationFn: () =>
       api.delete(`/admin/audiobooks/${audiobookId}/pages/${pageNumber}`),
     onSuccess: () => {
+      toast.success(t.audiobooks.pageDeleteSuccess);
       qc.invalidateQueries({ queryKey: ["audiobook", audiobookId] });
       qc.invalidateQueries({ queryKey: ["audiobooks"] });
       onDone();
     },
+    onError: (e) => toast.error(apiError(e)),
   });
+
+  async function handleSave() {
+    const ok = await confirm({
+      title: page
+        ? t.modal.updateTitle("sahifa")
+        : t.modal.createTitle("sahifa"),
+      description: page
+        ? t.modal.updateDesc("Sahifa")
+        : t.modal.createDesc("Sahifa"),
+      variant: "primary",
+      confirmText: t.modal.save,
+    });
+    if (ok) saveText.mutate();
+  }
 
   return (
     <div className="mt-4 rounded-xl border border-line bg-card p-4">
@@ -508,10 +564,19 @@ function PageEditor({
         </h5>
         {page && (
           <button
-            onClick={() => {
-              if (confirm("Bu sahifani o'chirishni tasdiqlaysizmi?")) {
-                deletePage.mutate();
-              }
+            onClick={async () => {
+              const ok = await confirm({
+                title: t.audiobooks.confirmDeletePage(
+                  page.page_number,
+                ),
+                description: t.modal.deleteDesc(
+                  "sahifa",
+                  String(page.page_number),
+                ),
+                variant: "danger",
+                confirmText: t.modal.delete,
+              });
+              if (ok) deletePage.mutate();
             }}
             disabled={deletePage.isPending}
             className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
@@ -551,7 +616,7 @@ function PageEditor({
 
       {/* Save text */}
       <button
-        onClick={() => saveText.mutate()}
+        onClick={handleSave}
         disabled={saveText.isPending}
         className="mb-4 flex items-center gap-2 rounded-lg bg-wine px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
       >

@@ -291,7 +291,7 @@ class Audiobook {
 
 enum OrderPurpose { course, audiobook }
 
-enum OrderPaymentMethod { click, payme, cash }
+enum OrderPaymentMethod { uzum, uzumNasiya, cash }
 
 enum OrderStatus { pending, approved, rejected }
 
@@ -302,15 +302,27 @@ extension OrderPurposeX on OrderPurpose {
 }
 
 extension OrderPaymentMethodX on OrderPaymentMethod {
-  String get apiValue => name;
+  String get apiValue {
+    switch (this) {
+      case OrderPaymentMethod.uzum:
+        return 'uzum';
+      case OrderPaymentMethod.uzumNasiya:
+        return 'uzum_nasiya';
+      case OrderPaymentMethod.cash:
+        return 'cash';
+    }
+  }
+
   static OrderPaymentMethod fromApi(String? s) {
     switch (s) {
-      case 'payme':
-        return OrderPaymentMethod.payme;
+      case 'uzum':
+        return OrderPaymentMethod.uzum;
+      case 'uzum_nasiya':
+        return OrderPaymentMethod.uzumNasiya;
       case 'cash':
         return OrderPaymentMethod.cash;
       default:
-        return OrderPaymentMethod.click;
+        return OrderPaymentMethod.cash;
     }
   }
 }
@@ -373,6 +385,24 @@ class OrderRequest {
         adminNote: j['admin_note'] as String?,
         createdAt:
             DateTime.tryParse(j['created_at'] as String? ?? '') ?? DateTime.now(),
+      );
+}
+
+class PaymentRedirect {
+  PaymentRedirect({
+    required this.paymentId,
+    required this.redirectUrl,
+    required this.status,
+  });
+
+  final String paymentId;
+  final String redirectUrl;
+  final String status;
+
+  factory PaymentRedirect.fromJson(Map<String, dynamic> j) => PaymentRedirect(
+        paymentId: (j['payment_id'] ?? '').toString(),
+        redirectUrl: (j['redirect_url'] ?? '') as String,
+        status: (j['status'] ?? 'pending') as String,
       );
 }
 

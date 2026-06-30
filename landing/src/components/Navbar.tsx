@@ -1,25 +1,46 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { BRAND } from "../lib/config";
 
 const links = [
+  { to: "#about", label: "Biz haqimizda" },
   { to: "#features", label: "Imkoniyatlar" },
   { to: "#how", label: "Qanday ishlaydi" },
   { to: "#pricing", label: "Narxlar" },
+  { to: "#app", label: "Ilova" },
   { to: "#faq", label: "FAQ" },
   { to: "#contact", label: "Bog'lanish" },
 ];
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-line/60 bg-paper/80 backdrop-blur-md">
+    <header
+      className={`sticky top-0 z-40 border-b transition-all duration-300 ${
+        scrolled
+          ? "border-line bg-paper/85 shadow-sm backdrop-blur-lg"
+          : "border-transparent bg-paper/60 backdrop-blur"
+      }`}
+    >
       <div className="container-x flex h-16 items-center justify-between">
-        <a href="#top" className="flex items-center gap-2.5 font-extrabold">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-wine text-white shadow-lg shadow-wine/20">
-            NN
+        <a href="#top" className="group flex items-center gap-2.5 font-extrabold">
+          <span className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-xl bg-wine text-white shadow-lg shadow-wine/25 transition group-hover:scale-105 group-hover:rotate-3">
+            <span className="relative z-10">NN</span>
+            <span
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-br from-wine via-orange to-skyblue opacity-0 transition group-hover:opacity-100"
+            />
           </span>
-          <span className="text-lg tracking-tight">
+          <span className="text-lg tracking-tight transition group-hover:text-wine">
             {BRAND.name}
             <span className="ml-1 text-xs font-semibold text-muted">· {BRAND.parent}</span>
           </span>
@@ -30,9 +51,13 @@ export function Navbar() {
             <a
               key={l.to}
               href={l.to}
-              className="rounded-lg px-3 py-2 text-sm font-semibold text-ink/80 transition hover:bg-wine-50 hover:text-wine"
+              className="relative rounded-lg px-3 py-2 text-sm font-semibold text-ink/80 transition hover:text-wine"
             >
-              {l.label}
+              <span>{l.label}</span>
+              <span
+                aria-hidden
+                className="absolute inset-x-2 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-wine transition-transform duration-300 group-hover:scale-x-100"
+              />
             </a>
           ))}
         </nav>
@@ -46,30 +71,43 @@ export function Navbar() {
           </a>
           <a
             href={BRAND.links.admin}
-            className="rounded-xl bg-wine px-4 py-2 text-sm font-bold text-white shadow-md shadow-wine/20 transition hover:bg-wine-dark"
+            className="group relative overflow-hidden rounded-xl bg-wine px-4 py-2 text-sm font-bold text-white shadow-md shadow-wine/20 transition hover:shadow-lg hover:shadow-wine/30"
           >
-            Admin panel
+            <span className="relative z-10">Admin panel</span>
+            <span
+              aria-hidden
+              className="absolute inset-0 -translate-x-full bg-gradient-to-r from-wine-dark via-orange to-wine-dark transition-transform duration-700 group-hover:translate-x-0"
+            />
           </a>
         </div>
 
         <button
-          className="grid h-10 w-10 place-items-center rounded-lg text-ink md:hidden"
+          className="grid h-10 w-10 place-items-center rounded-lg text-ink transition hover:bg-wine-50 md:hidden"
           onClick={() => setOpen((v) => !v)}
           aria-label="Menyuni ochish"
         >
-          {open ? <X size={20} /> : <Menu size={20} />}
+          <span className="relative">
+            {open ? <X size={20} /> : <Menu size={20} />}
+            <span
+              aria-hidden
+              className="absolute -inset-1 -z-10 rounded-full bg-wine/10 opacity-0 transition group-hover:opacity-100"
+            />
+          </span>
         </button>
       </div>
 
       {open && (
-        <div className="border-t border-line/60 bg-paper md:hidden">
+        <div className="border-t border-line/60 bg-paper/95 backdrop-blur-md md:hidden">
           <div className="container-x space-y-1 py-4">
-            {links.map((l) => (
+            {links.map((l, i) => (
               <a
                 key={l.to}
                 href={l.to}
                 onClick={() => setOpen(false)}
-                className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-ink hover:bg-wine-50 hover:text-wine"
+                className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-ink transition hover:bg-wine-50 hover:text-wine"
+                style={{
+                  animation: `fade-up 0.4s ${i * 0.04}s ease-out both`,
+                }}
               >
                 {l.label}
               </a>

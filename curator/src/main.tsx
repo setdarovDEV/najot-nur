@@ -10,6 +10,7 @@ import { ToastProvider } from "./lib/toast";
 import { ThemeProvider } from "./lib/theme";
 import { LanguageProvider } from "./lib/i18n";
 import { ConfirmProvider } from "./lib/confirm";
+import { DeploymentGuard } from "./components/DeploymentGuard";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -17,20 +18,22 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeProvider>
-      <LanguageProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <AuthProvider>
-              <ToastProvider>
-                <ConfirmProvider>
-                  <App />
-                </ConfirmProvider>
-              </ToastProvider>
-            </AuthProvider>
-          </BrowserRouter>
-        </QueryClientProvider>
-      </LanguageProvider>
-    </ThemeProvider>
+    <DeploymentGuard>
+      <ThemeProvider>
+        <LanguageProvider>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+              <AuthProvider>
+                <ToastProvider>
+                  <ConfirmProvider>
+                    <App />
+                  </ConfirmProvider>
+                </ToastProvider>
+              </AuthProvider>
+            </BrowserRouter>
+          </QueryClientProvider>
+        </LanguageProvider>
+      </ThemeProvider>
+    </DeploymentGuard>
   </StrictMode>,
 );

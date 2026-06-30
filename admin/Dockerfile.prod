@@ -18,6 +18,8 @@ RUN npm install --no-audit --no-fund
 # Now read build args and bake them into the bundle
 ARG VITE_API_URL=/api/v1
 ENV VITE_API_URL=${VITE_API_URL}
+ARG VITE_EXPECTED_HOST=admin.notiqlik.uz
+ENV VITE_EXPECTED_HOST=${VITE_EXPECTED_HOST}
 
 COPY . .
 RUN npm run build

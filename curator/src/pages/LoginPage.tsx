@@ -2,34 +2,15 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
-  ChevronDown,
-  ChevronUp,
   Eye,
   EyeOff,
-  Info,
   Loader2,
   Lock,
   Mail,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { apiError } from "../lib/api";
 import { useLang } from "../lib/i18n";
-
-interface DemoCreds {
-  email: string;
-  password: string;
-  label: string;
-}
-
-const DEMO_CREDS: DemoCreds[] = [
-  { email: "curator@najotnur.uz", password: "curator123", label: "Kurator" },
-];
-
-const API_URL: string =
-  (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000/api/v1";
-const HEALTH_URL = API_URL.replace(/\/api\/v1\/?$/, "") + "/health";
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -40,45 +21,29 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [demoOpen, setDemoOpen] = useState(true);
-  const [troubleOpen, setTroubleOpen] = useState(false);
-  const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
   const emailRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const ac = new AbortController();
-    const timeout = setTimeout(() => ac.abort(), 5000);
-    fetch(HEALTH_URL, { signal: ac.signal, mode: "cors" })
-      .then((r) => {
-        if (cancelled) return;
-        setApiStatus(r.ok ? "online" : "offline");
-      })
-      .catch(() => {
-        if (!cancelled) setApiStatus("offline");
-      })
-      .finally(() => clearTimeout(timeout));
-    return () => {
-      cancelled = true;
-      ac.abort();
-    };
-  }, []);
 
   useEffect(() => {
     emailRef.current?.focus();
   }, []);
 
-  function fillDemo(creds: DemoCreds) {
-    setEmail(creds.email);
-    setPassword(creds.password);
-    setError(null);
-  }
-
   function classifyError(err: unknown): string {
     if (err && typeof err === "object" && "code" in err) {
       const code = (err as { code?: string }).code;
       if (code === "ERR_NETWORK" || code === "ECONNABORTED") {
-        return `Backend bilan bog'lanib bo'lmadi (${HEALTH_URL}). Server ishlab turganini tekshiring.`;
+        return "Server bilan bog'lanib bo'lmadi. Backend ishlab turganini tekshiring.";
+      }
+    }
+    if (err && typeof err === "object" && "response" in err) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status === 405) {
+        return "Soʻrov usuli qoʻllab-quvvatlanmaydi (405). API manzili notoʻgʻri boʻlishi mumkin.";
+      }
+      if (status === 404) {
+        return "API topilmadi (404). VITE_API_URL toʻgʻri sozlanganini tekshiring.";
+      }
+      if (status === 502 || status === 503) {
+        return "Backend serveriga ulanib boʻlmadi. Birozdan soʻng qayta urinib koʻring.";
       }
     }
     const raw = apiError(err);
@@ -116,8 +81,8 @@ export function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-wine via-wine-dark to-wine-deep p-4 sm:p-6">
-      <div className="w-full max-w-md">
+    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-skyblue via-skyblue/80 to-wine-deep p-4 sm:p-6">
+      <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center gap-3 text-white">
           <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 text-lg font-black shadow-inner">
             NN
@@ -129,10 +94,6 @@ export function LoginPage() {
         </div>
 
         <div className="rounded-3xl bg-card p-6 shadow-2xl sm:p-8">
-          <div className="mb-4">
-            <ApiStatusPill status={apiStatus} url={HEALTH_URL} />
-          </div>
-
           <form onSubmit={onSubmit} className="space-y-4" autoComplete="off" noValidate>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-ink">
@@ -209,101 +170,7 @@ export function LoginPage() {
               {loading ? t.login.loggingIn : t.login.loginBtn}
             </button>
           </form>
-
-          <div className="mt-5 overflow-hidden rounded-2xl border border-line">
-            <button
-              type="button"
-              onClick={() => setDemoOpen((v) => !v)}
-              className="flex w-full items-center justify-between bg-wine/5 px-4 py-2.5 text-left text-sm font-bold text-ink transition hover:bg-wine/10"
-            >
-              <span className="flex items-center gap-2">
-                <Info size={14} className="text-wine-dark" />
-                {t.login.demoTitle}
-              </span>
-              {demoOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-            {demoOpen && (
-              <div className="space-y-2 p-3">
-                <p className="px-1 text-xs text-muted">{t.login.demoHint}</p>
-                {DEMO_CREDS.map((c) => (
-                  <div
-                    key={c.email}
-                    className="flex items-center justify-between gap-2 rounded-xl border border-line bg-card px-3 py-2"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-ink">{c.label}</div>
-                      <div className="truncate font-mono text-[11px] text-muted">
-                        {c.email}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => fillDemo(c)}
-                      disabled={loading}
-                      className="shrink-0 rounded-lg bg-wine px-3 py-1.5 text-xs font-bold text-white transition hover:bg-wine-dark disabled:opacity-50"
-                    >
-                      {t.login.fill}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 overflow-hidden rounded-2xl border border-line">
-            <button
-              type="button"
-              onClick={() => setTroubleOpen((v) => !v)}
-              className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-semibold text-muted transition hover:bg-surface"
-            >
-              <span>{t.login.troubleshooting}</span>
-              {troubleOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-            {troubleOpen && (
-              <div className="space-y-1.5 border-t border-line bg-surface px-4 py-3 text-xs text-muted">
-                <p className="font-semibold text-ink">{t.login.troubleshootingHint}</p>
-                {t.login.troubleshootingItems.map((line) => (
-                  <p key={line} className="leading-relaxed">
-                    {line}
-                  </p>
-                ))}
-                <p className="mt-2 border-t border-line pt-2 font-mono text-[10px]">
-                  API: {API_URL}
-                </p>
-              </div>
-            )}
-          </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ApiStatusPill({ status, url }: { status: "checking" | "online" | "offline"; url: string }) {
-  const { t } = useLang();
-  if (status === "checking") {
-    return (
-      <div className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-xs text-muted">
-        <Loader2 size={13} className="animate-spin" />
-        {t.login.apiChecking}
-      </div>
-    );
-  }
-  if (status === "online") {
-    return (
-      <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
-        <Wifi size={13} />
-        <span className="font-semibold">{t.login.apiOnline}</span>
-        <span className="ml-auto font-mono text-[10px] text-green-700/70">{url}</span>
-      </div>
-    );
-  }
-  return (
-    <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-      <WifiOff size={13} className="mt-0.5 shrink-0" />
-      <div className="flex-1">
-        <p className="font-semibold">{t.login.apiOffline}</p>
-        <p className="mt-0.5 break-all font-mono text-[10px] text-amber-700/80">{url}</p>
       </div>
     </div>
   );

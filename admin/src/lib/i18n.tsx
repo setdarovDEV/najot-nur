@@ -89,26 +89,8 @@ const translations = {
       password: "Parol",
       loginBtn: "Kirish",
       loggingIn: "Kirilmoqda...",
-      demo: "Demo",
       showPassword: "Parolni ko'rsatish",
       hidePassword: "Parolni yashirish",
-      demoTitle: "Demo hisob ma'lumotlari",
-      demoHint: "Birini tanlab, avtomatik to'ldiriladi",
-      demoAdmin: "Administrator",
-      demoCurator: "Kurator",
-      fill: "To'ldirish",
-      apiUrl: "API manzil",
-      apiOnline: "Server ishlayapti",
-      apiOffline: "Server bilan bog'lanib bo'lmadi — backend ishlayotganini tekshiring",
-      apiChecking: "Tekshirilmoqda…",
-      troubleshooting: "Yordam kerakmi?",
-      troubleshootingHint: "Agar login qilib bo'lmasa:",
-      troubleshootingItems: [
-        "1. Backend ishlab turganini tekshiring (http://localhost:8000/health)",
-        "2. .env faylida VITE_API_URL to'g'ri ko'rsatilganini tasdiqlang",
-        "3. Maʼlumotlar bazasiga seed qilinganini tekshiring: python -m app.seeds.seed",
-        "4. Brauzer konsolida (F12) tafsilotlarni ko'ring",
-      ],
     },
     dashboard: {
       greeting: {
@@ -437,7 +419,8 @@ const translations = {
       password: "Пароль",
       loginBtn: "Войти",
       loggingIn: "Вход…",
-      demo: "Демо",
+      showPassword: "Показать пароль",
+      hidePassword: "Скрыть пароль",
     },
     dashboard: {
       greeting: {
@@ -766,7 +749,8 @@ const translations = {
       password: "Password",
       loginBtn: "Sign in",
       loggingIn: "Signing in...",
-      demo: "Demo",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
     },
     dashboard: {
       greeting: {

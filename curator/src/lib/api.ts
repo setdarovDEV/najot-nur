@@ -73,6 +73,16 @@ export function apiError(err: unknown): string {
       }
       return error.message;
     }
+    const status = err.response?.status;
+    if (status === 405) {
+      return "Soʻrov usuli qoʻllab-quvvatlanmaydi (405). API manzili notoʻgʻri boʻlishi mumkin.";
+    }
+    if (status === 404) {
+      return "API topilmadi (404). VITE_API_URL toʻgʻri sozlanganini tekshiring.";
+    }
+    if (status === 502 || status === 503) {
+      return "Backend serveriga ulanib boʻlmadi. Birozdan soʻng qayta urinib koʻring.";
+    }
     if (err.code === "ERR_NETWORK") return "Server bilan bogʻlanib boʻlmadi.";
     if (err.code === "ECONNABORTED") return "Soʻrov vaqti tugadi.";
     return err.message || "Kutilmagan xatolik";

@@ -20,9 +20,13 @@ import { QuizzesPage } from "./pages/QuizzesPage";
 import { CertificateRequestsPage } from "./pages/CertificateRequestsPage";
 
 export default function App() {
-  const { isAuthed } = useAuth();
+  const { isAuthed, role } = useAuth();
 
-  if (!isAuthed) {
+  // The auth provider already clears tokens whose role doesn't match this
+  // panel, but we double-check here to be safe and to make the intent obvious.
+  const allowed = isAuthed && role === "admin";
+
+  if (!allowed) {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />

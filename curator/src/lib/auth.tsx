@@ -11,6 +11,9 @@ import { api, TOKEN_KEY, isTokenExpired, setUnauthorizedHandler } from "./api";
 
 export type UserRole = "admin" | "curator" | "user";
 
+/** The role this panel accepts. Tokens for any other role are cleared on load. */
+const EXPECTED_ROLE: UserRole = "curator";
+
 export interface UserProfile {
   id: string;
   full_name: string | null;
@@ -40,11 +43,21 @@ function parseRole(token: string): UserRole | null {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+/**
+ * Read a non-expired token from storage; clears it if expired OR if it belongs
+ * to a role that this panel doesn't serve. This guarantees curator.notiqlik.uz
+ * can never let an admin (or vice-versa) in via a stale token.
+ */
 function initialToken(): string | null {
   if (typeof window === "undefined") return null;
   const t = localStorage.getItem(TOKEN_KEY);
   if (!t) return null;
   if (isTokenExpired(t)) {
+    localStorage.removeItem(TOKEN_KEY);
+    return null;
+  }
+  const role = parseRole(t);
+  if (role !== EXPECTED_ROLE) {
     localStorage.removeItem(TOKEN_KEY);
     return null;
   }
@@ -74,6 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const p = (async () => {
       try {
         const res = await api.get<UserProfile>("/auth/me");
+        if (res.data.role !== EXPECTED_ROLE) {
+          logout();
+          return;
+        }
         setUser(res.data);
       } catch (err) {
         if (err instanceof AxiosError && err.response?.status !== 401) {
@@ -106,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const access = res.data.access_token as string;
     const parsedRole = parseRole(access);
 
-    if (parsedRole !== "curator") {
+    if (parsedRole !== EXPECTED_ROLE) {
       throw new Error("Bu panel faqat kuratorlar uchun ochiq.");
     }
 
@@ -122,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         role,
         user,
-        isAuthed: !!token,
+        isAuthed: !!token && role === EXPECTED_ROLE,
         login,
         logout,
         refreshUser: fetchUser,

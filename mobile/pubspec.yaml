@@ -29,6 +29,9 @@ dependencies:
   # External links (call, email, telegram, maps)
   url_launcher: ^6.3.1
 
+  # In-app WebView for the Telegram Login Widget OAuth flow
+  flutter_inappwebview: ^6.1.5
+
   # Audio playback (audiokitob)
   just_audio: ^0.9.42
   audio_service: ^0.18.16

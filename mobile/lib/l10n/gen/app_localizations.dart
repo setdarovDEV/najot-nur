@@ -232,6 +232,18 @@ abstract class AppLocalizations {
   /// **'Xush kelibsiz!'**
   String get welcomeBack;
 
+  /// No description provided for @loginSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telefon raqamingiz va parolingizni kiriting'**
+  String get loginSubtitle;
+
+  /// No description provided for @noAccountRegister.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hisobingiz yo\'qmi? Ro\'yxatdan o\'ting'**
+  String get noAccountRegister;
+
   /// No description provided for @enterPasswordFor.
   ///
   /// In uz, this message translates to:
@@ -1126,6 +1138,42 @@ abstract class AppLocalizations {
   /// **'Telefon raqam orqali kirish'**
   String get phoneLogin;
 
+  /// No description provided for @telegramLogin.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegram orqali kirish'**
+  String get telegramLogin;
+
+  /// No description provided for @telegramLoginSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegram akkauntidan foydalaning — parol kerak emas'**
+  String get telegramLoginSubtitle;
+
+  /// No description provided for @orUse.
+  ///
+  /// In uz, this message translates to:
+  /// **'yoki'**
+  String get orUse;
+
+  /// No description provided for @telegramNotConfigured.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hozirda Telegram orqali kirish mavjud emas. Iltimos, telefon raqamingiz bilan kiring.'**
+  String get telegramNotConfigured;
+
+  /// App Telegram Login Widget ma'lumotlarini backend bilan almashayotganda ko'rsatiladi.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegram orqali tekshirilmoqda…'**
+  String get telegramVerifying;
+
+  /// Backend Telegram login ma'lumotlarini qabul qilmasa, ko'rsatiladigan xato.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegram orqali kirish amalga oshmadi: {error}'**
+  String telegramLoginFailed(String error);
+
   /// No description provided for @phoneNumber.
   ///
   /// In uz, this message translates to:
@@ -1737,6 +1785,42 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'AI matn generatsiya qiladi — o\'qing va tahlil oling'**
   String get practiceSpeechSub;
+
+  /// No description provided for @psychologyTest.
+  ///
+  /// In uz, this message translates to:
+  /// **'Psixologik test'**
+  String get psychologyTest;
+
+  /// No description provided for @psychologyTestSub.
+  ///
+  /// In uz, this message translates to:
+  /// **'Savollarga javob bering va AI tahlil oling'**
+  String get psychologyTestSub;
+
+  /// No description provided for @psychologyAnalysis.
+  ///
+  /// In uz, this message translates to:
+  /// **'Psixologik tahlil'**
+  String get psychologyAnalysis;
+
+  /// No description provided for @psychologyIntro.
+  ///
+  /// In uz, this message translates to:
+  /// **'Quyidagi savollarga javob bering — AI sizning psixologik profilingizni tahlil qiladi'**
+  String get psychologyIntro;
+
+  /// No description provided for @psychologyAiTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'AI tahlil uchun tizimga kiring'**
+  String get psychologyAiTitle;
+
+  /// No description provided for @psychologyAiSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Batafsil psixologik tahlil, kuchli tomonlar va tavsiyalar faqat ro\'yxatdan o\'tgan foydalanuvchilar uchun.'**
+  String get psychologyAiSubtitle;
 
   /// No description provided for @selectDifficulty.
   ///

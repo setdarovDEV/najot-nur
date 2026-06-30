@@ -49,15 +49,15 @@ class HomeTab extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 _BigActionCard(
-                  title: l.practiceSpeech,
-                  subtitle: l.practiceSpeechSub,
-                  icon: Icons.record_voice_over_rounded,
+                  title: l.psychologyTest,
+                  subtitle: l.psychologyTestSub,
+                  icon: Icons.psychology_rounded,
                   gradient: const LinearGradient(
                     colors: [Color(0xFF7B2FF7), Color(0xFF4A0EB5)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  onTap: () => context.push('/speech/practice'),
+                  onTap: () => context.push('/psychology'),
                 ),
                 const SizedBox(height: 28),
                 Text(

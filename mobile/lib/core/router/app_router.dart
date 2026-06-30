@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../features/audiobooks/reader_screen.dart';
 import '../../features/auth/auth_screen.dart';
 import '../../features/auth/language_screen.dart';
-import '../../features/auth/phone_login_screen.dart';
+import '../../features/auth/login_screen.dart';
+import '../../features/auth/register_screen.dart';
+import '../../features/auth/telegram_login_screen.dart';
 import '../../features/courses/course_detail_screen.dart';
 import '../../features/courses/course_learning_screen.dart';
 import '../../features/courses/lesson_screen.dart';
@@ -22,6 +24,8 @@ import '../../features/profile/orders_screen.dart';
 import '../../features/profile/profile_edit_screen.dart';
 import '../../features/profile/support_chat_screen.dart';
 import '../../features/practicums/practicum_detail_screen.dart';
+import '../../features/psychology/psychology_result_screen.dart';
+import '../../features/psychology/psychology_screen.dart';
 import '../../features/quizzes/quiz_screen.dart';
 import '../../features/speech/practice_screen.dart';
 import '../../features/speech/speech_hub_screen.dart';
@@ -31,6 +35,7 @@ import '../../features/speech/voice_result_screen.dart';
 import '../../features/speech/voice_screen.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/observation_models.dart';
+import '../../models/psychology_models.dart';
 import '../../models/speech_models.dart';
 import '../../providers/providers.dart';
 
@@ -45,8 +50,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = prefs.accessToken != null;
       final loc = state.matchedLocation;
 
-      // Already logged in → don't show the auth screens.
-      if (isLoggedIn && (loc == '/auth' || loc == '/auth/phone')) {
+      // Already logged in → don't show the auth screens. If a gated flow
+      // has stashed a post-auth return path (e.g. psychology AI analysis),
+      // honour it so the user lands back where they came from.
+      if (isLoggedIn &&
+          (loc == '/auth' ||
+              loc == '/auth/register' ||
+              loc == '/auth/login' ||
+              loc == '/auth/telegram')) {
+        final pending = ref.read(pendingReturnPathProvider);
+        if (pending != null) {
+          ref.read(pendingReturnPathProvider.notifier).state = null;
+          return pending;
+        }
         return '/home';
       }
 
@@ -65,8 +81,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             LanguageScreen(fromContext: state.extra as String?),
       ),
       GoRoute(
-        path: '/auth/phone',
-        builder: (_, __) => const PhoneLoginScreen(),
+        path: '/auth/register',
+        builder: (_, __) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/auth/login',
+        builder: (_, __) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/auth/telegram',
+        builder: (_, __) => const TelegramLoginScreen(),
       ),
 
       // ───── Speech ─────
@@ -86,6 +110,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/speech/practice',
         builder: (_, __) => const PracticeScreen(),
+      ),
+
+      // ───── Psychology ─────
+      GoRoute(
+        path: '/psychology',
+        builder: (_, __) => const PsychologyScreen(),
+      ),
+      GoRoute(
+        path: '/psychology/result',
+        builder: (_, state) =>
+            PsychologyResultScreen(attempt: state.extra as PsychologyAttempt),
       ),
 
       // ───── Practicums ─────

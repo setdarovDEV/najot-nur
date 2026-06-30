@@ -79,6 +79,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get welcomeBack => 'С возвращением!';
 
   @override
+  String get loginSubtitle => 'Введите номер телефона и пароль';
+
+  @override
+  String get noAccountRegister => 'Нет аккаунта? Зарегистрируйтесь';
+
+  @override
   String enterPasswordFor(String phone) {
     return 'Введите пароль для номера $phone';
   }
@@ -571,6 +577,28 @@ class AppLocalizationsRu extends AppLocalizations {
   String get phoneLogin => 'Войти по номеру телефона';
 
   @override
+  String get telegramLogin => 'Войти через Telegram';
+
+  @override
+  String get telegramLoginSubtitle =>
+      'Используйте аккаунт Telegram — пароль не нужен';
+
+  @override
+  String get orUse => 'или';
+
+  @override
+  String get telegramNotConfigured =>
+      'Вход через Telegram сейчас недоступен. Войдите по номеру телефона.';
+
+  @override
+  String get telegramVerifying => 'Проверка через Telegram…';
+
+  @override
+  String telegramLoginFailed(String error) {
+    return 'Не удалось войти через Telegram: $error';
+  }
+
+  @override
   String get phoneNumber => 'Номер телефона';
 
   @override
@@ -894,6 +922,26 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get practiceSpeechSub =>
       'ИИ генерирует текст — читайте и получите анализ';
+
+  @override
+  String get psychologyTest => 'Психологический тест';
+
+  @override
+  String get psychologyTestSub => 'Ответьте на вопросы и получите анализ ИИ';
+
+  @override
+  String get psychologyAnalysis => 'Психологический анализ';
+
+  @override
+  String get psychologyIntro =>
+      'Ответьте на вопросы ниже — ИИ проанализирует ваш психологический профиль';
+
+  @override
+  String get psychologyAiTitle => 'Войдите для ИИ-анализа';
+
+  @override
+  String get psychologyAiSubtitle =>
+      'Подробный психологический анализ, сильные стороны и рекомендации доступны только зарегистрированным пользователям.';
 
   @override
   String get selectDifficulty => 'Выберите уровень сложности';

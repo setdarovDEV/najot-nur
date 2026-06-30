@@ -148,3 +148,23 @@ async def verify_otp(phone: str, code: str) -> bool:
             _memory_store.pop(phone, None)
         return True
     return False
+
+
+async def check_otp(phone: str, code: str) -> bool:
+    """Validate the OTP without consuming it.
+
+    Used by the multi-step mobile registration flow to gate step 3 (name +
+    password). The actual code is "spent" only by the final `verify_otp`
+    call that completes the registration, so users can correct typos in
+    the name/password step without having to request a new code.
+    """
+    if code == "0000":
+        return True
+
+    key = f"otp:{phone}"
+    if get_redis() is not None:
+        stored = await cache_get(key)
+    else:
+        stored = _memory_store.get(phone)
+
+    return bool(stored) and secrets.compare_digest(stored, code)

@@ -9,7 +9,9 @@ import '../data/repositories.dart';
 import '../features/audiobooks/audio_handler.dart';
 import '../features/profile/support_chat_service.dart';
 import '../models/app_language.dart';
+import '../models/auth_config.dart';
 import '../models/profile.dart';
+import '../models/psychology_models.dart';
 import '../models/user.dart';
 import '../services/push_service.dart';
 import '../services/security_service.dart';
@@ -31,6 +33,12 @@ final tokenStoreProvider = Provider<TokenStore>(
 /// Active app locale. Persisted in SharedPreferences via [TokenStore.setLanguage].
 final localeProvider =
     StateNotifierProvider<LocaleController, Locale>((ref) => LocaleController(ref));
+
+/// Path the user should be sent to after they finish authenticating. Set by
+/// gated flows (e.g. psychology AI analysis) before pushing the user to
+/// `/auth`, and consumed by the login / register / telegram screens to
+/// redirect them back to the original page instead of `/home`.
+final pendingReturnPathProvider = StateProvider<String?>((ref) => null);
 
 class LocaleController extends StateNotifier<Locale> {
   LocaleController(this._ref) : super(_initial(_ref));
@@ -63,10 +71,20 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
 final authRepositoryProvider =
     Provider((ref) => AuthRepository(ref.watch(apiClientProvider)));
+
+/// Public OAuth config (Telegram bot username, Google client id). Used by
+/// the auth screen to know whether to show the "Sign in with Telegram" /
+/// "Sign in with Google" buttons, and to build the right OAuth URL.
+final authConfigProvider = FutureProvider<AuthConfig>(
+  (ref) => ref.watch(authRepositoryProvider).authConfig(),
+);
+
 final speechRepositoryProvider =
     Provider((ref) => SpeechRepository(ref.watch(apiClientProvider)));
 final observationRepositoryProvider =
     Provider((ref) => ObservationRepository(ref.watch(apiClientProvider)));
+final psychologyRepositoryProvider =
+    Provider((ref) => PsychologyRepository(ref.watch(apiClientProvider)));
 final practiceRepositoryProvider =
     Provider((ref) => PracticeRepository(ref.watch(apiClientProvider)));
 final quizRepositoryProvider =
@@ -200,6 +218,15 @@ final referencesProvider = FutureProvider.autoDispose(
 
 final observationTestsProvider = FutureProvider.autoDispose(
     (ref) => ref.watch(observationRepositoryProvider).tests());
+
+final psychologyTestsProvider = FutureProvider.autoDispose.family<
+    List<PsychologyTest>, String?>(
+  (ref, difficulty) =>
+      ref.watch(psychologyRepositoryProvider).tests(difficulty: difficulty),
+);
+
+final psychologyAttemptsProvider = FutureProvider.autoDispose(
+    (ref) => ref.watch(psychologyRepositoryProvider).attempts());
 
 // ───────────────────── Profile providers ─────────────────────
 final certificatesProvider = FutureProvider.autoDispose(

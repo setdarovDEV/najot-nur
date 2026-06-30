@@ -26,6 +26,12 @@ structlog>=24.1
 # ─── HTTP / external services ───
 httpx>=0.27
 
+# ─── Telegram (Login via Verification Codes) ───
+# Telethon is used by the phone-verification flow: the backend asks
+# Telegram's official service to send a 6-digit code to the user's
+# "Verification Codes" chat, then checks the code the user types in.
+telethon>=1.36,<2.0
+
 # ─── Push notifications (FCM) ───
 firebase-admin>=6.5
 

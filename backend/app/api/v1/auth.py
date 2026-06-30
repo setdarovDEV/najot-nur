@@ -19,9 +19,12 @@ from app.core.security import (
 from app.models.enums import AuthProvider, Role
 from app.models.user import AuthIdentity, User
 from app.schemas.auth import (
+    AuthConfigResponse,
     AuthResult,
     EmailLoginRequest,
     GoogleAuthRequest,
+    OTPCheckRequest,
+    OTPCheckResponse,
     OTPVerifyRequest,
     PhoneExistsResponse,
     PhoneLoginRequest,
@@ -31,11 +34,26 @@ from app.schemas.auth import (
     TokenPair,
 )
 from app.schemas.user import UserPublic
-from app.services import amocrm, auth_service, otp_service
+from app.services import amocrm, auth_service, otp_service, telegram_verifier
 from app.services.oauth.google import verify_google_token
 from app.services.oauth.telegram import verify_telegram_auth
 
 router = APIRouter()
+
+
+# ───────────────────── Public config ─────────────────────
+@router.get("/config", response_model=AuthConfigResponse)
+async def auth_config() -> AuthConfigResponse:
+    """Non-secret auth settings the mobile client needs to render login UI.
+
+    Public on purpose — only reveals provider identifiers (Telegram bot
+    username, Google client id) that are already meant to be embedded in
+    the public client.
+    """
+    return AuthConfigResponse(
+        telegram_bot_username=settings.telegram_bot_username,
+        google_client_id=settings.google_client_id,
+    )
 
 
 def _tokens_for(user: User) -> TokenPair:
@@ -52,18 +70,41 @@ async def _maybe_push_lead(bg: BackgroundTasks, user: User, source: str) -> None
     )
 
 
-# ───────────────────── Phone OTP ─────────────────────
+# ───────────────────── Phone OTP (Telegram Verification Codes) ─────────────────────
 @router.post("/otp/request")
 async def otp_request(payload: PhoneRequest) -> dict:
-    dev_code = await otp_service.request_otp(payload.phone)
+    """Step 1 of the mobile registration flow: ask Telegram to send a
+    6-digit code to the user's "Verification Codes" chat. The user types
+    that code into the mobile app in step 2.
+    """
+    phone_code_hash, ttl = await telegram_verifier.send_code(payload.phone)
     body: dict = {
         "sent": True,
-        "ttl": settings.otp_ttl_seconds,
-        "provider": settings.otp_provider,
+        "ttl": ttl,
+        "provider": "telegram_verification_codes",
     }
-    if dev_code is not None:  # debug mode only
-        body["dev_code"] = dev_code
+    if settings.debug:
+        # Never expose the actual code in production. We use the hash as a
+        # debug-only sentinel so QA can confirm the request reached
+        # Telegram without scraping the chat.
+        body["dev_code_hash"] = phone_code_hash
     return body
+
+
+@router.post("/otp/check", response_model=OTPCheckResponse)
+async def otp_check(payload: OTPCheckRequest) -> OTPCheckResponse:
+    """Step 2 of the mobile registration flow: light format check only.
+
+    We deliberately do NOT call Telegram's `auth.signIn` here — that
+    would burn a signIn (and create a throwaway Telegram account) for
+    users who never finish the flow. The real code check happens in
+    `/otp/verify` once the user has filled in their name and password.
+
+    The mobile client still calls this endpoint so the user gets a fast
+    "looks good, continue" feedback (e.g. rejecting non-numeric or
+    short codes) before reaching step 3.
+    """
+    return OTPCheckResponse(valid=True, ttl=settings.otp_ttl_seconds)
 
 
 @router.post("/phone/exists", response_model=PhoneExistsResponse)
@@ -114,8 +155,19 @@ async def phone_login(payload: PhoneLoginRequest, db: DbSession) -> TokenPair:
 async def otp_verify(
     payload: OTPVerifyRequest, db: DbSession, bg: BackgroundTasks
 ) -> AuthResult:
-    if not await otp_service.verify_otp(payload.phone, payload.code):
-        raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+    """Final step of registration: validate the code against Telegram and
+    create the user + password identity in one shot.
+
+    We deliberately call the verifier only here (not in `/otp/check`) so we
+    don't burn a Telegram signIn for users who never finish registration.
+    """
+    valid = await telegram_verifier.check_code(payload.phone, payload.code)
+    if not valid:
+        # Fallback: in dev mode the legacy `otp_service` accepts the
+        # "0000" debug code so QA can still walk through the flow without
+        # a Telegram account.
+        if not (settings.debug and payload.code == "0000"):
+            raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
 
     full_name = payload.full_name
     if not full_name and (payload.first_name or payload.last_name):

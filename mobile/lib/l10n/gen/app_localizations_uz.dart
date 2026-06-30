@@ -80,6 +80,12 @@ class AppLocalizationsUz extends AppLocalizations {
   String get welcomeBack => 'Xush kelibsiz!';
 
   @override
+  String get loginSubtitle => 'Telefon raqamingiz va parolingizni kiriting';
+
+  @override
+  String get noAccountRegister => 'Hisobingiz yo\'qmi? Ro\'yxatdan o\'ting';
+
+  @override
   String enterPasswordFor(String phone) {
     return '$phone raqami uchun parolni kiriting';
   }
@@ -578,6 +584,28 @@ class AppLocalizationsUz extends AppLocalizations {
   String get phoneLogin => 'Telefon raqam orqali kirish';
 
   @override
+  String get telegramLogin => 'Telegram orqali kirish';
+
+  @override
+  String get telegramLoginSubtitle =>
+      'Telegram akkauntidan foydalaning — parol kerak emas';
+
+  @override
+  String get orUse => 'yoki';
+
+  @override
+  String get telegramNotConfigured =>
+      'Hozirda Telegram orqali kirish mavjud emas. Iltimos, telefon raqamingiz bilan kiring.';
+
+  @override
+  String get telegramVerifying => 'Telegram orqali tekshirilmoqda…';
+
+  @override
+  String telegramLoginFailed(String error) {
+    return 'Telegram orqali kirish amalga oshmadi: $error';
+  }
+
+  @override
   String get phoneNumber => 'Telefon raqam';
 
   @override
@@ -902,6 +930,26 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get practiceSpeechSub =>
       'AI matn generatsiya qiladi — o\'qing va tahlil oling';
+
+  @override
+  String get psychologyTest => 'Psixologik test';
+
+  @override
+  String get psychologyTestSub => 'Savollarga javob bering va AI tahlil oling';
+
+  @override
+  String get psychologyAnalysis => 'Psixologik tahlil';
+
+  @override
+  String get psychologyIntro =>
+      'Quyidagi savollarga javob bering — AI sizning psixologik profilingizni tahlil qiladi';
+
+  @override
+  String get psychologyAiTitle => 'AI tahlil uchun tizimga kiring';
+
+  @override
+  String get psychologyAiSubtitle =>
+      'Batafsil psixologik tahlil, kuchli tomonlar va tavsiyalar faqat ro\'yxatdan o\'tgan foydalanuvchilar uchun.';
 
   @override
   String get selectDifficulty => 'Qiyinlik darajasini tanlang';

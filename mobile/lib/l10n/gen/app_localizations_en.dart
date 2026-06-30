@@ -78,6 +78,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeBack => 'Welcome back!';
 
   @override
+  String get loginSubtitle => 'Enter your phone number and password';
+
+  @override
+  String get noAccountRegister => 'Don\'t have an account? Sign up';
+
+  @override
   String enterPasswordFor(String phone) {
     return 'Enter the password for $phone';
   }
@@ -572,6 +578,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get phoneLogin => 'Sign in with phone number';
 
   @override
+  String get telegramLogin => 'Sign in with Telegram';
+
+  @override
+  String get telegramLoginSubtitle =>
+      'Use your Telegram account — no password needed';
+
+  @override
+  String get orUse => 'or';
+
+  @override
+  String get telegramNotConfigured =>
+      'Telegram login is not available right now. Please use your phone number.';
+
+  @override
+  String get telegramVerifying => 'Verifying with Telegram…';
+
+  @override
+  String telegramLoginFailed(String error) {
+    return 'Telegram sign-in failed: $error';
+  }
+
+  @override
   String get phoneNumber => 'Phone number';
 
   @override
@@ -895,6 +923,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get practiceSpeechSub =>
       'AI generates text — read it and get analysis';
+
+  @override
+  String get psychologyTest => 'Psychology Test';
+
+  @override
+  String get psychologyTestSub => 'Answer the questions and get AI analysis';
+
+  @override
+  String get psychologyAnalysis => 'Psychology analysis';
+
+  @override
+  String get psychologyIntro =>
+      'Answer the questions below — AI will analyze your psychological profile';
+
+  @override
+  String get psychologyAiTitle => 'Sign in for AI analysis';
+
+  @override
+  String get psychologyAiSubtitle =>
+      'Detailed psychological analysis, strengths and recommendations are available only for registered users.';
 
   @override
   String get selectDifficulty => 'Select difficulty level';

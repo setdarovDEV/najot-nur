@@ -54,6 +54,20 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_bot_username: str = ""
 
+    # ───── Telegram Login (Verification Codes) ─────
+    # Telegram's official "Login via Telegram" service: when a user starts a
+    # registration, we call `auth.sendCode` via Telethon and Telegram sends a
+    # 6-digit code to the user's "Verification Codes" chat (the verified
+    # bot in the user's Telegram app). The user types the code into our
+    # mobile app; we then call `auth.signIn` to verify it.
+    #
+    # To enable this, register an app at https://my.telegram.org and put
+    # the api_id / api_hash here. See `python -m app.scripts.telegram_login`
+    # for the one-time setup that produces `TELEGRAM_SESSION`.
+    telegram_api_id: int = 0
+    telegram_api_hash: str = ""
+    telegram_session: str = ""
+
     # ───── OTP delivery ─────
     # telegram → OTP Telegram bot orqali yuboriladi (foydalanuvchi avval botni ishlatgan bo'lishi kerak)
     # sms      → SMS gateway orqali yuboriladi

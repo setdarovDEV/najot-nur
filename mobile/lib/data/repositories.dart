@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
 
 import '../core/network/api_client.dart';
+import '../models/auth_config.dart';
 import '../models/learning_models.dart';
 import '../models/observation_models.dart';
 import '../models/practicum_models.dart';
 import '../models/profile.dart';
+import '../models/psychology_models.dart';
 import '../models/quiz_models.dart';
 import '../models/speech_models.dart';
 import '../models/support_models.dart';
@@ -26,6 +28,19 @@ class AuthRepository {
     try {
       final r = await _api.dio.post('/auth/otp/request', data: {'phone': phone});
       return r.data['dev_code'] as String?; // present only in DEBUG
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  /// Step 2 of registration: validate the OTP without consuming it.
+  /// Throws [ApiException] when the code is wrong or expired.
+  Future<void> checkOtp({required String phone, required String code}) async {
+    try {
+      await _api.dio.post(
+        '/auth/otp/check',
+        data: {'phone': phone, 'code': code},
+      );
     } catch (e) {
       throw _api.toApiException(e);
     }
@@ -113,6 +128,50 @@ class AuthRepository {
         if (locale != null) 'locale': locale,
       });
       return AppUser.fromJson(r.data as Map<String, dynamic>);
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  /// Public, anonymous — returns which OAuth providers are configured.
+  /// The mobile client uses this to decide whether to show the "Sign in
+  /// with Telegram" / "Sign in with Google" buttons.
+  Future<AuthConfig> authConfig() async {
+    try {
+      final r = await _api.dio.get('/auth/config');
+      return AuthConfig.fromJson(r.data as Map<String, dynamic>);
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  /// Telegram Login Widget callback — verifies the signature on the server
+  /// (`verify_telegram_auth` checks the HMAC + freshness) and issues our
+  /// own JWT pair in return.
+  Future<AuthResult> telegramLogin({
+    required int id,
+    String? firstName,
+    String? lastName,
+    String? username,
+    String? photoUrl,
+    required int authDate,
+    required String hash,
+  }) async {
+    try {
+      final r = await _api.dio.post('/auth/telegram', data: {
+        'id': id,
+        if (firstName != null) 'first_name': firstName,
+        if (lastName != null) 'last_name': lastName,
+        if (username != null) 'username': username,
+        if (photoUrl != null) 'photo_url': photoUrl,
+        'auth_date': authDate,
+        'hash': hash,
+      });
+      return AuthResult(
+        access: r.data['tokens']['access_token'] as String,
+        refresh: r.data['tokens']['refresh_token'] as String,
+        isNew: r.data['is_new_user'] as bool? ?? false,
+      );
     } catch (e) {
       throw _api.toApiException(e);
     }
@@ -783,6 +842,68 @@ class SecurityRepository {
           receiveTimeout: const Duration(seconds: 30),
         ),
       );
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+}
+
+class PsychologyRepository {
+  PsychologyRepository(this._api);
+  final ApiClient _api;
+
+  /// Returns the list of psychology tests for the given difficulty. When
+  /// [difficulty] is null the server picks a default curated set.
+  Future<List<PsychologyTest>> tests({String? difficulty}) async {
+    try {
+      final r = await _api.dio.get(
+        '/psychology/tests',
+        queryParameters: difficulty == null ? null : {'difficulty': difficulty},
+      );
+      return (r.data as List)
+          .map((e) => PsychologyTest.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  /// Submit answers for a psychology test. Works for both authenticated and
+  /// guest users; the response is the same shape (a [PsychologyAttempt]).
+  Future<PsychologyAttempt> submit(List<PsychologyAnswer> answers) async {
+    try {
+      final r = await _api.dio.post(
+        '/psychology/submit',
+        data: {
+          'answers': answers.map((a) => a.toJson()).toList(),
+        },
+      );
+      return PsychologyAttempt.fromJson(r.data as Map<String, dynamic>);
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  /// Get the caller's own attempts (history).
+  Future<List<PsychologyAttempt>> attempts() async {
+    try {
+      final r = await _api.dio.get('/psychology/attempts');
+      return (r.data as List)
+          .map((e) => PsychologyAttempt.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  /// Request a detailed AI analysis for a guest attempt. The caller must be
+  /// authenticated; the backend re-runs the analysis with the user's profile
+  /// and returns the same [PsychologyAttempt] shape but populated with the
+  /// `ai_analysis` text.
+  Future<PsychologyAttempt> requestAi(String attemptId) async {
+    try {
+      final r = await _api.dio.post('/psychology/attempts/$attemptId/ai');
+      return PsychologyAttempt.fromJson(r.data as Map<String, dynamic>);
     } catch (e) {
       throw _api.toApiException(e);
     }

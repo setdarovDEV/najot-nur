@@ -22,6 +22,8 @@
   "codeTooShort": "Enter the full code",
   "resendCode": "Resend code",
   "welcomeBack": "Welcome back!",
+  "loginSubtitle": "Enter your phone number and password",
+  "noAccountRegister": "Don't have an account? Sign up",
   "enterPasswordFor": "Enter the password for {phone}",
   "enterCodeFor": "Enter the code sent to {phone}",
   "fillInfoTitle": "Fill in your details",
@@ -171,6 +173,23 @@
   "logout": "Sign out",
   "retry": "Retry",
   "phoneLogin": "Sign in with phone number",
+  "telegramLogin": "Sign in with Telegram",
+  "telegramLoginSubtitle": "Use your Telegram account — no password needed",
+  "orUse": "or",
+  "telegramNotConfigured": "Telegram login is not available right now. Please use your phone number.",
+  "telegramVerifying": "Verifying with Telegram…",
+  "@telegramVerifying": {
+    "description": "Shown while the app exchanges the Telegram Login Widget payload with the backend."
+  },
+  "telegramLoginFailed": "Telegram sign-in failed: {error}",
+  "@telegramLoginFailed": {
+    "description": "Error toast shown when the backend rejects the Telegram login payload.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "phoneNumber": "Phone number",
   "phoneHint": "+998 XX XXX XX XX",
   "password": "Password",
@@ -273,6 +292,12 @@
   "loginRequiredBtn": "Log in",
   "practiceSpeech": "Speech Practice",
   "practiceSpeechSub": "AI generates text — read it and get analysis",
+  "psychologyTest": "Psychology Test",
+  "psychologyTestSub": "Answer the questions and get AI analysis",
+  "psychologyAnalysis": "Psychology analysis",
+  "psychologyIntro": "Answer the questions below — AI will analyze your psychological profile",
+  "psychologyAiTitle": "Sign in for AI analysis",
+  "psychologyAiSubtitle": "Detailed psychological analysis, strengths and recommendations are available only for registered users.",
   "selectDifficulty": "Select difficulty level",
   "difficultyEasy": "Easy",
   "difficultyMedium": "Medium",

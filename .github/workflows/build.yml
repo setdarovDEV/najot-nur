@@ -95,3 +95,55 @@ jobs:
           cache-to: type=gha,scope=${{ matrix.service.name }},mode=max
           build-args: ${{ matrix.service.build_args }}
           provenance: false
+
+  # ─────────────────────────────────────────────────────────────
+  #  Deploy to production via SSH.
+  #  Runs only on push to main (not PRs), after all 4 images
+  #  are built and pushed to GHCR.
+  #
+  #  Required GitHub secrets (Settings → Secrets → Actions):
+  #    SSH_HOST   = 45.138.159.219
+  #    SSH_USER   = root
+  #    SSH_KEY    = <private key contents, no passphrase>
+  #    DEPLOY_DIR = /opt/najot-nur
+  # ─────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-22.04
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://notiqlik.uz
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            cd /opt/najot-nur
+
+            echo "▶ Git pull (config/Caddyfile changes)..."
+            git pull --ff-only origin main
+
+            echo "▶ Image lar GHCR dan tortilmoqda..."
+            docker compose pull
+
+            echo "▶ Konteynerlar qayta yaratilmoqda..."
+            docker compose up -d
+
+            echo "▶ Caddy reload (config o'zgargan bo'lsa)..."
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
+
+            echo "▶ Eski imagelar tozalanmoqda..."
+            docker image prune -f
+
+            echo "▶ Running containers:"
+            docker compose ps
+
+            echo "✓ Deploy yakunlandi."

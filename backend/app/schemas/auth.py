@@ -20,6 +20,20 @@ class PhoneRequest(BaseModel):
     phone: str = Field(..., pattern=r"^\+?\d{9,15}$", examples=["+998901234567"])
 
 
+class OTPCheckRequest(BaseModel):
+    """Step 2 of registration: validate the code we just sent, without
+    creating the user or issuing tokens. The final registration step
+    (with name + password) calls `/auth/otp/verify`."""
+
+    phone: str = Field(..., pattern=r"^\+?\d{9,15}$")
+    code: str = Field(..., min_length=4, max_length=8)
+
+
+class OTPCheckResponse(BaseModel):
+    valid: bool
+    ttl: int
+
+
 class OTPVerifyRequest(BaseModel):
     phone: str = Field(..., pattern=r"^\+?\d{9,15}$")
     code: str = Field(..., min_length=4, max_length=8)
@@ -67,3 +81,14 @@ class EmailLoginRequest(BaseModel):
 class AuthResult(BaseModel):
     is_new_user: bool
     tokens: TokenPair
+
+
+class AuthConfigResponse(BaseModel):
+    """Public auth configuration the mobile client can fetch without auth.
+
+    Exposes only non-secret bits so the client can decide which login
+    methods to show and where to redirect OAuth flows.
+    """
+
+    telegram_bot_username: str = ""
+    google_client_id: str = ""

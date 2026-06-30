@@ -105,7 +105,7 @@ jobs:
   #    SSH_HOST   = 45.138.159.219
   #    SSH_USER   = root
   #    SSH_KEY    = <private key contents, no passphrase>
-  #    DEPLOY_DIR = /opt/najot-nur
+  #    DEPLOY_DIR = /opt/notiqai
   # ─────────────────────────────────────────────────────────────
   deploy:
     name: Deploy to production
@@ -126,7 +126,7 @@ jobs:
           command_timeout: 10m
           script: |
             set -euo pipefail
-            cd /opt/najot-nur
+            cd /opt/notiqai
 
             echo "▶ Git pull (config/Caddyfile changes)..."
             git pull --ff-only origin main

@@ -102,10 +102,11 @@ jobs:
   #  are built and pushed to GHCR.
   #
   #  Required GitHub secrets (Settings → Secrets → Actions):
-  #    SSH_HOST   = 45.138.159.219
-  #    SSH_USER   = root
-  #    SSH_KEY    = <private key contents, no passphrase>
-  #    DEPLOY_DIR = /opt/notiqai
+  #    SSH_HOST         = 45.138.159.219
+  #    SSH_USER         = root
+  #    SSH_KEY          = <private key contents, no passphrase>
+  #    SSH_KNOWN_HOSTS  = <output of: ssh-keyscan 45.138.159.219>
+  #    DEPLOY_DIR       = /opt/notiqai
   # ─────────────────────────────────────────────────────────────
   deploy:
     name: Deploy to production
@@ -117,12 +118,19 @@ jobs:
       url: https://notiqlik.uz
 
     steps:
+      - name: Write known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          known_hosts: ~/.ssh/known_hosts
           command_timeout: 10m
           script: |
             set -euo pipefail

@@ -35,9 +35,9 @@ interface Practicum {
 type FilterKey = "all" | "draft" | "approved" | "rejected" | "free" | "paid";
 
 const STATUS_COLOR: Record<string, string> = {
-  draft: "bg-yellow-100 text-yellow-700",
-  approved: "bg-green-100 text-green-700",
-  rejected: "bg-red-100 text-red-700",
+  draft: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  approved: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
 function formatPrice(price: number) {
@@ -387,8 +387,8 @@ function PracticumCard({
             </span>
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
               practicum.is_free
-                ? "bg-green-100 text-green-700"
-                : "bg-purple-100 text-purple-700"
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
             }`}>
               {practicum.is_free ? p.free : `${p.paid} · ${formatPrice(Number(practicum.price))}`}
             </span>
@@ -397,7 +397,7 @@ function PracticumCard({
             <div className="mt-1 text-xs text-muted">{practicum.category}</div>
           )}
           {practicum.expert_audio_url && (
-            <div className="mt-1 flex items-center gap-1 text-[11px] text-green-600 font-semibold">
+            <div className="mt-1 flex items-center gap-1 text-[11px] text-green-600 font-semibold dark:text-green-400">
               <Mic size={11} />
               Audio yuklangan
             </div>
@@ -410,7 +410,7 @@ function PracticumCard({
               <button
                 onClick={onApprove}
                 title="Tasdiqlash"
-                className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200"
+                className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
               >
                 <Check size={13} />
                 Tasdiqlash
@@ -418,7 +418,7 @@ function PracticumCard({
               <button
                 onClick={onReject}
                 title="Rad etish"
-                className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200"
+                className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
               >
                 <X size={13} />
                 Rad etish

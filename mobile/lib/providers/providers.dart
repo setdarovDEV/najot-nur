@@ -36,8 +36,8 @@ final localeProvider =
 
 /// Path the user should be sent to after they finish authenticating. Set by
 /// gated flows (e.g. psychology AI analysis) before pushing the user to
-/// `/auth`, and consumed by the login / register / telegram screens to
-/// redirect them back to the original page instead of `/home`.
+/// `/auth`, and consumed by the auth screens to redirect them back to the
+/// original page instead of `/home`.
 final pendingReturnPathProvider = StateProvider<String?>((ref) => null);
 
 class LocaleController extends StateNotifier<Locale> {

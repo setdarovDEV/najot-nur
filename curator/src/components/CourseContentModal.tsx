@@ -520,7 +520,7 @@ function VideoSection({
               : "border-line hover:border-wine/40 hover:bg-surface"
           }`}
         >
-          <Upload size={30} className="text-wine/50" />
+          <Upload size={30} className="text-wine/60 dark:text-wine-300" />
           <div className="text-center text-sm text-muted">
             <span className="font-semibold text-wine">Fayl tanlash</span> yoki bu yerga tashlang
             <br />

@@ -302,23 +302,7 @@
   "logout": "Chiqish",
   "retry": "Qayta urinish",
   "phoneLogin": "Telefon raqam orqali kirish",
-  "telegramLogin": "Telegram orqali kirish",
-  "telegramLoginSubtitle": "Telegram akkauntidan foydalaning — parol kerak emas",
   "orUse": "yoki",
-  "telegramNotConfigured": "Hozirda Telegram orqali kirish mavjud emas. Iltimos, telefon raqamingiz bilan kiring.",
-  "telegramVerifying": "Telegram orqali tekshirilmoqda…",
-  "@telegramVerifying": {
-    "description": "App Telegram Login Widget ma'lumotlarini backend bilan almashayotganda ko'rsatiladi."
-  },
-  "telegramLoginFailed": "Telegram orqali kirish amalga oshmadi: {error}",
-  "@telegramLoginFailed": {
-    "description": "Backend Telegram login ma'lumotlarini qabul qilmasa, ko'rsatiladigan xato.",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
   "phoneNumber": "Telefon raqam",
   "phoneHint": "+998 XX XXX XX XX",
   "password": "Parol",

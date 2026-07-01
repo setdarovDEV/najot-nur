@@ -166,37 +166,6 @@ class AuthRepository {
     }
   }
 
-  /// Telegram Login Widget callback — verifies the signature on the server
-  /// (`verify_telegram_auth` checks the HMAC + freshness) and issues our
-  /// own JWT pair in return.
-  Future<AuthResult> telegramLogin({
-    required int id,
-    String? firstName,
-    String? lastName,
-    String? username,
-    String? photoUrl,
-    required int authDate,
-    required String hash,
-  }) async {
-    try {
-      final r = await _api.dio.post('/auth/telegram', data: {
-        'id': id,
-        if (firstName != null) 'first_name': firstName,
-        if (lastName != null) 'last_name': lastName,
-        if (username != null) 'username': username,
-        if (photoUrl != null) 'photo_url': photoUrl,
-        'auth_date': authDate,
-        'hash': hash,
-      });
-      return AuthResult(
-        access: r.data['tokens']['access_token'] as String,
-        refresh: r.data['tokens']['refresh_token'] as String,
-        isNew: r.data['is_new_user'] as bool? ?? false,
-      );
-    } catch (e) {
-      throw _api.toApiException(e);
-    }
-  }
 }
 
 class ProfileRepository {

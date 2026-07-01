@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -8,6 +8,8 @@ import {
   EyeOff,
   Lock,
   Settings2,
+  Pencil,
+  Upload,
 } from "lucide-react";
 import { api, apiError, mediaUrl } from "../lib/api";
 import { PageHeader } from "../components/Layout";
@@ -16,6 +18,14 @@ import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
 import type { AdminCourse } from "../lib/types";
 import { CourseContentModal } from "../components/CourseContentModal";
+import {
+  Modal,
+  ModalBody,
+  ModalCancelButton,
+  ModalFooter,
+  ModalHeader,
+  ModalSubmitButton,
+} from "../components/Modal";
 
 // ─── API helpers ────────────────────────────────────────────────────────────
 
@@ -30,7 +40,8 @@ export function VideoLessonsPage() {
   const toast = useToast();
   const confirm = useConfirm();
   const canEdit = true;
-  const [creating, setCreating] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<AdminCourse | null>(null);
   const [managingCourse, setManagingCourse] = useState<AdminCourse | null>(null);
 
   const { data: courses = [], isLoading } = useQuery({
@@ -69,7 +80,7 @@ export function VideoLessonsPage() {
         actions={
           canEdit ? (
             <button
-              onClick={() => setCreating(true)}
+              onClick={() => setShowCreate(true)}
               className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-semibold text-white hover:bg-wine/90"
             >
               <Plus size={16} />
@@ -84,15 +95,24 @@ export function VideoLessonsPage() {
         }
       />
 
-      {creating && canEdit && (
-        <CreateCourseForm
-          onClose={() => setCreating(false)}
+      {showCreate && canEdit && (
+        <CourseModal
+          onClose={() => setShowCreate(false)}
           onCreated={(id) => {
-            setCreating(false);
-            const created = { id } as AdminCourse;
+            setShowCreate(false);
             qc.invalidateQueries({ queryKey: ["admin", "courses"] });
-            // immediately open the content manager for the new course
-            setManagingCourse({ ...created, title: "Yangi kurs" } as AdminCourse);
+            setManagingCourse({ id, title: "Yangi kurs" } as AdminCourse);
+          }}
+        />
+      )}
+
+      {editingCourse && canEdit && (
+        <CourseModal
+          initial={editingCourse}
+          onClose={() => setEditingCourse(null)}
+          onCreated={() => {
+            setEditingCourse(null);
+            qc.invalidateQueries({ queryKey: ["admin", "courses"] });
           }}
         />
       )}
@@ -129,8 +149,8 @@ export function VideoLessonsPage() {
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                         c.is_published
-                          ? "bg-green-100 text-green-700"
-                          : "bg-yellow-100 text-yellow-700"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
                       }`}
                     >
                       {c.is_published ? "Chiqarilgan" : "Qoralama"}
@@ -153,6 +173,13 @@ export function VideoLessonsPage() {
                     >
                       <Settings2 size={14} />
                       Boshqarish
+                    </button>
+                    <button
+                      onClick={() => setEditingCourse(c)}
+                      className="rounded-lg p-2 text-muted hover:bg-surface"
+                      title="Tahrirlash"
+                    >
+                      <Pencil size={16} />
                     </button>
                     <button
                       title={c.is_published ? "Yashirish" : "Nashr qilish"}
@@ -213,43 +240,81 @@ export function VideoLessonsPage() {
   );
 }
 
-// ─── Create course form ──────────────────────────────────────────────────────
+// ─── Create / Edit course modal ──────────────────────────────────────────────
 
-function CreateCourseForm({
+function CourseModal({
+  initial,
   onClose,
   onCreated,
 }: {
+  initial?: AdminCourse;
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
   const { t } = useLang();
   const confirm = useConfirm();
   const toast = useToast();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("0");
-  const [level, setLevel] = useState("beginner");
+  const qc = useQueryClient();
+  const isEdit = !!initial;
+  const coverRef = useRef<HTMLInputElement>(null);
+
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [price, setPrice] = useState(initial?.price ? String(Number(initial.price)) : "0");
+  const [level, setLevel] = useState(initial?.level ?? "beginner");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
-  async function handleConfirmCreate() {
+  async function handleSubmit() {
     if (!title.trim()) return;
     const ok = await confirm({
-      title: t.modal.createTitle("kurs"),
-      description: t.modal.createDesc("Kurs"),
+      title: isEdit
+        ? t.modal.updateTitle("kurs")
+        : t.modal.createTitle("kurs"),
+      description: isEdit
+        ? t.modal.updateDesc("Kurs")
+        : t.modal.createDesc("Kurs"),
       variant: "primary",
-      confirmText: t.modal.create,
+      confirmText: isEdit ? t.modal.save : t.modal.create,
     });
     if (!ok) return;
+
     setSaving(true);
     try {
-      const { data } = await api.post("/admin/courses", {
-        title: title.trim(),
-        description: description.trim() || null,
-        price: parseFloat(price) || 0,
-        level,
-      });
-      toast.success(t.videoLessons.createSuccess);
-      onCreated(data.id);
+      if (isEdit) {
+        await api.patch(`/admin/courses/${initial.id}`, {
+          title: title.trim(),
+          description: description.trim() || null,
+          price: parseFloat(price) || 0,
+          level,
+        });
+        if (coverFile) {
+          const fd = new FormData();
+          fd.append("file", coverFile);
+          await api.post(`/admin/courses/${initial.id}/cover`, fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        }
+        toast.success(t.videoLessons.updateSuccess);
+        onCreated(initial.id);
+      } else {
+        const { data } = await api.post("/admin/courses", {
+          title: title.trim(),
+          description: description.trim() || null,
+          price: parseFloat(price) || 0,
+          level,
+        });
+        if (coverFile) {
+          const fd = new FormData();
+          fd.append("file", coverFile);
+          await api.post(`/admin/courses/${data.id}/cover`, fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        }
+        toast.success(t.videoLessons.createSuccess);
+        onCreated(data.id);
+      }
+      qc.invalidateQueries({ queryKey: ["admin", "courses"] });
     } catch (e) {
       toast.error(apiError(e));
     } finally {
@@ -257,79 +322,103 @@ function CreateCourseForm({
     }
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    await handleConfirmCreate();
-  }
-
   return (
-    <form
-      onSubmit={submit}
-      className="mb-6 rounded-2xl border border-wine/30 bg-card p-5"
-    >
-      <div className="mb-4 font-semibold text-ink">Yangi kurs</div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 sm:col-span-2">
-          <span className="text-xs font-semibold text-muted">Kurs nomi</span>
-          <input
-            required
-            placeholder="Masalan: Nutq san'ati"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine"
-          />
-        </label>
-        <label className="flex flex-col gap-1 sm:col-span-2">
-          <span className="text-xs font-semibold text-muted">Tavsif</span>
-          <textarea
-            placeholder="Kurs haqida qisqacha..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold text-muted">Narxi (so'm)</span>
-          <input
-            type="number"
-            min="0"
-            placeholder="0"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold text-muted">Daraja</span>
-          <select
-            value={level}
-            onChange={(e) => setLevel(e.target.value)}
-            className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine"
-          >
-            <option value="beginner">Boshlang'ich</option>
-            <option value="intermediate">O'rta</option>
-            <option value="advanced">Yuqori</option>
-          </select>
-        </label>
-      </div>
-      <div className="mt-4 flex gap-2">
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-xl bg-wine px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
+    <Modal open onClose={onClose} size="lg">
+      <ModalHeader
+        title={isEdit ? "Kursni tahrirlash" : "Yangi kurs"}
+        onClose={onClose}
+      />
+      <ModalBody>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          className="grid gap-4 sm:grid-cols-2"
         >
-          {saving ? "Saqlanmoqda..." : "Yaratish"}
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-xl border border-line px-5 py-2 text-sm font-semibold text-muted"
+          <label className="flex flex-col gap-1 sm:col-span-2">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted">
+              Kurs nomi
+            </span>
+            <input
+              required
+              placeholder="Masalan: Nutq san'ati"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            />
+          </label>
+          <label className="flex flex-col gap-1 sm:col-span-2">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted">
+              Tavsif
+            </span>
+            <textarea
+              placeholder="Kurs haqida qisqacha..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted">
+              Narxi (so'm)
+            </span>
+            <input
+              type="number"
+              min="0"
+              placeholder="0"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted">
+              Daraja
+            </span>
+            <select
+              value={level}
+              onChange={(e) => setLevel(e.target.value)}
+              className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            >
+              <option value="beginner">Boshlang'ich</option>
+              <option value="intermediate">O'rta</option>
+              <option value="advanced">Yuqori</option>
+            </select>
+          </label>
+          <div className="sm:col-span-2">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted">
+              Muqova
+            </span>
+            <button
+              type="button"
+              onClick={() => coverRef.current?.click()}
+              className="mt-1 flex w-full items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
+            >
+              <Upload size={14} />
+              {coverFile ? coverFile.name : "Muqova rasmini yuklash"}
+            </button>
+            <input
+              ref={coverRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
+        </form>
+      </ModalBody>
+      <ModalFooter>
+        <ModalCancelButton onClick={onClose}>{t.common.cancel}</ModalCancelButton>
+        <ModalSubmitButton
+          onClick={handleSubmit}
+          loading={saving}
+          disabled={!title.trim()}
         >
-          Bekor qilish
-        </button>
-      </div>
-    </form>
+          {isEdit ? t.common.save : t.modal.create}
+        </ModalSubmitButton>
+      </ModalFooter>
+    </Modal>
   );
 }
-

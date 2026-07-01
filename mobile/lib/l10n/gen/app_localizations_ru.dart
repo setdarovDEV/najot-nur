@@ -67,12 +67,10 @@ class AppLocalizationsRu extends AppLocalizations {
       'На ваш номер будет отправлен код подтверждения';
 
   @override
-  String get enterPhoneForLogin =>
-      'Введите номер телефона для входа';
+  String get enterPhoneForLogin => 'Введите номер телефона для входа';
 
   @override
-  String get enterPhoneForRegister =>
-      'Введите номер телефона для регистрации';
+  String get enterPhoneForRegister => 'Введите номер телефона для регистрации';
 
   @override
   String get enterPhoneForReset =>
@@ -120,8 +118,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Этот номер телефона уже зарегистрирован. Пожалуйста, войдите.';
 
   @override
-  String get phoneNotRegistered =>
-      'Этот номер телефона не зарегистрирован.';
+  String get phoneNotRegistered => 'Этот номер телефона не зарегистрирован.';
 
   @override
   String get resendCode => 'Отправить код повторно';
@@ -628,26 +625,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get phoneLogin => 'Войти по номеру телефона';
 
   @override
-  String get telegramLogin => 'Войти через Telegram';
-
-  @override
-  String get telegramLoginSubtitle =>
-      'Используйте аккаунт Telegram — пароль не нужен';
-
-  @override
   String get orUse => 'или';
-
-  @override
-  String get telegramNotConfigured =>
-      'Вход через Telegram сейчас недоступен. Войдите по номеру телефона.';
-
-  @override
-  String get telegramVerifying => 'Проверка через Telegram…';
-
-  @override
-  String telegramLoginFailed(String error) {
-    return 'Не удалось войти через Telegram: $error';
-  }
 
   @override
   String get phoneNumber => 'Номер телефона';

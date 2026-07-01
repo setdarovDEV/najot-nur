@@ -8,7 +8,6 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
-  Save,
   Upload,
   CheckCircle2,
   Lock,
@@ -19,6 +18,7 @@ import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
 import { useConfirm } from "../lib/confirm";
+import { Modal, ModalFooter } from "../components/Modal";
 
 // ─── AudiobooksPage ────────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ export function AudiobooksPage() {
         actions={
           canEdit ? (
             <button
-              onClick={() => setShowCreate((v) => !v)}
+              onClick={() => setShowCreate(true)}
               className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark"
             >
               <Plus size={16} />
@@ -91,7 +91,7 @@ export function AudiobooksPage() {
         }
       />
 
-      {showCreate && canEdit && <CreateForm onDone={() => setShowCreate(false)} />}
+      <CreateForm open={showCreate} onClose={() => setShowCreate(false)} />
 
       {isLoading && <p className="text-muted">Yuklanmoqda…</p>}
 
@@ -240,9 +240,9 @@ export function AudiobooksPage() {
   );
 }
 
-// ─── CreateForm ────────────────────────────────────────────────────────────────
+// ─── CreateForm (Modal) ──────────────────────────────────────────────────────
 
-function CreateForm({ onDone }: { onDone: () => void }) {
+function CreateForm({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const { t } = useLang();
   const toast = useToast();
@@ -289,7 +289,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
     onSuccess: () => {
       toast.success(t.audiobooks.createSuccess);
       qc.invalidateQueries({ queryKey: ["audiobooks"] });
-      onDone();
+      onClose();
     },
     onError: (e) => toast.error(apiError(e)),
   });
@@ -305,112 +305,161 @@ function CreateForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-line bg-card p-5">
-      <h2 className="mb-4 font-bold text-ink">Yangi audiokitob qo'shish</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Kitob nomi"
-          className="rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine"
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Yangi audiokitob qo'shish"
+      subtitle="Kitob ma'lumotlari va fayllarini kiriting"
+      size="lg"
+      footer={
+        <ModalFooter
+          onClose={onClose}
+          onSubmit={handleCreate}
+          saving={create.isPending}
+          submitDisabled={!title}
+          submitLabel={create.isPending ? "Saqlanmoqda…" : "Saqlash"}
         />
-        <input
-          value={author}
-          onChange={(e) => setAuthor(e.target.value)}
-          placeholder="Muallif"
-          className="rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine"
-        />
+      }
+    >
+      <div className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+              Kitob nomi *
+            </label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Kitob nomi"
+              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+              Muallif
+            </label>
+            <input
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              placeholder="Muallif"
+              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            Tavsif (ixtiyoriy)
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Kitob haqida qisqacha..."
+            rows={3}
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+          />
+        </div>
+
+        {/* Pricing */}
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            Narx turi
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setIsFree(true)}
+              className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition ${
+                isFree
+                  ? "border-green-400 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                  : "border-line bg-card text-muted hover:border-wine/30"
+              }`}
+            >
+              Bepul
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsFree(false)}
+              className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition ${
+                !isFree
+                  ? "border-purple-400 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400"
+                  : "border-line bg-card text-muted hover:border-wine/30"
+              }`}
+            >
+              Pullik
+            </button>
+          </div>
+          {!isFree && (
+            <input
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="Narxi (so'm)"
+              className="mt-3 w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10 sm:w-1/2"
+            />
+          )}
+        </div>
+
+        {/* File uploads */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+              Muqova rasmi
+            </label>
+            <button
+              type="button"
+              onClick={() => coverRef.current?.click()}
+              className="flex w-full items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
+            >
+              <Upload size={14} />
+              <span className="truncate text-left">
+                {coverFile ? coverFile.name : "Muqova rasmini yuklash"}
+              </span>
+            </button>
+            <input
+              ref={coverRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+              Asosiy audio
+            </label>
+            <button
+              type="button"
+              onClick={() => audioRef.current?.click()}
+              className={`flex w-full items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+                audioFile
+                  ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-400"
+                  : "border-dashed border-wine/60 bg-wine text-white hover:bg-wine-dark"
+              }`}
+            >
+              <Music2 size={14} />
+              <span className="truncate text-left">
+                {audioFile ? audioFile.name : "mp3 / m4a yuklash"}
+              </span>
+            </button>
+            <input
+              ref={audioRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
+        </div>
+
+        {create.isError && (
+          <p className="text-sm text-red-600 dark:text-red-400">
+            {apiError(create.error)}
+          </p>
+        )}
       </div>
-
-      <textarea
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        placeholder="Tavsif (ixtiyoriy)"
-        rows={3}
-        className="mt-3 w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine"
-      />
-
-      <label className="mt-3 flex items-center gap-2 text-sm text-ink">
-        <input
-          type="checkbox"
-          checked={isFree}
-          onChange={(e) => setIsFree(e.target.checked)}
-          className="accent-wine"
-        />
-        Bepul kitob
-      </label>
-
-      {!isFree && (
-        <input
-          type="number"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          placeholder="Narxi (so'm)"
-          className="mt-3 w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine sm:w-1/2"
-        />
-      )}
-
-      {/* Cover upload */}
-      <div className="mt-3">
-        <button
-          type="button"
-          onClick={() => coverRef.current?.click()}
-          className="flex items-center gap-2 rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-surface"
-        >
-          <Upload size={14} />
-          {coverFile ? coverFile.name : "Muqova rasmini yuklash"}
-        </button>
-        <input
-          ref={coverRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
-        />
-      </div>
-
-      {/* Main audio upload */}
-      <div className="mt-3">
-        <button
-          type="button"
-          onClick={() => audioRef.current?.click()}
-          className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition ${
-            audioFile
-              ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-400"
-              : "border-dashed border-wine/60 bg-wine dark:text-white text-white hover:bg-wine-dark"
-          }`}
-        >
-          <Music2 size={14} />
-          {audioFile ? audioFile.name : "Asosiy audio yuklash (mp3 / m4a)"}
-        </button>
-        <input
-          ref={audioRef}
-          type="file"
-          accept="audio/*"
-          className="hidden"
-          onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)}
-        />
-      </div>
-
-      <div className="mt-4 flex gap-2">
-        <button
-          disabled={!title || create.isPending}
-          onClick={handleCreate}
-          className="rounded-lg bg-wine px-5 py-2 text-sm font-bold text-white disabled:opacity-60"
-        >
-          {create.isPending ? "Saqlanmoqda…" : "Saqlash"}
-        </button>
-        <button
-          onClick={onDone}
-          className="rounded-lg border border-line px-5 py-2 text-sm font-semibold text-ink"
-        >
-          Bekor qilish
-        </button>
-      </div>
-      {create.isError && (
-        <p className="mt-2 text-sm text-red-600">{apiError(create.error)}</p>
-      )}
-    </div>
+    </Modal>
   );
 }
 
@@ -427,7 +476,11 @@ function PagesPanel({ audiobookId }: { audiobookId: string }) {
       (await api.get<AudiobookDetail>(`/admin/audiobooks/${audiobookId}`)).data,
   });
 
-  const nextPageNumber = book ? (book.pages.length > 0 ? Math.max(...book.pages.map((p) => p.page_number)) + 1 : 1) : 1;
+  const nextPageNumber = book
+    ? book.pages.length > 0
+      ? Math.max(...book.pages.map((p) => p.page_number)) + 1
+      : 1
+    : 1;
 
   return (
     <div className="mt-1 rounded-2xl border border-line bg-card p-5">
@@ -453,19 +506,10 @@ function PagesPanel({ audiobookId }: { audiobookId: string }) {
           {book.pages.map((page) => (
             <button
               key={page.id}
-              onClick={() =>
-                setEditingPage((prev) =>
-                  prev !== "new" && prev?.id === page.id ? null : page
-                )
-              }
-              className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${
-                editingPage !== "new" &&
-                (editingPage as AudiobookPage)?.id === page.id
-                  ? "border-wine bg-card text-wine"
-                  : "border-line bg-card text-ink hover:border-wine/40"
-              }`}
+              onClick={() => setEditingPage(page)}
+              className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 text-left text-sm text-ink transition hover:border-wine/40"
             >
-              <span className="w-8 shrink-0 rounded-lg bg-wine-100 py-0.5 text-center text-xs font-bold text-muted">
+              <span className="w-8 shrink-0 rounded-lg bg-wine/10 py-0.5 text-center text-xs font-bold text-wine">
                 {page.page_number}
               </span>
               <span className="flex-1 truncate text-muted">
@@ -481,31 +525,34 @@ function PagesPanel({ audiobookId }: { audiobookId: string }) {
         </div>
       )}
 
-      {/* Page editor */}
+      {/* Page editor (Modal) */}
       {editingPage !== null && book && (
         <PageEditor
+          open={true}
           audiobookId={audiobookId}
           page={editingPage === "new" ? null : editingPage}
           defaultPageNumber={editingPage === "new" ? nextPageNumber : undefined}
-          onDone={() => setEditingPage(null)}
+          onClose={() => setEditingPage(null)}
         />
       )}
     </div>
   );
 }
 
-// ─── PageEditor ───────────────────────────────────────────────────────────────
+// ─── PageEditor (Modal) ──────────────────────────────────────────────────────
 
 function PageEditor({
+  open,
   audiobookId,
   page,
   defaultPageNumber,
-  onDone,
+  onClose,
 }: {
+  open: boolean;
   audiobookId: string;
   page: AudiobookPage | null;
   defaultPageNumber?: number;
-  onDone: () => void;
+  onClose: () => void;
 }) {
   const qc = useQueryClient();
   const { t } = useLang();
@@ -526,6 +573,7 @@ function PageEditor({
       toast.success(t.audiobooks.pageSaveSuccess);
       qc.invalidateQueries({ queryKey: ["audiobook", audiobookId] });
       qc.invalidateQueries({ queryKey: ["audiobooks"] });
+      onClose();
     },
     onError: (e) => toast.error(apiError(e)),
   });
@@ -537,7 +585,7 @@ function PageEditor({
       toast.success(t.audiobooks.pageDeleteSuccess);
       qc.invalidateQueries({ queryKey: ["audiobook", audiobookId] });
       qc.invalidateQueries({ queryKey: ["audiobooks"] });
-      onDone();
+      onClose();
     },
     onError: (e) => toast.error(apiError(e)),
   });
@@ -556,96 +604,84 @@ function PageEditor({
     if (ok) saveText.mutate();
   }
 
+  async function handleDelete() {
+    if (!page) return;
+    const ok = await confirm({
+      title: t.audiobooks.confirmDeletePage(page.page_number),
+      description: t.modal.deleteDesc("sahifa", String(page.page_number)),
+      variant: "danger",
+      confirmText: t.modal.delete,
+    });
+    if (ok) deletePage.mutate();
+  }
+
   return (
-    <div className="mt-4 rounded-xl border border-line bg-card p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h5 className="font-semibold text-ink">
-          {page ? `Sahifa ${page.page_number} tahrirlash` : "Yangi sahifa"}
-        </h5>
-        {page && (
-          <button
-            onClick={async () => {
-              const ok = await confirm({
-                title: t.audiobooks.confirmDeletePage(
-                  page.page_number,
-                ),
-                description: t.modal.deleteDesc(
-                  "sahifa",
-                  String(page.page_number),
-                ),
-                variant: "danger",
-                confirmText: t.modal.delete,
-              });
-              if (ok) deletePage.mutate();
-            }}
-            disabled={deletePage.isPending}
-            className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
-          >
-            <Trash2 size={12} />
-            Sahifani o'chirish
-          </button>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={page ? `${page.page_number}-sahifani tahrirlash` : "Yangi sahifa"}
+      subtitle="Sahifa raqami va matnini kiriting"
+      size="md"
+      footer={
+        <>
+          {page && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deletePage.isPending}
+              className="mr-auto flex items-center gap-1.5 rounded-xl border border-red-200 bg-card px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60 dark:border-red-800/60 dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              <Trash2 size={13} />
+              Sahifani o'chirish
+            </button>
+          )}
+          <ModalFooter
+            onClose={onClose}
+            onSubmit={handleSave}
+            saving={saveText.isPending}
+            submitLabel={saveText.isPending ? "Saqlanmoqda…" : "Saqlash"}
+          />
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            Sahifa raqami
+          </label>
+          <input
+            type="number"
+            value={pageNumber}
+            onChange={(e) => setPageNumber(Number(e.target.value))}
+            className="w-32 rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            Matn
+          </label>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={8}
+            placeholder="Sahifa matni…"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+          />
+        </div>
+
+        {saveText.isError && (
+          <p className="text-xs text-red-600 dark:text-red-400">
+            {apiError(saveText.error)}
+          </p>
+        )}
+        {deletePage.isError && (
+          <p className="text-xs text-red-600 dark:text-red-400">
+            {apiError(deletePage.error)}
+          </p>
         )}
       </div>
-
-      {/* Page number */}
-      <div className="mb-3">
-        <label className="mb-1 block text-xs font-semibold text-muted">
-          Sahifa raqami
-        </label>
-        <input
-          type="number"
-          value={pageNumber}
-          onChange={(e) => setPageNumber(Number(e.target.value))}
-          className="w-24 rounded-lg border border-line bg-card px-3 py-1.5 text-sm text-ink outline-none focus:border-wine"
-        />
-      </div>
-
-      {/* Content */}
-      <div className="mb-3">
-        <label className="mb-1 block text-xs font-semibold text-muted">
-          Matn
-        </label>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={6}
-          placeholder="Sahifa matni…"
-          className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine"
-        />
-      </div>
-
-      {/* Save text */}
-      <button
-        onClick={handleSave}
-        disabled={saveText.isPending}
-        className="mb-4 flex items-center gap-2 rounded-lg bg-wine px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
-      >
-        <Save size={14} />
-        {saveText.isPending ? "Saqlanmoqda…" : "Matnni saqlash"}
-      </button>
-      {saveText.isError && (
-        <p className="mb-2 text-xs text-red-600">{apiError(saveText.error)}</p>
-      )}
-      {saveText.isSuccess && (
-        <p className="mb-2 text-xs text-green-600">Matn saqlandi.</p>
-      )}
-
-      {/* Close */}
-      <div className="mt-4 border-t border-line pt-3">
-        <button
-          onClick={onDone}
-          className="text-xs font-semibold text-muted hover:text-ink"
-        >
-          Yopish
-        </button>
-      </div>
-
-      {deletePage.isError && (
-        <p className="mt-2 text-xs text-red-600">
-          {apiError(deletePage.error)}
-        </p>
-      )}
-    </div>
+    </Modal>
   );
 }
 

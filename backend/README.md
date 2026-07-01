@@ -49,7 +49,7 @@ uvicorn app.main:app --reload
 Telefon OTP: `DEBUG=true` bo'lsa `/auth/otp/request` javobida `dev_code` qaytadi.
 
 ## Asosiy endpointlar
-- `POST /auth/otp/request` · `POST /auth/otp/verify` · `POST /auth/google` · `POST /auth/telegram` · `POST /auth/login` · `POST /auth/refresh`
+- `POST /auth/otp/request` · `POST /auth/otp/verify` · `POST /auth/password/reset` · `POST /auth/google` · `POST /auth/login` · `POST /auth/refresh`
 - `POST /speech/analyze` — nutq tahlili (parazit so'z, pauza, ma'no)
 - `POST /speech/voice/analyze` — ovoz/talaffuz (xato so'zlar → `word_errors`, qizil belgilash uchun index)
 - `GET  /observation/tests` · `POST /observation/submit` — 10 test + tahlil

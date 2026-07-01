@@ -43,6 +43,7 @@ from app.schemas.audiobook import (
     AudiobookDetail,
     AudiobookPageUpsert,
     AudiobookRead,
+    AudiobookUpdate,
 )
 from app.schemas.common import Message, Page
 from app.services import storage
@@ -296,6 +297,37 @@ async def create_audiobook(
     )
     db.add(book)
     await db.flush()
+    return book
+
+
+@router.patch("/audiobooks/{audiobook_id}", response_model=AudiobookRead)
+async def update_audiobook(
+    audiobook_id: uuid.UUID,
+    payload: AudiobookUpdate,
+    _: CuratorUser,
+    db: DbSession,
+) -> Audiobook:
+    """Update audiobook metadata."""
+    book = await db.get(Audiobook, audiobook_id)
+    if book is None:
+        raise NotFoundError("Audiokitob topilmadi.")
+
+    if payload.title is not None:
+        book.title = payload.title
+        book.slug = slugify(payload.title)
+    if payload.author is not None:
+        book.author = payload.author
+    if payload.description is not None:
+        book.description = payload.description
+    if payload.category is not None:
+        book.category = payload.category
+    if payload.is_free is not None:
+        book.is_free = payload.is_free
+    if payload.price is not None:
+        book.price = payload.price
+
+    await db.flush()
+    log.info("audiobook.updated", audiobook_id=str(audiobook_id))
     return book
 
 

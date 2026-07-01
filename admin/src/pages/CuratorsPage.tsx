@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -8,8 +8,6 @@ import {
   Trash2,
   Power,
   Edit3,
-  X,
-  Check,
 } from "lucide-react";
 import { api, apiError } from "../lib/api";
 import type { Curator } from "../lib/types";
@@ -17,6 +15,7 @@ import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
+import { Modal, ModalFooter } from "../components/Modal";
 
 
 export function CuratorsPage() {
@@ -59,7 +58,7 @@ export function CuratorsPage() {
         subtitle={t.curators.subtitle}
         actions={
           <button
-            onClick={() => setShowCreate((v) => !v)}
+            onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark"
           >
             <Plus size={16} />
@@ -68,26 +67,22 @@ export function CuratorsPage() {
         }
       />
 
-      {showCreate && (
-        <CreateCuratorForm
-          onDone={() => setShowCreate(false)}
-          onSuccess={() => {
-            setShowCreate(false);
-            qc.invalidateQueries({ queryKey: ["admin", "curators"] });
-          }}
-        />
-      )}
+      <CreateCuratorForm
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ["admin", "curators"] });
+        }}
+      />
 
-      {editing && (
-        <EditCuratorForm
-          curator={editing}
-          onDone={() => setEditing(null)}
-          onSuccess={() => {
-            setEditing(null);
-            qc.invalidateQueries({ queryKey: ["admin", "curators"] });
-          }}
-        />
-      )}
+      <EditCuratorForm
+        open={!!editing}
+        curator={editing}
+        onClose={() => setEditing(null)}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ["admin", "curators"] });
+        }}
+      />
 
       {isLoading && <p className="text-muted">{t.common.loading}</p>}
       {isError && (
@@ -201,13 +196,15 @@ export function CuratorsPage() {
   );
 }
 
-// ─── Create curator form ─────────────────────────────────────────────────────
+// ─── Create curator form (Modal) ────────────────────────────────────────────
 
 function CreateCuratorForm({
-  onDone,
+  open,
+  onClose,
   onSuccess,
 }: {
-  onDone: () => void;
+  open: boolean;
+  onClose: () => void;
   onSuccess: () => void;
 }) {
   const { t } = useLang();
@@ -228,12 +225,12 @@ function CreateCuratorForm({
     onSuccess: () => {
       toast.success(t.curators.createSuccess);
       onSuccess();
+      onClose();
     },
     onError: (e) => toast.error(apiError(e)),
   });
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit() {
     setEmailError(null);
     if (!email.toLowerCase().trim().endsWith("@najotnur.uz")) {
       setEmailError("Email @najotnur.uz bilan tugashi kerak.");
@@ -249,102 +246,103 @@ function CreateCuratorForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mb-6 rounded-2xl border border-wine/20 bg-wine/5 p-5"
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Yangi kurator qo'shish"
+      subtitle="Platformaga yangi kurator qo'shing"
+      size="md"
+      footer={
+        <ModalFooter
+          onClose={onClose}
+          onSubmit={handleSubmit}
+          saving={create.isPending}
+          submitLabel={create.isPending ? "Saqlanmoqda…" : "Qo'shish"}
+        />
+      }
     >
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-bold text-ink">Yangi kurator qo'shish</h2>
-        <button
-          type="button"
-          onClick={onDone}
-          className="rounded-lg p-1 text-muted hover:bg-card/50"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-sm">
-          <span className="mb-1 block font-semibold text-ink">F.I.O.</span>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            F.I.O. *
+          </label>
           <input
-            required
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Masalan: Aliyev Ali"
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-wine"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
-        </label>
-        <label className="text-sm">
-          <span className="mb-1 block font-semibold text-ink">Email</span>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            Email *
+          </label>
           <input
-            required
             type="email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setEmailError(null); }}
             placeholder="curator@najotnur.uz"
-            className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-wine ${emailError ? "border-red-400" : "border-line"}`}
+            className={`w-full rounded-xl border bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10 ${
+              emailError ? "border-red-400" : "border-line"
+            }`}
           />
-          {emailError && <p className="mt-1 text-xs text-red-600">{emailError}</p>}
-        </label>
-        <label className="text-sm sm:col-span-2">
-          <span className="mb-1 block font-semibold text-ink">
-            Parol (kamida 6 belgi)
-          </span>
+          {emailError && (
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+              {emailError}
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            Parol (kamida 6 belgi) *
+          </label>
           <input
-            required
             type="password"
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-wine"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
-        </label>
+        </div>
+        {create.isError && (
+          <p className="sm:col-span-2 text-sm text-red-600 dark:text-red-400">
+            {apiError(create.error)}
+          </p>
+        )}
       </div>
-
-      {create.isError && (
-        <p className="mt-2 text-sm text-red-600">{apiError(create.error)}</p>
-      )}
-
-      <div className="mt-4 flex gap-2">
-        <button
-          type="submit"
-          disabled={create.isPending}
-          className="flex items-center gap-2 rounded-lg bg-wine px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
-        >
-          <Check size={14} />
-          {create.isPending ? "Saqlanmoqda…" : "Qo'shish"}
-        </button>
-        <button
-          type="button"
-          onClick={onDone}
-          className="rounded-lg border border-line px-5 py-2 text-sm font-semibold text-ink"
-        >
-          Bekor qilish
-        </button>
-      </div>
-    </form>
+    </Modal>
   );
 }
 
-// ─── Edit curator form ───────────────────────────────────────────────────────
+// ─── Edit curator form (Modal) ───────────────────────────────────────────────
 
 function EditCuratorForm({
+  open,
   curator,
-  onDone,
+  onClose,
   onSuccess,
 }: {
-  curator: Curator;
-  onDone: () => void;
+  open: boolean;
+  curator: Curator | null;
+  onClose: () => void;
   onSuccess: () => void;
 }) {
   const { t } = useLang();
   const confirm = useConfirm();
   const toast = useToast();
-  const [fullName, setFullName] = useState(curator.full_name ?? "");
+  const [fullName, setFullName] = useState(curator?.full_name ?? "");
   const [password, setPassword] = useState("");
-  const [isActive, setIsActive] = useState(curator.is_active);
+  const [isActive, setIsActive] = useState(curator?.is_active ?? true);
+
+  // Re-sync when modal opens with a new curator
+  useEffect(() => {
+    if (curator) {
+      setFullName(curator.full_name ?? "");
+      setPassword("");
+      setIsActive(curator.is_active);
+    }
+  }, [curator]);
 
   const update = useMutation({
     mutationFn: () => {
@@ -353,17 +351,17 @@ function EditCuratorForm({
         is_active: isActive,
       };
       if (password) body.password = password;
-      return api.patch(`/admin/curators/${curator.id}`, body);
+      return api.patch(`/admin/curators/${curator!.id}`, body);
     },
     onSuccess: () => {
       toast.success(t.curators.updateSuccess);
       onSuccess();
+      onClose();
     },
     onError: (e) => toast.error(apiError(e)),
   });
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit() {
     const ok = await confirm({
       title: t.modal.updateTitle("Kurator"),
       description: t.modal.updateDesc("Kurator"),
@@ -374,87 +372,79 @@ function EditCuratorForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mb-6 rounded-2xl border border-wine/20 bg-wine/5 p-5"
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Kuratorni tahrirlash"
+      subtitle="Kurator ma'lumotlarini yangilang"
+      size="md"
+      footer={
+        <ModalFooter
+          onClose={onClose}
+          onSubmit={handleSubmit}
+          saving={update.isPending}
+          submitLabel={update.isPending ? "Saqlanmoqda…" : "Saqlash"}
+        />
+      }
     >
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-bold text-ink">Kuratorni tahrirlash</h2>
-        <button
-          type="button"
-          onClick={onDone}
-          className="rounded-lg p-1 text-muted hover:bg-card/50"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-sm">
-          <span className="mb-1 block font-semibold text-ink">F.I.O.</span>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            F.I.O. *
+          </label>
           <input
-            required
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-wine"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
-        </label>
-        <label className="text-sm">
-          <span className="mb-1 block font-semibold text-ink">Email</span>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            Email
+          </label>
           <input
             disabled
-            value={curator.email ?? ""}
-            className="w-full cursor-not-allowed rounded-lg border border-line bg-gray-50 px-3 py-2 text-sm text-muted"
+            value={curator?.email ?? ""}
+            className="w-full cursor-not-allowed rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-muted"
           />
-        </label>
-        <label className="text-sm sm:col-span-2">
-          <span className="mb-1 block font-semibold text-ink">
+        </div>
+        <div className="sm:col-span-2">
+          <label className="mb-1.5 block flex items-center gap-1.5 text-xs font-bold text-muted uppercase tracking-wide">
+            <Lock size={12} />
             Yangi parol (ixtiyoriy)
-          </span>
-          <div className="flex items-center gap-2">
-            <Lock size={14} className="text-muted" />
-            <input
-              type="password"
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="O'zgartirmasangiz bo'sh qoldiring"
-              className="flex-1 rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-wine"
+          </label>
+          <input
+            type="password"
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="O'zgartirmasangiz bo'sh qoldiring"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+          />
+        </div>
+        <label className="flex cursor-pointer items-center gap-3 sm:col-span-2">
+          <div
+            onClick={() => setIsActive((v) => !v)}
+            className={`relative h-6 w-11 rounded-full transition ${
+              isActive ? "bg-wine" : "bg-line"
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                isActive ? "left-5" : "left-0.5"
+              }`}
             />
           </div>
+          <span className="text-sm font-semibold text-ink">
+            Faol (tizimga kirishi mumkin)
+          </span>
         </label>
-        <label className="flex items-center gap-2 text-sm sm:col-span-2">
-          <input
-            type="checkbox"
-            checked={isActive}
-            onChange={(e) => setIsActive(e.target.checked)}
-            className="accent-wine"
-          />
-          Faol (tizimga kirishi mumkin)
-        </label>
+        {update.isError && (
+          <p className="sm:col-span-2 text-sm text-red-600 dark:text-red-400">
+            {apiError(update.error)}
+          </p>
+        )}
       </div>
-
-      {update.isError && (
-        <p className="mt-2 text-sm text-red-600">{apiError(update.error)}</p>
-      )}
-
-      <div className="mt-4 flex gap-2">
-        <button
-          type="submit"
-          disabled={update.isPending}
-          className="flex items-center gap-2 rounded-lg bg-wine px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
-        >
-          <Check size={14} />
-          {update.isPending ? "Saqlanmoqda…" : "Saqlash"}
-        </button>
-        <button
-          type="button"
-          onClick={onDone}
-          className="rounded-lg border border-line px-5 py-2 text-sm font-semibold text-ink"
-        >
-          Bekor qilish
-        </button>
-      </div>
-    </form>
+    </Modal>
   );
 }

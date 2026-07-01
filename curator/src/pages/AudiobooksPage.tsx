@@ -8,10 +8,10 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
-  Save,
   Upload,
   CheckCircle2,
   Lock,
+  Pencil,
 } from "lucide-react";
 import { api, apiError, mediaUrl } from "../lib/api";
 import type { Audiobook, AudiobookDetail, AudiobookPage } from "../lib/types";
@@ -19,6 +19,14 @@ import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
 import { useConfirm } from "../lib/confirm";
+import {
+  Modal,
+  ModalBody,
+  ModalCancelButton,
+  ModalFooter,
+  ModalHeader,
+  ModalSubmitButton,
+} from "../components/Modal";
 
 // ─── AudiobooksPage ────────────────────────────────────────────────────────────
 
@@ -30,6 +38,7 @@ export function AudiobooksPage() {
   const canEdit = true;
   const canPublish = true;
   const [showCreate, setShowCreate] = useState(false);
+  const [editingBook, setEditingBook] = useState<Audiobook | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [publishingId, setPublishingId] = useState<string | null>(null);
 
@@ -76,7 +85,7 @@ export function AudiobooksPage() {
         actions={
           canEdit ? (
             <button
-              onClick={() => setShowCreate((v) => !v)}
+              onClick={() => setShowCreate(true)}
               className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark"
             >
               <Plus size={16} />
@@ -91,7 +100,15 @@ export function AudiobooksPage() {
         }
       />
 
-      {showCreate && canEdit && <CreateForm onDone={() => setShowCreate(false)} />}
+      {showCreate && canEdit && (
+        <AudiobookModal onDone={() => setShowCreate(false)} />
+      )}
+      {editingBook && canEdit && (
+        <AudiobookModal
+          initial={editingBook}
+          onDone={() => setEditingBook(null)}
+        />
+      )}
 
       {isLoading && <p className="text-muted">Yuklanmoqda…</p>}
 
@@ -121,8 +138,8 @@ export function AudiobooksPage() {
                 <span
                   className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                     b.is_free
-                      ? "bg-green-100 text-green-700"
-                      : "bg-wine-100 text-wine"
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-wine-100 text-wine dark:bg-wine-200/20 dark:text-wine-300"
                   }`}
                 >
                   {b.is_free ? "Bepul" : "Sotuvda"}
@@ -156,6 +173,14 @@ export function AudiobooksPage() {
 
                 {canEdit && (
                   <div className="flex gap-2">
+                    <button
+                      onClick={() => setEditingBook(b)}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-line py-2 text-sm font-semibold text-ink transition hover:bg-surface"
+                    >
+                      <Pencil size={14} />
+                      Tahrirlash
+                    </button>
+
                     {canPublish ? (
                       b.is_published ? (
                         <div className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 py-2 text-sm font-semibold text-green-700">
@@ -240,25 +265,51 @@ export function AudiobooksPage() {
   );
 }
 
-// ─── CreateForm ────────────────────────────────────────────────────────────────
+// ─── Create / Edit Modal ───────────────────────────────────────────────────────
 
-function CreateForm({ onDone }: { onDone: () => void }) {
+function AudiobookModal({
+  initial,
+  onDone,
+}: {
+  initial?: Audiobook;
+  onDone: () => void;
+}) {
   const qc = useQueryClient();
   const { t } = useLang();
   const toast = useToast();
   const confirm = useConfirm();
-  const [title, setTitle] = useState("");
-  const [author, setAuthor] = useState("");
-  const [description, setDescription] = useState("");
-  const [isFree, setIsFree] = useState(true);
-  const [price, setPrice] = useState("");
+  const isEdit = !!initial;
+
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [author, setAuthor] = useState(initial?.author ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [isFree, setIsFree] = useState(initial?.is_free ?? true);
+  const [price, setPrice] = useState(initial?.price ? String(initial.price) : "");
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const coverRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLInputElement>(null);
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: async () => {
+      if (isEdit) {
+        await api.patch(`/admin/audiobooks/${initial.id}`, {
+          title,
+          author: author || null,
+          description: description || null,
+          is_free: isFree,
+          price: isFree ? 0 : parseFloat(price || "0"),
+        });
+        if (coverFile) {
+          const fd = new FormData();
+          fd.append("file", coverFile);
+          await api.post(`/admin/audiobooks/${initial.id}/cover`, fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        }
+        return initial;
+      }
+
       const res = await api.post<Audiobook>("/admin/audiobooks", {
         title,
         author: author || null,
@@ -287,130 +338,164 @@ function CreateForm({ onDone }: { onDone: () => void }) {
       return book;
     },
     onSuccess: () => {
-      toast.success(t.audiobooks.createSuccess);
+      toast.success(isEdit ? t.audiobooks.updateSuccess : t.audiobooks.createSuccess);
       qc.invalidateQueries({ queryKey: ["audiobooks"] });
       onDone();
     },
     onError: (e) => toast.error(apiError(e)),
   });
 
-  async function handleCreate() {
+  async function handleSave() {
     const ok = await confirm({
-      title: t.modal.createTitle("audiokitob"),
-      description: t.modal.createDesc("Audiokitob"),
+      title: isEdit
+        ? t.modal.updateTitle("audiokitob")
+        : t.modal.createTitle("audiokitob"),
+      description: isEdit
+        ? t.modal.updateDesc("Audiokitob")
+        : t.modal.createDesc("Audiokitob"),
       variant: "primary",
-      confirmText: t.modal.create,
+      confirmText: isEdit ? t.modal.save : t.modal.create,
     });
-    if (ok) create.mutate();
+    if (ok) save.mutate();
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-line bg-card p-5">
-      <h2 className="mb-4 font-bold text-ink">Yangi audiokitob qo'shish</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Kitob nomi"
-          className="rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine"
-        />
-        <input
-          value={author}
-          onChange={(e) => setAuthor(e.target.value)}
-          placeholder="Muallif"
-          className="rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine"
-        />
-      </div>
-
-      <textarea
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        placeholder="Tavsif (ixtiyoriy)"
-        rows={3}
-        className="mt-3 w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine"
+    <Modal open onClose={onDone} size="lg">
+      <ModalHeader
+        title={isEdit ? "Audiokitobni tahrirlash" : "Yangi audiokitob qo'shish"}
+        onClose={onDone}
       />
+      <ModalBody>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              {t.audiobooks.titleField}
+            </label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Kitob nomi"
+              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            />
+          </div>
 
-      <label className="mt-3 flex items-center gap-2 text-sm text-ink">
-        <input
-          type="checkbox"
-          checked={isFree}
-          onChange={(e) => setIsFree(e.target.checked)}
-          className="accent-wine"
-        />
-        Bepul kitob
-      </label>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              {t.audiobooks.author}
+            </label>
+            <input
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              placeholder="Muallif"
+              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            />
+          </div>
 
-      {!isFree && (
-        <input
-          type="number"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          placeholder="Narxi (so'm)"
-          className="mt-3 w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine sm:w-1/2"
-        />
-      )}
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              {t.audiobooks.description}
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Tavsif (ixtiyoriy)"
+              rows={3}
+              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            />
+          </div>
 
-      {/* Cover upload */}
-      <div className="mt-3">
-        <button
-          type="button"
-          onClick={() => coverRef.current?.click()}
-          className="flex items-center gap-2 rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-surface"
+          <div>
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              {t.audiobooks.free} / {t.audiobooks.premium}
+            </label>
+            <label className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={isFree}
+                onChange={(e) => setIsFree(e.target.checked)}
+                className="accent-wine"
+              />
+              Bepul kitob
+            </label>
+          </div>
+
+          {!isFree && (
+            <div>
+              <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+                Narx (so'm)
+              </label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="Narxi (so'm)"
+                className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+              />
+            </div>
+          )}
+
+          {/* Cover upload */}
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              {t.audiobooks.coverImage}
+            </label>
+            <button
+              type="button"
+              onClick={() => coverRef.current?.click()}
+              className="flex w-full items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
+            >
+              <Upload size={14} />
+              {coverFile ? coverFile.name : "Muqova rasmini yuklash"}
+            </button>
+            <input
+              ref={coverRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
+
+          {/* Main audio upload (create only) */}
+          {!isEdit && (
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+                {t.audiobooks.audioFile}
+              </label>
+              <button
+                type="button"
+                onClick={() => audioRef.current?.click()}
+                className={`flex w-full items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+                  audioFile
+                    ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-400"
+                    : "border-dashed border-wine/60 bg-wine text-white hover:bg-wine-dark"
+                }`}
+              >
+                <Music2 size={14} />
+                {audioFile ? audioFile.name : "Asosiy audio yuklash (mp3 / m4a)"}
+              </button>
+              <input
+                ref={audioRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+          )}
+        </div>
+      </ModalBody>
+      <ModalFooter>
+        <ModalCancelButton onClick={onDone}>{t.common.cancel}</ModalCancelButton>
+        <ModalSubmitButton
+          onClick={handleSave}
+          loading={save.isPending}
+          disabled={!title}
         >
-          <Upload size={14} />
-          {coverFile ? coverFile.name : "Muqova rasmini yuklash"}
-        </button>
-        <input
-          ref={coverRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
-        />
-      </div>
-
-      {/* Main audio upload */}
-      <div className="mt-3">
-        <button
-          type="button"
-          onClick={() => audioRef.current?.click()}
-          className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition ${
-            audioFile
-              ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-400"
-              : "border-dashed border-wine/60 bg-wine dark:text-white text-white hover:bg-wine-dark"
-          }`}
-        >
-          <Music2 size={14} />
-          {audioFile ? audioFile.name : "Asosiy audio yuklash (mp3 / m4a)"}
-        </button>
-        <input
-          ref={audioRef}
-          type="file"
-          accept="audio/*"
-          className="hidden"
-          onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)}
-        />
-      </div>
-
-      <div className="mt-4 flex gap-2">
-        <button
-          disabled={!title || create.isPending}
-          onClick={handleCreate}
-          className="rounded-lg bg-wine px-5 py-2 text-sm font-bold text-white disabled:opacity-60"
-        >
-          {create.isPending ? "Saqlanmoqda…" : "Saqlash"}
-        </button>
-        <button
-          onClick={onDone}
-          className="rounded-lg border border-line px-5 py-2 text-sm font-semibold text-ink"
-        >
-          Bekor qilish
-        </button>
-      </div>
-      {create.isError && (
-        <p className="mt-2 text-sm text-red-600">{apiError(create.error)}</p>
-      )}
-    </div>
+          {isEdit ? t.common.save : t.modal.create}
+        </ModalSubmitButton>
+      </ModalFooter>
+    </Modal>
   );
 }
 
@@ -447,25 +532,16 @@ function PagesPanel({ audiobookId }: { audiobookId: string }) {
       {/* Page list */}
       {book && (
         <div className="flex flex-col gap-1">
-          {book.pages.length === 0 && !editingPage && (
+          {book.pages.length === 0 && editingPage === null && (
             <p className="text-sm text-muted">Hali sahifalar yo'q.</p>
           )}
           {book.pages.map((page) => (
             <button
               key={page.id}
-              onClick={() =>
-                setEditingPage((prev) =>
-                  prev !== "new" && prev?.id === page.id ? null : page
-                )
-              }
-              className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${
-                editingPage !== "new" &&
-                (editingPage as AudiobookPage)?.id === page.id
-                  ? "border-wine bg-card text-wine"
-                  : "border-line bg-card text-ink hover:border-wine/40"
-              }`}
+              onClick={() => setEditingPage(page)}
+              className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 text-left text-sm text-ink transition hover:border-wine/40"
             >
-              <span className="w-8 shrink-0 rounded-lg bg-wine-100 py-0.5 text-center text-xs font-bold text-muted">
+              <span className="w-8 shrink-0 rounded-lg bg-wine-100 py-0.5 text-center text-xs font-bold text-muted dark:bg-wine-200/20 dark:text-wine-300">
                 {page.page_number}
               </span>
               <span className="flex-1 truncate text-muted">
@@ -481,9 +557,9 @@ function PagesPanel({ audiobookId }: { audiobookId: string }) {
         </div>
       )}
 
-      {/* Page editor */}
+      {/* Page editor modal */}
       {editingPage !== null && book && (
-        <PageEditor
+        <PageEditorModal
           audiobookId={audiobookId}
           page={editingPage === "new" ? null : editingPage}
           defaultPageNumber={editingPage === "new" ? nextPageNumber : undefined}
@@ -494,9 +570,9 @@ function PagesPanel({ audiobookId }: { audiobookId: string }) {
   );
 }
 
-// ─── PageEditor ───────────────────────────────────────────────────────────────
+// ─── Page Editor Modal ─────────────────────────────────────────────────────────
 
-function PageEditor({
+function PageEditorModal({
   audiobookId,
   page,
   defaultPageNumber,
@@ -526,6 +602,7 @@ function PageEditor({
       toast.success(t.audiobooks.pageSaveSuccess);
       qc.invalidateQueries({ queryKey: ["audiobook", audiobookId] });
       qc.invalidateQueries({ queryKey: ["audiobooks"] });
+      onDone();
     },
     onError: (e) => toast.error(apiError(e)),
   });
@@ -556,96 +633,72 @@ function PageEditor({
     if (ok) saveText.mutate();
   }
 
+  async function handleDelete() {
+    const ok = await confirm({
+      title: t.audiobooks.confirmDeletePage(pageNumber),
+      description: t.modal.deleteDesc("sahifa", String(pageNumber)),
+      variant: "danger",
+      confirmText: t.modal.delete,
+    });
+    if (ok) deletePage.mutate();
+  }
+
   return (
-    <div className="mt-4 rounded-xl border border-line bg-card p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h5 className="font-semibold text-ink">
-          {page ? `Sahifa ${page.page_number} tahrirlash` : "Yangi sahifa"}
-        </h5>
-        {page && (
+    <Modal open onClose={onDone} size="md">
+      <ModalHeader
+        title={page ? `Sahifa ${page.page_number} tahrirlash` : "Yangi sahifa"}
+        onClose={onDone}
+      />
+      <ModalBody>
+        <div className="space-y-4">
+          {/* Page number */}
+          <div>
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              Sahifa raqami
+            </label>
+            <input
+              type="number"
+              value={pageNumber}
+              onChange={(e) => setPageNumber(Number(e.target.value))}
+              className="w-24 rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            />
+          </div>
+
+          {/* Content */}
+          <div>
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              Matn
+            </label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={6}
+              placeholder="Sahifa matni…"
+              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            />
+          </div>
+        </div>
+      </ModalBody>
+      <ModalFooter>
+        {page ? (
           <button
-            onClick={async () => {
-              const ok = await confirm({
-                title: t.audiobooks.confirmDeletePage(
-                  page.page_number,
-                ),
-                description: t.modal.deleteDesc(
-                  "sahifa",
-                  String(page.page_number),
-                ),
-                variant: "danger",
-                confirmText: t.modal.delete,
-              });
-              if (ok) deletePage.mutate();
-            }}
+            onClick={handleDelete}
             disabled={deletePage.isPending}
-            className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+            className="mr-auto flex items-center gap-1.5 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
           >
-            <Trash2 size={12} />
-            Sahifani o'chirish
+            <Trash2 size={14} />
+            O'chirish
           </button>
-        )}
-      </div>
-
-      {/* Page number */}
-      <div className="mb-3">
-        <label className="mb-1 block text-xs font-semibold text-muted">
-          Sahifa raqami
-        </label>
-        <input
-          type="number"
-          value={pageNumber}
-          onChange={(e) => setPageNumber(Number(e.target.value))}
-          className="w-24 rounded-lg border border-line bg-card px-3 py-1.5 text-sm text-ink outline-none focus:border-wine"
-        />
-      </div>
-
-      {/* Content */}
-      <div className="mb-3">
-        <label className="mb-1 block text-xs font-semibold text-muted">
-          Matn
-        </label>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={6}
-          placeholder="Sahifa matni…"
-          className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine"
-        />
-      </div>
-
-      {/* Save text */}
-      <button
-        onClick={handleSave}
-        disabled={saveText.isPending}
-        className="mb-4 flex items-center gap-2 rounded-lg bg-wine px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
-      >
-        <Save size={14} />
-        {saveText.isPending ? "Saqlanmoqda…" : "Matnni saqlash"}
-      </button>
-      {saveText.isError && (
-        <p className="mb-2 text-xs text-red-600">{apiError(saveText.error)}</p>
-      )}
-      {saveText.isSuccess && (
-        <p className="mb-2 text-xs text-green-600">Matn saqlandi.</p>
-      )}
-
-      {/* Close */}
-      <div className="mt-4 border-t border-line pt-3">
-        <button
-          onClick={onDone}
-          className="text-xs font-semibold text-muted hover:text-ink"
+        ) : null}
+        <ModalCancelButton onClick={onDone}>{t.common.cancel}</ModalCancelButton>
+        <ModalSubmitButton
+          onClick={handleSave}
+          loading={saveText.isPending}
         >
-          Yopish
-        </button>
-      </div>
-
-      {deletePage.isError && (
-        <p className="mt-2 text-xs text-red-600">
-          {apiError(deletePage.error)}
-        </p>
-      )}
-    </div>
+          {t.common.save}
+        </ModalSubmitButton>
+      </ModalFooter>
+    </Modal>
   );
 }
 

@@ -68,18 +68,6 @@ class GoogleAuthRequest(BaseModel):
     id_token: str = Field(..., description="Google ID token from the mobile client")
 
 
-class TelegramAuthRequest(BaseModel):
-    """Payload from the Telegram Login Widget (hash-verified server-side)."""
-
-    id: int
-    first_name: str | None = None
-    last_name: str | None = None
-    username: str | None = None
-    photo_url: str | None = None
-    auth_date: int
-    hash: str
-
-
 # ───── Email/password (admin & curators) ─────
 class EmailLoginRequest(BaseModel):
     email: EmailStr
@@ -98,5 +86,4 @@ class AuthConfigResponse(BaseModel):
     methods to show and where to redirect OAuth flows.
     """
 
-    telegram_bot_username: str = ""
     google_client_id: str = ""

@@ -117,7 +117,7 @@ export function CuratorDashboard() {
           to="/audiobooks"
           label="Audiokitoblar"
           value={statsQ.data?.audiobooks ?? 0}
-          tone="bg-wine/10 text-wine-dark"
+          tone="bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300"
         />
         <QuickLink
           to="/practicums"
@@ -130,7 +130,7 @@ export function CuratorDashboard() {
           to="/certificate-requests"
           label="Sertifikat so'rovlari"
           value="→"
-          tone="bg-green-100 text-green-700"
+          tone="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
           smallValue
         />
       </div>
@@ -190,10 +190,10 @@ export function CuratorDashboard() {
                         idx === 0
                           ? "bg-amber-100 text-amber-700"
                           : idx === 1
-                            ? "bg-wine/10 text-wine-dark"
+                            ? "bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300"
                             : idx === 2
-                              ? "bg-orange/15 text-orange"
-                              : "bg-line/60 text-muted"
+                              ? "bg-orange/15 text-orange dark:bg-orange/15 dark:text-orange"
+                              : "bg-line/60 text-muted dark:bg-line/20 dark:text-muted"
                       }`}
                     >
                       {idx + 1}
@@ -221,7 +221,7 @@ export function CuratorDashboard() {
           action={
             <Link
               to="/video-lessons"
-              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine-dark hover:bg-wine/5"
+              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
             >
               Darslar <ChevronRight size={12} />
             </Link>
@@ -244,7 +244,7 @@ export function CuratorDashboard() {
                   key={c.id}
                   className="flex items-center gap-3 rounded-xl p-2"
                 >
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-wine/10 text-xs font-black text-wine-dark">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-wine/10 text-xs font-black text-wine dark:bg-wine/15 dark:text-wine-300">
                     <Headphones size={16} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -258,8 +258,8 @@ export function CuratorDashboard() {
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
                       c.is_published
-                        ? "bg-green-100 text-green-700"
-                        : "bg-amber-100 text-amber-700"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                     }`}
                   >
                     {c.is_published ? "Faol" : "Qoralama"}
@@ -307,7 +307,7 @@ function QuickLink({
       </div>
       <ChevronRight
         size={16}
-        className="text-muted transition group-hover:translate-x-0.5 group-hover:text-wine-dark"
+        className="text-muted transition group-hover:translate-x-0.5 group-hover:text-wine dark:group-hover:text-wine-300"
       />
     </Link>
   );

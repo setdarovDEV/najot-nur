@@ -301,7 +301,7 @@ abstract class AppLocalizations {
   /// No description provided for @phoneAlreadyRegistered.
   ///
   /// In uz, this message translates to:
-  /// **'Bu telefon raqam allaqachon ro\'yxatdan o\'gan. Iltimos, kirish uchun o\'ting.'**
+  /// **'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan. Iltimos, kirish uchun o\'ting.'**
   String get phoneAlreadyRegistered;
 
   /// No description provided for @phoneNotRegistered.
@@ -1228,41 +1228,11 @@ abstract class AppLocalizations {
   /// **'Telefon raqam orqali kirish'**
   String get phoneLogin;
 
-  /// No description provided for @telegramLogin.
-  ///
-  /// In uz, this message translates to:
-  /// **'Telegram orqali kirish'**
-  String get telegramLogin;
-
-  /// No description provided for @telegramLoginSubtitle.
-  ///
-  /// In uz, this message translates to:
-  /// **'Telegram akkauntidan foydalaning — parol kerak emas'**
-  String get telegramLoginSubtitle;
-
   /// No description provided for @orUse.
   ///
   /// In uz, this message translates to:
   /// **'yoki'**
   String get orUse;
-
-  /// No description provided for @telegramNotConfigured.
-  ///
-  /// In uz, this message translates to:
-  /// **'Hozirda Telegram orqali kirish mavjud emas. Iltimos, telefon raqamingiz bilan kiring.'**
-  String get telegramNotConfigured;
-
-  /// App Telegram Login Widget ma'lumotlarini backend bilan almashayotganda ko'rsatiladi.
-  ///
-  /// In uz, this message translates to:
-  /// **'Telegram orqali tekshirilmoqda…'**
-  String get telegramVerifying;
-
-  /// Backend Telegram login ma'lumotlarini qabul qilmasa, ko'rsatiladigan xato.
-  ///
-  /// In uz, this message translates to:
-  /// **'Telegram orqali kirish amalga oshmadi: {error}'**
-  String telegramLoginFailed(String error);
 
   /// No description provided for @phoneNumber.
   ///

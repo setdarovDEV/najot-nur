@@ -48,14 +48,14 @@ const DIFF_LABEL: Record<string, string> = {
   hard: "Qiyin",
 };
 const DIFF_COLOR: Record<string, string> = {
-  easy: "bg-green-100 text-green-700",
-  medium: "bg-orange-100 text-orange-700",
-  hard: "bg-red-100 text-red-700",
+  easy: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  medium: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  hard: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 const STATUS_COLOR: Record<string, string> = {
-  draft: "bg-yellow-100 text-yellow-700",
-  approved: "bg-green-100 text-green-700",
-  rejected: "bg-red-100 text-red-700",
+  draft: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  approved: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 const STATUS_LABEL: Record<string, string> = {
   draft: "Kutilmoqda",
@@ -220,14 +220,14 @@ export function QuizzesPage() {
                     <>
                       <button
                         onClick={() => approve(quiz)}
-                        className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200"
+                        className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
                       >
                         <Check size={14} />
                         Tasdiqlash
                       </button>
                       <button
                         onClick={() => reject(quiz)}
-                        className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200"
+                        className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
                       >
                         <X size={14} />
                         Rad etish
@@ -746,7 +746,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
                           className={`mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all ${
                             isCorrect
                               ? "bg-green-500 text-white shadow-sm"
-                              : "border border-line bg-white text-muted hover:border-green-400 hover:text-green-600"
+                              : "border border-line bg-card text-muted hover:border-green-400 hover:text-green-600"
                           }`}
                         >
                           <Check size={15} strokeWidth={2.5} />

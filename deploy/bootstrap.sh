@@ -142,11 +142,11 @@ if [[ ! -f "$INSTALL_DIR/.env" ]]; then
   echo
   yellow "  Quyidagilarni to'ldiring:"
   yellow "    CORS_ORIGINS  (https://notiqlik.uz,https://admin.notiqlik.uz,...)"
-  yellow "    OTP_PROVIDER  (telegram yoki sms)"
   yellow "    AI_PROVIDER   (mock / claude / gemini / groq)"
   yellow "    FCM_ENABLED, FCM_PROJECT_ID (push)"
-  yellow "    OAuth: GOOGLE_*, TELEGRAM_BOT_*"
-  yellow "    SMS: ESKIZ_*, SMS_API_* (OTP uchun)"
+  yellow "    OAuth: GOOGLE_*"
+  yellow "    Telegram Verification Codes: TELEGRAM_API_ID, TELEGRAM_API_HASH, TELEGRAM_SESSION"
+  yellow "    SMS: ESKIZ_*, SMS_API_* (agar SMS ishlatilsa)"
   yellow "    AI: GEMINI_API_KEY / GROQ_API_KEY / ANTHROPIC_API_KEY"
   echo
   yellow "  Tahrir qilgach, shu skriptni qayta ishga tushiring:"

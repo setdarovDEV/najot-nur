@@ -48,6 +48,15 @@ class AudiobookCreate(BaseModel):
     cover_url: str | None = None
 
 
+class AudiobookUpdate(BaseModel):
+    title: str | None = Field(None, max_length=200)
+    author: str | None = None
+    description: str | None = None
+    category: str | None = None
+    is_free: bool | None = None
+    price: Decimal | None = None
+
+
 class AudiobookPageUpsert(BaseModel):
     page_number: int = Field(..., ge=1)
     content: str | None = None

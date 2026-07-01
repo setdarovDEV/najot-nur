@@ -15,6 +15,7 @@ import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
 import { useConfirm } from "../lib/confirm";
+import { Modal, ModalFooter } from "../components/Modal";
 
 interface Reference {
   id: string;
@@ -58,7 +59,7 @@ export function ReferencesPage() {
         subtitle={r.subtitle}
         actions={
           <button
-            onClick={() => { setShowCreate((v) => !v); setEditing(null); }}
+            onClick={() => { setShowCreate(true); setEditing(null); }}
             className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark"
           >
             <Plus size={16} />
@@ -67,15 +68,15 @@ export function ReferencesPage() {
         }
       />
 
-      {showCreate && !editing && (
-        <ReferenceForm onDone={() => setShowCreate(false)} />
-      )}
-      {editing && (
-        <ReferenceForm
-          initial={editing}
-          onDone={() => setEditing(null)}
-        />
-      )}
+      <ReferenceForm
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+      />
+      <ReferenceForm
+        open={!!editing}
+        initial={editing ?? undefined}
+        onClose={() => setEditing(null)}
+      />
 
       {isLoading && <p className="text-muted">{t.common.loading}</p>}
 
@@ -250,14 +251,16 @@ function ReferenceCard({
   );
 }
 
-// ─── Create / Edit Form ────────────────────────────────────────────────────────
+// ─── Create / Edit Form (Modal) ──────────────────────────────────────────────
 
 function ReferenceForm({
+  open,
   initial,
-  onDone,
+  onClose,
 }: {
+  open: boolean;
   initial?: Reference;
-  onDone: () => void;
+  onClose: () => void;
 }) {
   const qc = useQueryClient();
   const { t } = useLang();
@@ -265,13 +268,12 @@ function ReferenceForm({
   const toast = useToast();
   const confirm = useConfirm();
 
+  const isEdit = !!initial;
   const [title, setTitle] = useState(initial?.title ?? "");
   const [text, setText] = useState(initial?.text ?? "");
   const [difficulty, setDifficulty] = useState(initial?.difficulty ?? "easy");
   const [language, setLanguage] = useState(initial?.language ?? "uz");
   const [audioFile, setAudioFile] = useState<File | null>(null);
-
-  const isEdit = !!initial;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -302,7 +304,7 @@ function ReferenceForm({
       toast.success(
         isEdit ? t.references.updateSuccess : t.references.createSuccess,
       );
-      onDone();
+      onClose();
     },
     onError: (err) => toast.error(apiError(err)),
   });
@@ -323,47 +325,58 @@ function ReferenceForm({
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-wine/20 bg-wine-50 p-6">
-      <h2 className="mb-4 text-base font-extrabold text-ink">
-        {isEdit ? "Matnni tahrirlash" : r.addBtn}
-      </h2>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEdit ? "Matnni tahrirlash" : r.addBtn}
+      subtitle={isEdit ? undefined : "Yangi talaffuz matni qo'shing"}
+      size="lg"
+      footer={
+        <ModalFooter
+          onClose={onClose}
+          onSubmit={handleSave}
+          saving={saveMutation.isPending}
+          submitDisabled={!title.trim() || !text.trim()}
+          submitLabel={
+            saveMutation.isPending ? t.common.saving : t.common.save
+          }
+        />
+      }
+    >
       <div className="grid gap-4 sm:grid-cols-2">
-        {/* Title */}
         <div className="sm:col-span-2">
-          <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
-            {r.titleField}
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            {r.titleField} *
           </label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
             placeholder="Masalan: Kirish so'zi"
           />
         </div>
 
-        {/* Text */}
         <div className="sm:col-span-2">
-          <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
-            {r.textField}
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            {r.textField} *
           </label>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            rows={4}
-            className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            rows={5}
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
             placeholder="Foydalanuvchilar o'qishi kerak bo'lgan matn..."
           />
         </div>
 
-        {/* Difficulty */}
         <div>
-          <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             {r.difficulty}
           </label>
           <select
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value)}
-            className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 pr-9 text-sm text-ink outline-none transition focus:border-wine/40"
           >
             <option value="easy">{r.easy}</option>
             <option value="medium">{r.medium}</option>
@@ -371,15 +384,14 @@ function ReferenceForm({
           </select>
         </div>
 
-        {/* Language */}
         <div>
-          <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             {r.language}
           </label>
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 pr-9 text-sm text-ink outline-none transition focus:border-wine/40"
           >
             <option value="uz">O'zbek</option>
             <option value="ru">Русский</option>
@@ -387,16 +399,15 @@ function ReferenceForm({
           </select>
         </div>
 
-        {/* Audio upload */}
         <div className="sm:col-span-2">
-          <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             {r.audioFile}
           </label>
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-line bg-white px-4 py-3 transition hover:border-wine/40">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-line bg-card px-4 py-3 transition hover:border-wine/40">
             <Mic size={18} className="shrink-0 text-wine" />
             <span className="text-sm text-muted">
               {audioFile ? (
-                <span className="font-semibold text-green-600">
+                <span className="font-semibold text-green-600 dark:text-green-400">
                   ✓ {audioFile.name}
                 </span>
               ) : (
@@ -412,29 +423,6 @@ function ReferenceForm({
           </label>
         </div>
       </div>
-
-      <div className="mt-5 flex gap-3">
-        <button
-          onClick={handleSave}
-          disabled={saveMutation.isPending || !title.trim() || !text.trim()}
-          className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark disabled:opacity-50"
-        >
-          {saveMutation.isPending ? (
-            t.common.saving
-          ) : (
-            <>
-              <CheckCircle2 size={16} />
-              {t.common.save}
-            </>
-          )}
-        </button>
-        <button
-          onClick={onDone}
-          className="rounded-xl border border-line px-5 py-2.5 text-sm font-semibold text-ink hover:bg-surface"
-        >
-          {t.common.cancel}
-        </button>
-      </div>
-    </div>
+    </Modal>
   );
 }

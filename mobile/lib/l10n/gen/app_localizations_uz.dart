@@ -118,7 +118,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get phoneAlreadyRegistered =>
-      'Bu telefon raqam allaqachon ro\'yxatdan o\'gan. Iltimos, kirish uchun o\'ting.';
+      'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan. Iltimos, kirish uchun o\'ting.';
 
   @override
   String get phoneNotRegistered => 'Bu telefon raqam ro\'yxatdan o\'tmagan.';
@@ -634,26 +634,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get phoneLogin => 'Telefon raqam orqali kirish';
 
   @override
-  String get telegramLogin => 'Telegram orqali kirish';
-
-  @override
-  String get telegramLoginSubtitle =>
-      'Telegram akkauntidan foydalaning — parol kerak emas';
-
-  @override
   String get orUse => 'yoki';
-
-  @override
-  String get telegramNotConfigured =>
-      'Hozirda Telegram orqali kirish mavjud emas. Iltimos, telefon raqamingiz bilan kiring.';
-
-  @override
-  String get telegramVerifying => 'Telegram orqali tekshirilmoqda…';
-
-  @override
-  String telegramLoginFailed(String error) {
-    return 'Telegram orqali kirish amalga oshmadi: $error';
-  }
 
   @override
   String get phoneNumber => 'Telefon raqam';

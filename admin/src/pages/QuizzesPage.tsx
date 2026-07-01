@@ -746,7 +746,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
                           className={`mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all ${
                             isCorrect
                               ? "bg-green-500 text-white shadow-sm"
-                              : "border border-line bg-white text-muted hover:border-green-400 hover:text-green-600"
+                              : "border border-line bg-card text-muted hover:border-green-400 hover:text-green-600"
                           }`}
                         >
                           <Check size={15} strokeWidth={2.5} />

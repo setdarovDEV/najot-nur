@@ -51,27 +51,19 @@ class Settings(BaseSettings):
     # ───── OAuth ─────
     google_client_id: str = ""
     google_client_secret: str = ""
-    telegram_bot_token: str = ""
-    telegram_bot_username: str = ""
 
-    # ───── Telegram Login (Verification Codes) ─────
-    # Telegram's official "Login via Telegram" service: when a user starts a
-    # registration, we call `auth.sendCode` via Telethon and Telegram sends a
-    # 6-digit code to the user's "Verification Codes" chat (the verified
-    # bot in the user's Telegram app). The user types the code into our
-    # mobile app; we then call `auth.signIn` to verify it.
+    # ───── Telegram Verification Codes ─────
+    # Telegram's official auth flow: when a user starts registration or
+    # password reset, we call `auth.sendCode` via Telethon and Telegram sends
+    # a 6-digit code to the user's "Verification Codes" chat. No custom bot
+    # is required.
     #
-    # To enable this, register an app at https://my.telegram.org and put
-    # the api_id / api_hash here. See `python -m app.scripts.telegram_login`
-    # for the one-time setup that produces `TELEGRAM_SESSION`.
+    # Register an app at https://my.telegram.org to get api_id / api_hash,
+    # then run `python -m app.scripts.telegram_login` once to produce
+    # TELEGRAM_SESSION.
     telegram_api_id: int = 0
     telegram_api_hash: str = ""
     telegram_session: str = ""
-
-    # ───── OTP delivery ─────
-    # telegram → OTP Telegram bot orqali yuboriladi (foydalanuvchi avval botni ishlatgan bo'lishi kerak)
-    # sms      → SMS gateway orqali yuboriladi
-    otp_provider: Literal["sms", "telegram"] = "sms"
 
     # ───── SMS ─────
     sms_provider: Literal["mock", "eskiz", "playmobile"] = "mock"

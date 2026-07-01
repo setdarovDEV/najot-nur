@@ -34,7 +34,7 @@
   "sendCode": "Отправить код",
   "saveAndLogin": "Сохранить и войти",
   "phoneAlreadyRegistered": "Этот номер телефона уже зарегистрирован. Пожалуйста, войдите.",
-  "phoneNotRegistered": "Этот номер телефона не зарегистрирован."
+  "phoneNotRegistered": "Этот номер телефона не зарегистрирован.",
   "resendCode": "Отправить код повторно",
   "welcomeBack": "С возвращением!",
   "loginSubtitle": "Введите номер телефона и пароль",
@@ -188,23 +188,7 @@
   "logout": "Выход",
   "retry": "Повторить",
   "phoneLogin": "Войти по номеру телефона",
-  "telegramLogin": "Войти через Telegram",
-  "telegramLoginSubtitle": "Используйте аккаунт Telegram — пароль не нужен",
   "orUse": "или",
-  "telegramNotConfigured": "Вход через Telegram сейчас недоступен. Войдите по номеру телефона.",
-  "telegramVerifying": "Проверка через Telegram…",
-  "@telegramVerifying": {
-    "description": "Пока приложение обменивает данные Telegram Login Widget с сервером."
-  },
-  "telegramLoginFailed": "Не удалось войти через Telegram: {error}",
-  "@telegramLoginFailed": {
-    "description": "Сообщение об ошибке, когда сервер отклоняет данные Telegram Login.",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
   "phoneNumber": "Номер телефона",
   "phoneHint": "+998 XX XXX XX XX",
   "password": "Пароль",

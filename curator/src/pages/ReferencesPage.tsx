@@ -15,6 +15,14 @@ import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
 import { useConfirm } from "../lib/confirm";
+import {
+  Modal,
+  ModalBody,
+  ModalCancelButton,
+  ModalFooter,
+  ModalHeader,
+  ModalSubmitButton,
+} from "../components/Modal";
 
 interface Reference {
   id: string;
@@ -67,13 +75,10 @@ export function ReferencesPage() {
         }
       />
 
-      {showCreate && !editing && (
-        <ReferenceForm onDone={() => setShowCreate(false)} />
-      )}
-      {editing && (
-        <ReferenceForm
-          initial={editing}
-          onDone={() => setEditing(null)}
+      {(showCreate || editing) && (
+        <ReferenceModal
+          initial={editing ?? undefined}
+          onDone={() => { setShowCreate(false); setEditing(null); }}
         />
       )}
 
@@ -250,9 +255,9 @@ function ReferenceCard({
   );
 }
 
-// ─── Create / Edit Form ────────────────────────────────────────────────────────
+// ─── Create / Edit Modal ───────────────────────────────────────────────────────
 
-function ReferenceForm({
+function ReferenceModal({
   initial,
   onDone,
 }: {
@@ -323,118 +328,108 @@ function ReferenceForm({
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-wine/20 bg-wine-50 p-6">
-      <h2 className="mb-4 text-base font-extrabold text-ink">
-        {isEdit ? "Matnni tahrirlash" : r.addBtn}
-      </h2>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* Title */}
-        <div className="sm:col-span-2">
-          <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
-            {r.titleField}
-          </label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
-            placeholder="Masalan: Kirish so'zi"
-          />
-        </div>
-
-        {/* Text */}
-        <div className="sm:col-span-2">
-          <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
-            {r.textField}
-          </label>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={4}
-            className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
-            placeholder="Foydalanuvchilar o'qishi kerak bo'lgan matn..."
-          />
-        </div>
-
-        {/* Difficulty */}
-        <div>
-          <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
-            {r.difficulty}
-          </label>
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-            className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40"
-          >
-            <option value="easy">{r.easy}</option>
-            <option value="medium">{r.medium}</option>
-            <option value="hard">{r.hard}</option>
-          </select>
-        </div>
-
-        {/* Language */}
-        <div>
-          <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
-            {r.language}
-          </label>
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40"
-          >
-            <option value="uz">O'zbek</option>
-            <option value="ru">Русский</option>
-            <option value="en">English</option>
-          </select>
-        </div>
-
-        {/* Audio upload */}
-        <div className="sm:col-span-2">
-          <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
-            {r.audioFile}
-          </label>
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-line bg-white px-4 py-3 transition hover:border-wine/40">
-            <Mic size={18} className="shrink-0 text-wine" />
-            <span className="text-sm text-muted">
-              {audioFile ? (
-                <span className="font-semibold text-green-600">
-                  ✓ {audioFile.name}
-                </span>
-              ) : (
-                r.uploadAudio
-              )}
-            </span>
+    <Modal open onClose={onDone} size="lg">
+      <ModalHeader
+        title={isEdit ? "Matnni tahrirlash" : r.addBtn}
+        onClose={onDone}
+      />
+      <ModalBody>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Title */}
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              {r.titleField}
+            </label>
             <input
-              type="file"
-              accept="audio/*"
-              className="hidden"
-              onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+              placeholder="Masalan: Kirish so'zi"
             />
-          </label>
-        </div>
-      </div>
+          </div>
 
-      <div className="mt-5 flex gap-3">
-        <button
+          {/* Text */}
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              {r.textField}
+            </label>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={4}
+              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+              placeholder="Foydalanuvchilar o'qishi kerak bo'lgan matn..."
+            />
+          </div>
+
+          {/* Difficulty */}
+          <div>
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              {r.difficulty}
+            </label>
+            <select
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value)}
+              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40"
+            >
+              <option value="easy">{r.easy}</option>
+              <option value="medium">{r.medium}</option>
+              <option value="hard">{r.hard}</option>
+            </select>
+          </div>
+
+          {/* Language */}
+          <div>
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              {r.language}
+            </label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40"
+            >
+              <option value="uz">O'zbek</option>
+              <option value="ru">Русский</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+
+          {/* Audio upload */}
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
+              {r.audioFile}
+            </label>
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-line bg-card px-4 py-3 transition hover:border-wine/40">
+              <Mic size={18} className="shrink-0 text-wine" />
+              <span className="text-sm text-muted">
+                {audioFile ? (
+                  <span className="font-semibold text-green-600">
+                    ✓ {audioFile.name}
+                  </span>
+                ) : (
+                  r.uploadAudio
+                )}
+              </span>
+              <input
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          </div>
+        </div>
+      </ModalBody>
+      <ModalFooter>
+        <ModalCancelButton onClick={onDone}>{t.common.cancel}</ModalCancelButton>
+        <ModalSubmitButton
           onClick={handleSave}
-          disabled={saveMutation.isPending || !title.trim() || !text.trim()}
-          className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark disabled:opacity-50"
+          loading={saveMutation.isPending}
+          disabled={!title.trim() || !text.trim()}
         >
-          {saveMutation.isPending ? (
-            t.common.saving
-          ) : (
-            <>
-              <CheckCircle2 size={16} />
-              {t.common.save}
-            </>
-          )}
-        </button>
-        <button
-          onClick={onDone}
-          className="rounded-xl border border-line px-5 py-2.5 text-sm font-semibold text-ink hover:bg-surface"
-        >
-          {t.common.cancel}
-        </button>
-      </div>
-    </div>
+          {t.common.save}
+        </ModalSubmitButton>
+      </ModalFooter>
+    </Modal>
   );
 }

@@ -65,3 +65,68 @@
     transform: translateX(0) scale(1);
   }
 }
+
+@layer base {
+  /* ── Form controls: dark-mode safe backgrounds ── */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="time"],
+  input:not([type]),
+  textarea,
+  select {
+    background-color: #ffffff;
+    color: var(--color-ink);
+  }
+  .dark input[type="text"],
+  .dark input[type="email"],
+  .dark input[type="password"],
+  .dark input[type="number"],
+  .dark input[type="search"],
+  .dark input[type="url"],
+  .dark input[type="tel"],
+  .dark input[type="date"],
+  .dark input[type="time"],
+  .dark input:not([type]),
+  .dark textarea,
+  .dark select {
+    background-color: #251d20;
+    color: var(--color-ink);
+  }
+
+  /* Native select arrow gets lost in dark mode otherwise */
+  .dark select {
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239b8f94%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 12px 12px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: var(--color-muted);
+    opacity: 0.7;
+  }
+
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus,
+  .dark textarea:-webkit-autofill,
+  .dark select:-webkit-autofill {
+    -webkit-text-fill-color: var(--color-ink);
+    -webkit-box-shadow: 0 0 0 1000px #251d20 inset;
+    caret-color: var(--color-ink);
+  }
+
+  .dark [contenteditable="true"] {
+    background-color: #251d20;
+  }
+}

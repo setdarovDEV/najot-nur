@@ -15,7 +15,6 @@ from app.api.v1 import (
     security,
     speech,
     support,
-    telegram_webhook,
     users,
 )
 
@@ -33,7 +32,6 @@ api_router.include_router(
 )
 api_router.include_router(support.router, prefix="/support", tags=["support"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
-api_router.include_router(telegram_webhook.router, prefix="", tags=["telegram"])
 # User-facing payment initiation + provider callbacks
 api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
 # Admin payment reporting  →  GET /admin/payments, GET /admin/payments/{id}

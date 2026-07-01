@@ -10,12 +10,14 @@ from sqlalchemy import select
 from app.api.deps import CurrentUser, DbSession
 from app.core.config import settings
 from app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.core.redis_client import cache_delete, cache_get, cache_set
 from app.core.security import (
     decode_token,
     hash_password,
     issue_token_pair,
     verify_password,
 )
+
 from app.models.enums import AuthProvider, Role
 from app.models.user import AuthIdentity, User
 from app.schemas.auth import (
@@ -31,13 +33,13 @@ from app.schemas.auth import (
     PhoneLoginRequest,
     PhoneRequest,
     RefreshRequest,
-    TelegramAuthRequest,
     TokenPair,
 )
 from app.schemas.user import UserPublic
-from app.services import amocrm, auth_service, otp_service, telegram_verifier
+from app.services import amocrm, auth_service, telegram_verifier
 from app.services.oauth.google import verify_google_token
-from app.services.oauth.telegram import verify_telegram_auth
+
+PHONE_VERIFIED_KEY = "phone_verified:{phone}"
 
 router = APIRouter()
 
@@ -47,12 +49,10 @@ router = APIRouter()
 async def auth_config() -> AuthConfigResponse:
     """Non-secret auth settings the mobile client needs to render login UI.
 
-    Public on purpose — only reveals provider identifiers (Telegram bot
-    username, Google client id) that are already meant to be embedded in
-    the public client.
+    Public on purpose — only reveals provider identifiers (e.g. Google
+    client id) that are already meant to be embedded in the public client.
     """
     return AuthConfigResponse(
-        telegram_bot_username=settings.telegram_bot_username,
         google_client_id=settings.google_client_id,
     )
 
@@ -94,17 +94,21 @@ async def otp_request(payload: PhoneRequest) -> dict:
 
 @router.post("/otp/check", response_model=OTPCheckResponse)
 async def otp_check(payload: OTPCheckRequest) -> OTPCheckResponse:
-    """Step 2 of the mobile registration flow: light format check only.
-
-    We deliberately do NOT call Telegram's `auth.signIn` here — that
-    would burn a signIn (and create a throwaway Telegram account) for
-    users who never finish the flow. The real code check happens in
-    `/otp/verify` once the user has filled in their name and password.
-
-    The mobile client still calls this endpoint so the user gets a fast
-    "looks good, continue" feedback (e.g. rejecting non-numeric or
-    short codes) before reaching step 3.
+    """Step 2 of the mobile registration flow: verify the code against
+    Telegram. If valid, mark the phone as verified in Redis so the final
+    step (`/otp/verify`) can finish registration without calling Telegram
+    again.
     """
+    valid = await telegram_verifier.check_code(payload.phone, payload.code)
+    if not valid:
+        if not (settings.debug and payload.code == "0000"):
+            raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+
+    await cache_set(
+        PHONE_VERIFIED_KEY.format(phone=payload.phone),
+        "1",
+        ttl=settings.otp_ttl_seconds,
+    )
     return OTPCheckResponse(valid=True, ttl=settings.otp_ttl_seconds)
 
 
@@ -154,8 +158,9 @@ async def phone_login(payload: PhoneLoginRequest, db: DbSession) -> TokenPair:
 
 @router.post("/password/reset", response_model=TokenPair)
 async def reset_password(payload: PasswordResetRequest, db: DbSession) -> TokenPair:
-    """Forgot-password: verify the Telegram code, then set (or overwrite) the
-    password identity for the phone. Issues a fresh token pair on success.
+    """Forgot-password: verify the Telegram code (or the step-2 verified
+    flag), then set (or overwrite) the password identity for the phone.
+    Issues a fresh token pair on success.
     """
     user = (
         await db.execute(select(User).where(User.phone == payload.phone))
@@ -163,10 +168,14 @@ async def reset_password(payload: PasswordResetRequest, db: DbSession) -> TokenP
     if user is None or not user.is_active:
         raise UnauthorizedError("Telefon raqam yoki parol noto'g'ri.")
 
-    valid = await telegram_verifier.check_code(payload.phone, payload.code)
-    if not valid:
-        if not (settings.debug and payload.code == "0000"):
-            raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+    phone_verified = await cache_get(PHONE_VERIFIED_KEY.format(phone=payload.phone))
+    if phone_verified:
+        await cache_delete(PHONE_VERIFIED_KEY.format(phone=payload.phone))
+    else:
+        valid = await telegram_verifier.check_code(payload.phone, payload.code)
+        if not valid:
+            if not (settings.debug and payload.code == "0000"):
+                raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
 
     identity = (
         await db.execute(
@@ -192,19 +201,21 @@ async def reset_password(payload: PasswordResetRequest, db: DbSession) -> TokenP
 async def otp_verify(
     payload: OTPVerifyRequest, db: DbSession, bg: BackgroundTasks
 ) -> AuthResult:
-    """Final step of registration: validate the code against Telegram and
-    create the user + password identity in one shot.
+    """Final step of registration: the code was already verified in
+    `/otp/check` (step 2). Here we just confirm the phone_verified flag
+    from Redis and create the user.
 
-    We deliberately call the verifier only here (not in `/otp/check`) so we
-    don't burn a Telegram signIn for users who never finish registration.
+    If the flag is missing (e.g. the client skipped `/otp/check`), we
+    fall back to calling Telegram's `auth.signIn` as a safety net.
     """
-    valid = await telegram_verifier.check_code(payload.phone, payload.code)
-    if not valid:
-        # Fallback: in dev mode the legacy `otp_service` accepts the
-        # "0000" debug code so QA can still walk through the flow without
-        # a Telegram account.
-        if not (settings.debug and payload.code == "0000"):
-            raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+    phone_verified = await cache_get(PHONE_VERIFIED_KEY.format(phone=payload.phone))
+    if phone_verified:
+        await cache_delete(PHONE_VERIFIED_KEY.format(phone=payload.phone))
+    else:
+        valid = await telegram_verifier.check_code(payload.phone, payload.code)
+        if not valid:
+            if not (settings.debug and payload.code == "0000"):
+                raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
 
     full_name = payload.full_name
     if not full_name and (payload.first_name or payload.last_name):
@@ -261,24 +272,6 @@ async def google_auth(
     )
     if is_new:
         await _maybe_push_lead(bg, user, "google")
-    return AuthResult(is_new_user=is_new, tokens=_tokens_for(user))
-
-
-# ───────────────────── Telegram ─────────────────────
-@router.post("/telegram", response_model=AuthResult)
-async def telegram_auth(
-    payload: TelegramAuthRequest, db: DbSession, bg: BackgroundTasks
-) -> AuthResult:
-    info = verify_telegram_auth(payload.model_dump())
-    user, is_new = await auth_service.get_or_create_by_identity(
-        db,
-        provider=AuthProvider.telegram,
-        provider_uid=info["uid"],
-        full_name=info.get("name"),
-        avatar_url=info.get("photo"),
-    )
-    if is_new:
-        await _maybe_push_lead(bg, user, "telegram")
     return AuthResult(is_new_user=is_new, tokens=_tokens_for(user))
 
 

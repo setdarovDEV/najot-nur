@@ -16,6 +16,7 @@ import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
 import type { AdminCourse } from "../lib/types";
 import { CourseContentModal } from "../components/CourseContentModal";
+import { Modal, ModalFooter } from "../components/Modal";
 
 // ─── API helpers ────────────────────────────────────────────────────────────
 
@@ -86,12 +87,11 @@ export function VideoLessonsPage() {
 
       {creating && canEdit && (
         <CreateCourseForm
+          open={creating}
           onClose={() => setCreating(false)}
           onCreated={(id) => {
-            setCreating(false);
             const created = { id } as AdminCourse;
             qc.invalidateQueries({ queryKey: ["admin", "courses"] });
-            // immediately open the content manager for the new course
             setManagingCourse({ ...created, title: "Yangi kurs" } as AdminCourse);
           }}
         />
@@ -213,12 +213,14 @@ export function VideoLessonsPage() {
   );
 }
 
-// ─── Create course form ──────────────────────────────────────────────────────
+// ─── Create course form (Modal) ──────────────────────────────────────────────
 
 function CreateCourseForm({
+  open,
   onClose,
   onCreated,
 }: {
+  open: boolean;
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
@@ -257,79 +259,77 @@ function CreateCourseForm({
     }
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    await handleConfirmCreate();
-  }
-
   return (
-    <form
-      onSubmit={submit}
-      className="mb-6 rounded-2xl border border-wine/30 bg-card p-5"
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Yangi kurs yaratish"
+      subtitle="Yangi video darsliklar kursini qo'shing"
+      size="lg"
+      footer={
+        <ModalFooter
+          onClose={onClose}
+          onSubmit={handleConfirmCreate}
+          saving={saving}
+          submitDisabled={!title.trim()}
+          submitLabel={saving ? "Saqlanmoqda..." : "Yaratish"}
+        />
+      }
     >
-      <div className="mb-4 font-semibold text-ink">Yangi kurs</div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 sm:col-span-2">
-          <span className="text-xs font-semibold text-muted">Kurs nomi</span>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            Kurs nomi *
+          </label>
           <input
             required
             placeholder="Masalan: Nutq san'ati"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
-        </label>
-        <label className="flex flex-col gap-1 sm:col-span-2">
-          <span className="text-xs font-semibold text-muted">Tavsif</span>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            Tavsif
+          </label>
           <textarea
             placeholder="Kurs haqida qisqacha..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine"
+            rows={3}
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold text-muted">Narxi (so'm)</span>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            Narxi (so'm)
+          </label>
           <input
             type="number"
             min="0"
             placeholder="0"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold text-muted">Daraja</span>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+            Daraja
+          </label>
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value)}
-            className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 pr-9 text-sm text-ink outline-none transition focus:border-wine/40"
           >
             <option value="beginner">Boshlang'ich</option>
             <option value="intermediate">O'rta</option>
             <option value="advanced">Yuqori</option>
           </select>
-        </label>
+        </div>
       </div>
-      <div className="mt-4 flex gap-2">
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-xl bg-wine px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          {saving ? "Saqlanmoqda..." : "Yaratish"}
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-xl border border-line px-5 py-2 text-sm font-semibold text-muted"
-        >
-          Bekor qilish
-        </button>
-      </div>
-    </form>
+    </Modal>
   );
 }
 

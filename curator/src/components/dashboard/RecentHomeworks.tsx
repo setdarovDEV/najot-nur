@@ -52,7 +52,7 @@ export function RecentHomeworks({
                   hw.submission_url ??
                   "Matn yuborilmagan"}
               </p>
-              <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+              <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                 Yangi
               </span>
             </div>
@@ -75,7 +75,7 @@ export function RecentHomeworks({
       action={
         <Link
           to="/homeworks"
-          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine-dark hover:bg-wine/5"
+          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
         >
           Hammasi <ChevronRight size={12} />
         </Link>

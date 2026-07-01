@@ -126,7 +126,7 @@ export function Layout() {
               <input
                 type="text"
                 placeholder={t.topbar.searchCurator}
-                className="w-full rounded-xl border border-line bg-card py-2.5 pl-10 pr-4 text-sm text-ink placeholder:text-muted outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10 dark:bg-[#1a2a37]"
+                className="w-full rounded-xl border border-line bg-card py-2.5 pl-10 pr-4 text-sm text-ink placeholder:text-muted outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10 dark:bg-[#251d20]"
               />
             </div>
           </div>
@@ -158,7 +158,7 @@ export function Layout() {
                         key={l}
                         onClick={() => { setLang(l); setLangOpen(false); }}
                         className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm font-semibold transition hover:bg-wine-50 ${
-                          lang === l ? "text-wine-dark" : "text-ink"
+                          lang === l ? "text-wine" : "text-ink"
                         }`}
                       >
                         <span className="w-7 text-xs font-black">{LANG_LABELS[l]}</span>
@@ -170,7 +170,7 @@ export function Layout() {
               )}
             </div>
 
-            <span className="hidden rounded-full bg-wine/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-wine-dark sm:inline-flex">
+            <span className="hidden rounded-full bg-wine/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-wine sm:inline-flex">
               {t.topbar.curator}
             </span>
 
@@ -217,7 +217,7 @@ export function Layout() {
                       }}
                       className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-ink hover:bg-wine-50"
                     >
-                      <LogOut size={15} className="text-wine-dark" />
+                      <LogOut size={15} className="text-wine" />
                       {t.topbar.signOut}
                     </button>
                   </div>

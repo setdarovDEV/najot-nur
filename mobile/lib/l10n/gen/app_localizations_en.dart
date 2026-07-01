@@ -66,12 +66,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'A verification code will be sent to your phone';
 
   @override
-  String get enterPhoneForLogin =>
-      'Enter your phone number to sign in';
+  String get enterPhoneForLogin => 'Enter your phone number to sign in';
 
   @override
-  String get enterPhoneForRegister =>
-      'Enter your phone number to sign up';
+  String get enterPhoneForRegister => 'Enter your phone number to sign up';
 
   @override
   String get enterPhoneForReset =>
@@ -102,8 +100,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createNewPassword => 'Create a new password';
 
   @override
-  String get createNewPasswordSubtitle =>
-      'Set a new password for your account';
+  String get createNewPasswordSubtitle => 'Set a new password for your account';
 
   @override
   String get forgotPassword => 'Forgot password?';
@@ -119,8 +116,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This phone number is already registered. Please sign in.';
 
   @override
-  String get phoneNotRegistered =>
-      'This phone number is not registered.';
+  String get phoneNotRegistered => 'This phone number is not registered.';
 
   @override
   String get resendCode => 'Resend code';
@@ -629,26 +625,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get phoneLogin => 'Sign in with phone number';
 
   @override
-  String get telegramLogin => 'Sign in with Telegram';
-
-  @override
-  String get telegramLoginSubtitle =>
-      'Use your Telegram account — no password needed';
-
-  @override
   String get orUse => 'or';
-
-  @override
-  String get telegramNotConfigured =>
-      'Telegram login is not available right now. Please use your phone number.';
-
-  @override
-  String get telegramVerifying => 'Verifying with Telegram…';
-
-  @override
-  String telegramLoginFailed(String error) {
-    return 'Telegram sign-in failed: $error';
-  }
 
   @override
   String get phoneNumber => 'Phone number';

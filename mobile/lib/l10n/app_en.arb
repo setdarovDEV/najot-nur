@@ -34,7 +34,7 @@
   "sendCode": "Send code",
   "saveAndLogin": "Save and sign in",
   "phoneAlreadyRegistered": "This phone number is already registered. Please sign in.",
-  "phoneNotRegistered": "This phone number is not registered."
+  "phoneNotRegistered": "This phone number is not registered.",
   "resendCode": "Resend code",
   "welcomeBack": "Welcome back!",
   "loginSubtitle": "Enter your phone number and password",
@@ -188,23 +188,7 @@
   "logout": "Sign out",
   "retry": "Retry",
   "phoneLogin": "Sign in with phone number",
-  "telegramLogin": "Sign in with Telegram",
-  "telegramLoginSubtitle": "Use your Telegram account — no password needed",
   "orUse": "or",
-  "telegramNotConfigured": "Telegram login is not available right now. Please use your phone number.",
-  "telegramVerifying": "Verifying with Telegram…",
-  "@telegramVerifying": {
-    "description": "Shown while the app exchanges the Telegram Login Widget payload with the backend."
-  },
-  "telegramLoginFailed": "Telegram sign-in failed: {error}",
-  "@telegramLoginFailed": {
-    "description": "Error toast shown when the backend rejects the Telegram login payload.",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
   "phoneNumber": "Phone number",
   "phoneHint": "+998 XX XXX XX XX",
   "password": "Password",

@@ -18,6 +18,7 @@ import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
+import { Modal, ModalFooter } from "../components/Modal";
 
 interface Practicum {
   id: string;
@@ -610,7 +611,20 @@ function CreatePracticumModal({
   };
 
   return (
-    <ModalShell title={p.addBtn} onClose={onClose}>
+    <ModalShell
+      open
+      title={p.addBtn}
+      onClose={onClose}
+      size="lg"
+      footer={
+        <ModalFooter
+          onClose={onClose}
+          onSubmit={submit}
+          saving={saving}
+          submitLabel="Yuborish"
+        />
+      }
+    >
       <FormBody
         title={title} setTitle={setTitle}
         description={description} setDescription={setDescription}
@@ -622,7 +636,6 @@ function CreatePracticumModal({
         error={error}
         p={p}
       />
-      <ModalFooter onClose={onClose} onSubmit={submit} saving={saving} label="Yuborish" />
     </ModalShell>
   );
 }
@@ -692,7 +705,20 @@ function EditPracticumModal({
   };
 
   return (
-    <ModalShell title="Praktikumni tahrirlash" onClose={onClose}>
+    <ModalShell
+      open
+      title="Praktikumni tahrirlash"
+      onClose={onClose}
+      size="lg"
+      footer={
+        <ModalFooter
+          onClose={onClose}
+          onSubmit={submit}
+          saving={saving}
+          submitLabel="Saqlash"
+        />
+      }
+    >
       <FormBody
         title={title} setTitle={setTitle}
         description={description} setDescription={setDescription}
@@ -704,62 +730,29 @@ function EditPracticumModal({
         error={error}
         p={p}
       />
-      <ModalFooter onClose={onClose} onSubmit={submit} saving={saving} label="Saqlash" />
     </ModalShell>
   );
 }
 
 function ModalShell({
+  open,
   title,
   onClose,
   children,
+  footer,
+  size = "md",
 }: {
+  open: boolean;
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  footer?: React.ReactNode;
+  size?: "sm" | "md" | "lg" | "xl";
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10">
-      <div className="w-full max-w-xl rounded-2xl border border-line bg-card shadow-2xl">
-        <div className="flex items-center justify-between border-b border-line px-6 py-4">
-          <h2 className="text-lg font-extrabold text-ink">{title}</h2>
-          <button onClick={onClose} className="text-muted hover:text-wine">
-            <X size={20} />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function ModalFooter({
-  onClose,
-  onSubmit,
-  saving,
-  label,
-}: {
-  onClose: () => void;
-  onSubmit: () => void;
-  saving: boolean;
-  label: string;
-}) {
-  return (
-    <div className="flex items-center justify-end gap-3 border-t border-line px-6 py-4">
-      <button
-        onClick={onClose}
-        className="rounded-xl border border-line px-5 py-2.5 text-sm font-semibold text-ink hover:bg-surface"
-      >
-        Bekor qilish
-      </button>
-      <button
-        onClick={onSubmit}
-        disabled={saving}
-        className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark disabled:opacity-60"
-      >
-        {saving ? "Saqlanmoqda…" : label}
-      </button>
-    </div>
+    <Modal open={open} onClose={onClose} title={title} size={size} footer={footer}>
+      {children}
+    </Modal>
   );
 }
 
@@ -784,7 +777,7 @@ function FormBody({
   error: string;
   p: ReturnType<typeof useLang>["t"]["practicums"];
 }) {
-  const inputCls = "w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10";
+  const inputCls = "w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10";
 
   return (
     <div className="space-y-4 p-6">

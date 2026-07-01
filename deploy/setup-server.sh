@@ -89,7 +89,7 @@ if [[ ! -f "$INSTALL_DIR/.env" ]]; then
   echo
   echo "  ⚠ .env ni hozir tahrirlang va quyidagilarni to'ldiring:"
   echo "    - CORS_ORIGINS (domenlar ro'yxati)"
-  echo "    - OTP_PROVIDER (telegram yoki sms)"
+  echo "    - TELEGRAM_API_ID, TELEGRAM_API_HASH, TELEGRAM_SESSION (Telegram Verification Codes)"
   echo "    - AI_PROVIDER (mock / claude / gemini)"
   echo "    - FCM_ENABLED, FCM_PROJECT_ID (push notifications)"
   echo "    - Birinchi marta: RUN_SEEDS=true (keyin false qiling)"

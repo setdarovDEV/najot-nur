@@ -81,7 +81,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-skyblue via-skyblue/80 to-wine-deep p-4 sm:p-6">
+    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-wine via-wine-dark to-wine-deep p-4 sm:p-6">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center gap-3 text-white">
           <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 text-lg font-black shadow-inner">
@@ -116,7 +116,7 @@ export function LoginPage() {
                   data-form-type="other"
                   spellCheck={false}
                   disabled={loading}
-                  className="w-full rounded-xl border border-line bg-card py-3 pl-10 pr-4 text-ink outline-none transition focus:border-wine focus:ring-2 focus:ring-wine/20 disabled:opacity-60 dark:bg-[#1a2a37]"
+                  className="w-full rounded-xl border border-line bg-card py-3 pl-10 pr-4 text-ink outline-none transition focus:border-wine focus:ring-2 focus:ring-wine/20 disabled:opacity-60 dark:bg-[#251d20]"
                   placeholder="name@example.com"
                 />
               </div>
@@ -138,7 +138,7 @@ export function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   disabled={loading}
-                  className="w-full rounded-xl border border-line bg-card py-3 pl-10 pr-12 text-ink outline-none transition focus:border-wine focus:ring-2 focus:ring-wine/20 disabled:opacity-60 dark:bg-[#1a2a37]"
+                  className="w-full rounded-xl border border-line bg-card py-3 pl-10 pr-12 text-ink outline-none transition focus:border-wine focus:ring-2 focus:ring-wine/20 disabled:opacity-60 dark:bg-[#251d20]"
                   placeholder="••••••••"
                 />
                 <button
@@ -155,7 +155,7 @@ export function LoginPage() {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+              <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
                 <AlertCircle size={15} className="mt-0.5 shrink-0" />
                 <span className="flex-1 break-words">{error}</span>
               </div>

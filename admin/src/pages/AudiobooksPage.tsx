@@ -121,8 +121,8 @@ export function AudiobooksPage() {
                 <span
                   className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                     b.is_free
-                      ? "bg-green-100 text-green-700"
-                      : "bg-wine-100 text-wine"
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-wine-100 text-wine dark:bg-wine-900/20 dark:text-wine-300"
                   }`}
                 >
                   {b.is_free ? "Bepul" : "Sotuvda"}
@@ -509,7 +509,7 @@ function PagesPanel({ audiobookId }: { audiobookId: string }) {
               onClick={() => setEditingPage(page)}
               className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 text-left text-sm text-ink transition hover:border-wine/40"
             >
-              <span className="w-8 shrink-0 rounded-lg bg-wine/10 py-0.5 text-center text-xs font-bold text-wine">
+              <span className="w-8 shrink-0 rounded-lg bg-wine/10 py-0.5 text-center text-xs font-bold text-wine dark:bg-wine/15 dark:text-wine-300">
                 {page.page_number}
               </span>
               <span className="flex-1 truncate text-muted">

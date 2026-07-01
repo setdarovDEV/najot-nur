@@ -49,7 +49,7 @@ export function HomeworksPage() {
                 className={`rounded-lg px-4 py-2 text-sm font-semibold ${
                   filter === f
                     ? "bg-wine text-white"
-                    : "border border-line bg-card text-ink hover:bg-wine-50"
+                    : "border border-line bg-card text-ink hover:bg-wine-50 dark:hover:bg-wine-900/20"
                 }`}
               >
                 {f === "submitted"
@@ -82,7 +82,7 @@ export function HomeworksPage() {
         ))}
       </div>
       {grade.isError && (
-        <p className="mt-3 text-sm text-red-500">{apiError(grade.error)}</p>
+        <p className="mt-3 text-sm text-red-500 dark:text-red-400">{apiError(grade.error)}</p>
       )}
     </div>
   );

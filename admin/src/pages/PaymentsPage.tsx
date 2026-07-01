@@ -66,11 +66,11 @@ export function PaymentsPage() {
 
       <div className="overflow-x-auto rounded-2xl border border-line bg-card">
         {isLoading && <p className="p-6 text-sm text-muted">{t.common.loading}</p>}
-        {error && <p className="p-6 text-sm text-red-500">{apiError(error)}</p>}
+        {error && <p className="p-6 text-sm text-red-500 dark:text-red-400">{apiError(error)}</p>}
         {data && (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-line bg-wine-50">
+              <tr className="border-b border-line bg-wine-50 dark:bg-wine-900/20">
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted">{t.payments.date}</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted">{t.payments.user}</th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-muted">{t.payments.amount}</th>
@@ -90,7 +90,7 @@ export function PaymentsPage() {
               {data.items.map((payment) => {
                 const status = STATUS_STYLES[payment.status];
                 return (
-                  <tr key={payment.id} className="border-b border-line last:border-none hover:bg-wine-50">
+                  <tr key={payment.id} className="border-b border-line last:border-none hover:bg-wine-50 dark:hover:bg-wine-900/20">
                     <td className="px-5 py-3 text-muted">{formatDate(payment.created_at)}</td>
                     <td className="px-5 py-3 font-mono text-xs text-ink">{payment.user_id.slice(0, 8)}…</td>
                     <td className="px-5 py-3 text-right font-semibold text-ink">

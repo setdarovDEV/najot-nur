@@ -32,7 +32,7 @@ export function RecentClients({ rows, loading }: { rows: ClientRow[]; loading: b
       action={
         <Link
           to="/clients"
-          className="rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5"
+          className="rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
         >
           Barchasi →
         </Link>
@@ -50,9 +50,9 @@ export function RecentClients({ rows, loading }: { rows: ClientRow[]; loading: b
             <li key={c.id}>
               <Link
                 to={`/clients/${c.id}`}
-                className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-wine-50"
+                className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-wine-50 dark:hover:bg-wine-900/20"
               >
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-wine/10 text-xs font-black text-wine">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-wine/10 text-xs font-black text-wine dark:bg-wine/15 dark:text-wine-300">
                   {initials(c.full_name)}
                 </div>
                 <div className="min-w-0 flex-1">

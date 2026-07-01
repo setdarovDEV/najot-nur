@@ -150,15 +150,15 @@ function ReferenceCard({
     <div className="rounded-2xl border border-line bg-card p-6">
       <div className="flex flex-wrap items-start gap-4">
         {/* Icon */}
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-wine/10">
-          <Mic size={22} className="text-wine" />
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-wine/10 dark:bg-wine/15">
+          <Mic size={22} className="text-wine dark:text-wine-300" />
         </div>
 
         {/* Main info */}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-extrabold text-ink">{ref_.title}</h3>
-            <span className="rounded-full bg-wine/10 px-2.5 py-0.5 text-[11px] font-bold uppercase text-wine">
+            <span className="rounded-full bg-wine/10 px-2.5 py-0.5 text-[11px] font-bold uppercase text-wine dark:bg-wine/15 dark:text-wine-300">
               {diffLabel[ref_.difficulty] ?? ref_.difficulty}
             </span>
             <span className="rounded-full bg-line px-2.5 py-0.5 text-[11px] font-bold uppercase text-muted">
@@ -174,14 +174,14 @@ function ReferenceCard({
         <div className="flex shrink-0 items-center gap-2">
           <button
             onClick={onEdit}
-            className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-semibold text-ink hover:border-wine/30 hover:text-wine"
+            className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-semibold text-ink hover:border-wine/30 hover:text-wine dark:hover:text-wine-300"
           >
             <Pencil size={14} />
             {t.common.edit}
           </button>
           <button
             onClick={onDelete}
-            className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-semibold text-red-500 hover:border-red-200 hover:bg-red-50"
+            className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-semibold text-red-500 hover:border-red-200 hover:bg-red-50 dark:hover:border-red-800 dark:hover:bg-red-900/20"
           >
             <Trash2 size={14} />
             {t.common.delete}
@@ -193,7 +193,7 @@ function ReferenceCard({
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
         {fullAudioUrl ? (
           <>
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600 dark:text-green-400">
               <CheckCircle2 size={14} />
               {r.hasAudio}
             </span>
@@ -204,7 +204,7 @@ function ReferenceCard({
                   else audioRef.current.pause();
                 }
               }}
-              className="flex items-center gap-1.5 rounded-xl bg-wine/10 px-3 py-1.5 text-xs font-semibold text-wine hover:bg-wine/20"
+              className="flex items-center gap-1.5 rounded-xl bg-wine/10 px-3 py-1.5 text-xs font-semibold text-wine hover:bg-wine/20 dark:bg-wine/15 dark:text-wine-300 dark:hover:bg-wine/25"
             >
               <Play size={13} />
               Tinglash

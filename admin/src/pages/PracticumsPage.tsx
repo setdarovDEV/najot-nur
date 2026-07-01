@@ -36,9 +36,9 @@ interface Practicum {
 type FilterKey = "all" | "draft" | "approved" | "rejected" | "free" | "paid";
 
 const STATUS_COLOR: Record<string, string> = {
-  draft: "bg-yellow-100 text-yellow-700",
-  approved: "bg-green-100 text-green-700",
-  rejected: "bg-red-100 text-red-700",
+  draft: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  approved: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
 function formatPrice(price: number) {
@@ -376,8 +376,8 @@ function PracticumCard({
     <div className="overflow-hidden rounded-2xl border border-line bg-card transition-shadow hover:shadow-sm">
       {/* Header row */}
       <div className="flex items-center gap-4 p-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-wine/10">
-          <Headphones size={20} className="text-wine" />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-wine/10 dark:bg-wine/15">
+          <Headphones size={20} className="text-wine dark:text-wine-300" />
         </div>
 
         <div className="min-w-0 flex-1">
@@ -388,8 +388,8 @@ function PracticumCard({
             </span>
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
               practicum.is_free
-                ? "bg-green-100 text-green-700"
-                : "bg-purple-100 text-purple-700"
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
             }`}>
               {practicum.is_free ? p.free : `${p.paid} · ${formatPrice(Number(practicum.price))}`}
             </span>
@@ -398,7 +398,7 @@ function PracticumCard({
             <div className="mt-1 text-xs text-muted">{practicum.category}</div>
           )}
           {practicum.expert_audio_url && (
-            <div className="mt-1 flex items-center gap-1 text-[11px] text-green-600 font-semibold">
+            <div className="mt-1 flex items-center gap-1 text-[11px] text-green-600 font-semibold dark:text-green-400">
               <Mic size={11} />
               Audio yuklangan
             </div>
@@ -411,7 +411,7 @@ function PracticumCard({
               <button
                 onClick={onApprove}
                 title="Tasdiqlash"
-                className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200"
+                className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
               >
                 <Check size={13} />
                 Tasdiqlash
@@ -419,7 +419,7 @@ function PracticumCard({
               <button
                 onClick={onReject}
                 title="Rad etish"
-                className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200"
+                className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
               >
                 <X size={13} />
                 Rad etish
@@ -439,7 +439,7 @@ function PracticumCard({
               <button
                 onClick={onDelete}
                 title="O'chirish"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted transition hover:border-red-300 hover:text-red-500"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted transition hover:border-red-300 hover:text-red-500 dark:hover:border-red-700 dark:hover:text-red-400"
               >
                 <Trash2 size={14} />
               </button>
@@ -486,7 +486,7 @@ function PracticumCard({
                   className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${
                     playing
                       ? "bg-wine text-white"
-                      : "bg-wine/10 text-wine hover:bg-wine/20"
+                      : "bg-wine/10 text-wine hover:bg-wine/20 dark:bg-wine/15 dark:text-wine-300 dark:hover:bg-wine/25"
                   }`}
                 >
                   <Play size={14} className={playing ? "fill-white" : "fill-wine"} />
@@ -845,7 +845,7 @@ function FormBody({
             onClick={() => setIsFree(false)}
             className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition ${
               !isFree
-                ? "border-purple-400 bg-purple-50 text-purple-700"
+                ? "border-purple-400 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400"
                 : "border-line bg-surface text-muted hover:border-wine/30"
             }`}
           >
@@ -873,7 +873,7 @@ function FormBody({
           <Mic size={18} className="shrink-0 text-wine" />
           <span className="text-sm text-muted">
             {audioFile ? (
-              <span className="font-semibold text-green-600">✓ {audioFile.name}</span>
+              <span className="font-semibold text-green-600 dark:text-green-400">✓ {audioFile.name}</span>
             ) : (
               p.uploadAudio
             )}

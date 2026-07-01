@@ -58,7 +58,7 @@ function DeploymentMismatch({
   return (
     <div className="grid min-h-screen place-items-center bg-gradient-to-br from-red-900 via-wine-dark to-wine-deep p-6 text-white">
       <div className="w-full max-w-lg rounded-3xl bg-card p-8 text-ink shadow-2xl">
-        <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-red-100 text-red-600">
+        <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="28"
@@ -84,11 +84,11 @@ function DeploymentMismatch({
         <div className="mt-5 space-y-2 rounded-2xl border border-line bg-surface p-4 font-mono text-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="text-muted">Joriy domen:</span>
-            <span className="font-bold text-red-600">{got}</span>
+            <span className="font-bold text-red-600 dark:text-red-400">{got}</span>
           </div>
           <div className="flex items-center justify-between gap-2">
             <span className="text-muted">Kutilgan domen:</span>
-            <span className="font-bold text-green-700">
+            <span className="font-bold text-green-700 dark:text-green-400">
               {expected.join(", ")}
             </span>
           </div>

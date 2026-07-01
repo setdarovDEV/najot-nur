@@ -7,10 +7,10 @@ const STATUS_STYLES: Record<
   PaymentStatus,
   { label: string; classes: string }
 > = {
-  pending: { label: "Kutilmoqda", classes: "bg-yellow-100 text-yellow-700" },
-  paid: { label: "To'langan", classes: "bg-green-100 text-green-700" },
-  failed: { label: "Xato", classes: "bg-red-100 text-red-600" },
-  refunded: { label: "Qaytarilgan", classes: "bg-gray-100 text-gray-600" },
+  pending: { label: "Kutilmoqda", classes: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
+  paid: { label: "To'langan", classes: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+  failed: { label: "Xato", classes: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" },
+  refunded: { label: "Qaytarilgan", classes: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" },
 };
 
 const PURPOSE_LABELS: Record<string, string> = {
@@ -48,7 +48,7 @@ export function RecentPayments({
       action={
         <Link
           to="/payments"
-          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5"
+          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
         >
           Hammasi <ChevronRight size={12} />
         </Link>

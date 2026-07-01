@@ -185,7 +185,7 @@ export function Layout() {
               )}
             </div>
 
-            <span className="hidden rounded-full bg-wine/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-wine sm:inline-flex">
+            <span className="hidden rounded-full bg-wine/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-wine dark:bg-wine/15 dark:text-wine-300 sm:inline-flex">
               {t.topbar.admin}
             </span>
 

@@ -123,8 +123,8 @@ export function CuratorsPage() {
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                     c.is_active
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-600"
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                   }`}
                 >
                   {c.is_active ? "Faol" : "Bloklangan"}
@@ -143,7 +143,7 @@ export function CuratorsPage() {
               <button
                 title={t.common.edit}
                 onClick={() => setEditing(c)}
-                className="rounded-lg p-2 text-muted hover:bg-wine-50"
+                className="rounded-lg p-2 text-muted hover:bg-wine-50 dark:hover:bg-wine-900/20"
               >
                 <Edit3 size={15} />
               </button>
@@ -161,8 +161,8 @@ export function CuratorsPage() {
                     toggleActive.mutate({ id: c.id, is_active: !c.is_active });
                 }}
                 disabled={toggleActive.isPending}
-                className={`rounded-lg p-2 hover:bg-wine-50 disabled:opacity-50 ${
-                  c.is_active ? "text-amber-600" : "text-green-600"
+                className={`rounded-lg p-2 hover:bg-wine-50 dark:hover:bg-wine-900/20 disabled:opacity-50 ${
+                  c.is_active ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"
                 }`}
               >
                 <Power size={15} />

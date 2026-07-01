@@ -255,7 +255,7 @@ export function NotificationsPage() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-semibold text-ink">{n.title}</h3>
-                  <span className="shrink-0 rounded-full bg-wine/10 px-2 py-0.5 text-[10px] font-bold text-wine">
+                  <span className="shrink-0 rounded-full bg-wine/10 px-2 py-0.5 text-[10px] font-bold text-wine dark:bg-wine/15 dark:text-wine-300">
                     {audienceLabel(n.audience)}
                   </span>
                 </div>
@@ -296,9 +296,9 @@ function FcmStatusBanner({
     >
       <div className="shrink-0 pt-0.5">
         {ok ? (
-          <CheckCircle2 size={20} className="text-green-600" />
+          <CheckCircle2 size={20} className="text-green-600 dark:text-green-400" />
         ) : (
-          <AlertTriangle size={20} className="text-amber-600" />
+          <AlertTriangle size={20} className="text-amber-600 dark:text-amber-400" />
         )}
       </div>
       <div className="min-w-0 flex-1">

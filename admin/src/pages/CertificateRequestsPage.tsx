@@ -64,7 +64,7 @@ export function CertificateRequestsPage() {
                 className={`rounded-lg px-4 py-2 text-sm font-semibold ${
                   filter === f
                     ? "bg-wine text-white"
-                    : "border border-line bg-card text-ink hover:bg-wine-50"
+                    : "border border-line bg-card text-ink hover:bg-wine-50 dark:hover:bg-wine-900/20"
                 }`}
               >
                 {f === "pending"
@@ -113,7 +113,7 @@ export function CertificateRequestsPage() {
       </div>
 
       {(approve.isError || reject.isError) && (
-        <p className="mt-3 text-sm text-red-500">
+        <p className="mt-3 text-sm text-red-500 dark:text-red-400">
           {apiError(approve.error ?? reject.error)}
         </p>
       )}

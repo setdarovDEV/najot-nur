@@ -48,14 +48,14 @@ const DIFF_LABEL: Record<string, string> = {
   hard: "Qiyin",
 };
 const DIFF_COLOR: Record<string, string> = {
-  easy: "bg-green-100 text-green-700",
-  medium: "bg-orange-100 text-orange-700",
-  hard: "bg-red-100 text-red-700",
+  easy: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  medium: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  hard: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 const STATUS_COLOR: Record<string, string> = {
-  draft: "bg-yellow-100 text-yellow-700",
-  approved: "bg-green-100 text-green-700",
-  rejected: "bg-red-100 text-red-700",
+  draft: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  approved: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 const STATUS_LABEL: Record<string, string> = {
   draft: "Kutilmoqda",
@@ -186,7 +186,7 @@ export function QuizzesPage() {
               <div className="flex items-center gap-4 p-4">
                 <QuizCover
                   url={mediaUrl(quiz.cover_image_url)}
-                  fallbackIcon={<BookOpen size={20} className="text-wine" />}
+                  fallbackIcon={<BookOpen size={20} className="text-wine dark:text-wine-300" />}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -198,13 +198,13 @@ export function QuizzesPage() {
                       {STATUS_LABEL[quiz.status]}
                     </span>
                     {quiz.video_url && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                         <VideoIcon size={11} />
                         Video
                       </span>
                     )}
                     {quiz.cover_image_url && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-bold text-purple-700">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
                         <ImageIcon size={11} />
                         Rasm
                       </span>
@@ -299,7 +299,7 @@ export function QuizzesPage() {
 function QuizCover({ url, fallbackIcon }: { url: string | null; fallbackIcon: React.ReactNode }) {
   if (!url) {
     return (
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-wine/10">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-wine/10 dark:bg-wine/15">
         {fallbackIcon}
       </div>
     );
@@ -686,7 +686,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
               <h3 className="font-bold text-ink">Savollar ({questions.length})</h3>
               <button
                 onClick={addQuestion}
-                className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-xs font-bold text-wine hover:bg-wine-50"
+                className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-xs font-bold text-wine hover:bg-wine-50 dark:text-wine-300 dark:hover:bg-wine-900/20"
               >
                 <Plus size={14} />
                 Savol qo'shish
@@ -696,9 +696,9 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
             {questions.map((q, qi) => (
               <div key={qi} className="rounded-xl border border-line bg-surface p-4">
                 <div className="mb-3 flex items-start justify-between gap-2">
-                  <span className="text-sm font-bold text-wine">{qi + 1}-savol</span>
+                  <span className="text-sm font-bold text-wine dark:text-wine-300">{qi + 1}-savol</span>
                   {questions.length > 1 && (
-                    <button onClick={() => removeQuestion(qi)} className="text-muted hover:text-red-500">
+                    <button onClick={() => removeQuestion(qi)} className="text-muted hover:text-red-500 dark:hover:text-red-400">
                       <X size={16} />
                     </button>
                   )}
@@ -710,7 +710,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
                   className="mb-3 w-full rounded-xl border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine/40"
                 />
                 <div className="mt-1 mb-1 flex items-center gap-1.5">
-                  <Check size={13} className="text-green-600" />
+                  <Check size={13} className="text-green-600 dark:text-green-400" />
                   <span className="text-xs font-semibold text-green-700">To'g'ri javobni belgilash uchun yashil tugmani bosing</span>
                 </div>
                 <div className="space-y-2">
@@ -746,7 +746,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
                           className={`mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all ${
                             isCorrect
                               ? "bg-green-500 text-white shadow-sm"
-                              : "border border-line bg-card text-muted hover:border-green-400 hover:text-green-600"
+                              : "border border-line bg-card text-muted hover:border-green-400 hover:text-green-600 dark:hover:text-green-400"
                           }`}
                         >
                           <Check size={15} strokeWidth={2.5} />

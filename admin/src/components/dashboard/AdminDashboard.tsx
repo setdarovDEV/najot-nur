@@ -168,21 +168,21 @@ export function AdminDashboard() {
           label="Kuratorlar"
           value={totalCurators}
           icon={GraduationCap}
-          tone="bg-skyblue/10 text-skyblue"
+          tone="bg-skyblue/10 text-skyblue dark:bg-skyblue/20 dark:text-skyblue"
         />
         <QuickLink
           to="/courses"
           label="Video kurslar"
           value={totalCourses}
           icon={BookOpen}
-          tone="bg-wine/10 text-wine"
+          tone="bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300"
         />
         <QuickLink
           to="/payments"
           label="Tushum"
           value={totalPaid}
           icon={CreditCard}
-          tone="bg-green-100 text-green-700"
+          tone="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
           smallValue
         />
         <QuickLink
@@ -190,7 +190,7 @@ export function AdminDashboard() {
           label="Push xabarlar"
           value={totalPush}
           icon={Bell}
-          tone="bg-orange/10 text-orange"
+          tone="bg-orange/10 text-orange dark:bg-orange/15 dark:text-orange"
         />
       </div>
 
@@ -267,17 +267,17 @@ export function AdminDashboard() {
                 <li key={c.id}>
                   <Link
                     to={`/clients/${c.id}`}
-                    className="flex items-center gap-3 rounded-xl border border-line/60 p-3 transition hover:border-wine/30 hover:bg-wine-50/50"
+                    className="flex items-center gap-3 rounded-xl border border-line/60 p-3 transition hover:border-wine/30 hover:bg-wine-50/50 dark:hover:bg-wine-900/20"
                   >
                     <span
                       className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-black ${
                         idx === 0
-                          ? "bg-amber-100 text-amber-700"
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                           : idx === 1
-                            ? "bg-wine/10 text-wine"
+                            ? "bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300"
                             : idx === 2
-                              ? "bg-orange/15 text-orange"
-                              : "bg-line/60 text-muted"
+                              ? "bg-orange/15 text-orange dark:bg-orange/20 dark:text-orange"
+                              : "bg-line/60 text-muted dark:bg-line/30"
                       }`}
                     >
                       {idx + 1}
@@ -305,7 +305,7 @@ export function AdminDashboard() {
           action={
             <Link
               to="/curators"
-              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5"
+              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
             >
               Boshqarish <ChevronRight size={12} />
             </Link>
@@ -328,7 +328,7 @@ export function AdminDashboard() {
                     className={`grid h-9 w-9 place-items-center rounded-lg text-xs font-black ${
                       c.is_active
                         ? "bg-wine text-white"
-                        : "bg-gray-200 text-gray-500"
+                        : "bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
                     }`}
                   >
                     KR
@@ -344,8 +344,8 @@ export function AdminDashboard() {
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
                       c.is_active
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-600"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                     }`}
                   >
                     {c.is_active ? "Faol" : "Bloklangan"}
@@ -405,7 +405,7 @@ function QuickLink({
       </div>
       <ChevronRight
         size={16}
-        className="text-muted transition group-hover:translate-x-0.5 group-hover:text-wine"
+        className="text-muted transition group-hover:translate-x-0.5 group-hover:text-wine dark:group-hover:text-wine-300"
       />
     </Link>
   );

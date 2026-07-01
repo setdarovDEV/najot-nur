@@ -212,7 +212,7 @@ function LessonSidebarItem({
     >
       <span
         className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-black ${
-          isActive ? "bg-wine text-white" : "bg-wine/10 text-wine"
+          isActive ? "bg-wine text-white" : "bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300"
         }`}
       >
         {index}
@@ -520,7 +520,7 @@ function VideoSection({
               : "border-line hover:border-wine/40 hover:bg-surface"
           }`}
         >
-          <Upload size={30} className="text-wine/50" />
+          <Upload size={30} className="text-wine/60 dark:text-wine-300" />
           <div className="text-center text-sm text-muted">
             <span className="font-semibold text-wine">Fayl tanlash</span> yoki bu yerga tashlang
             <br />
@@ -621,7 +621,7 @@ function QuestionCard({
     <div className="rounded-xl border border-line bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2">
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-wine/10 text-xs font-black text-wine">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-wine/10 text-xs font-black text-wine dark:bg-wine/15 dark:text-wine-300">
             {index}
           </span>
           <p className="text-sm font-semibold text-ink">{q.question}</p>

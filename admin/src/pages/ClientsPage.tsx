@@ -47,7 +47,7 @@ export function ClientsPage() {
       <div className="overflow-hidden rounded-2xl border border-line bg-card">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-line bg-wine-50 text-left text-muted">
+            <tr className="border-b border-line bg-wine-50 text-left text-muted dark:bg-wine-900/20">
               <th className="px-5 py-3 font-semibold">{t.clients.name}</th>
               <th className="px-5 py-3 font-semibold">{t.clients.phone}</th>
               <th className="px-5 py-3 font-semibold">{t.clients.email}</th>
@@ -67,7 +67,7 @@ export function ClientsPage() {
               <tr
                 key={c.id}
                 onClick={() => navigate(`/clients/${c.id}`)}
-                className="cursor-pointer border-b border-line/60 transition hover:bg-wine-50"
+                className="cursor-pointer border-b border-line/60 transition hover:bg-wine-50 dark:hover:bg-wine-900/20"
               >
                 <td className="px-5 py-3 font-semibold text-ink">
                   {c.full_name ?? "—"}
@@ -113,14 +113,14 @@ export function ClientsPage() {
           <button
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
-            className="rounded-lg border border-line px-4 py-2 text-ink disabled:opacity-50 hover:bg-wine-50"
+            className="rounded-lg border border-line px-4 py-2 text-ink disabled:opacity-50 hover:bg-wine-50 dark:hover:bg-wine-900/20"
           >
             ←
           </button>
           <button
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded-lg border border-line px-4 py-2 text-ink disabled:opacity-50 hover:bg-wine-50"
+            className="rounded-lg border border-line px-4 py-2 text-ink disabled:opacity-50 hover:bg-wine-50 dark:hover:bg-wine-900/20"
           >
             →
           </button>
@@ -135,7 +135,7 @@ export function ScoreBadge({ score }: { score: number }) {
     score >= 80
       ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
       : score >= 60
-        ? "bg-wine-100 text-wine"
+        ? "bg-wine-100 text-wine dark:bg-wine-900/20 dark:text-wine-300"
         : score >= 40
           ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
           : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";

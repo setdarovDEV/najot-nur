@@ -11,6 +11,8 @@
   --color-wine-50: #fbf2f5;
   --color-wine-100: #f6e7ec;
   --color-wine-200: #e9c4d0;
+  --color-wine-300: #d48aa1;
+  --color-wine-400: #e3b3c2;
   --color-orange: #ff5c39;
   --color-skyblue: #5bc2e7;
   --color-ink: #1c1416;
@@ -45,6 +47,8 @@
     --color-wine-50: #1f1618;
     --color-wine-100: #271b1f;
     --color-wine-200: #3a222b;
+    --color-wine-300: #d46a88;
+    --color-wine-400: #e89bb2;
     --color-surface: #120d0f;
     --color-card: #1e1619;
     color-scheme: dark;

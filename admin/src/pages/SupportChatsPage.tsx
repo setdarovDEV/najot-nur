@@ -266,10 +266,10 @@ export function SupportChatsPage() {
                 className={`flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left transition ${
                   isActive
                     ? "bg-wine/8 dark:bg-wine/15"
-                    : "hover:bg-wine-50"
+                    : "hover:bg-wine-50 dark:hover:bg-wine-900/20"
                 }`}
               >
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-wine/10 text-xs font-bold text-wine">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-wine/10 text-xs font-bold text-wine dark:bg-wine/15 dark:text-wine-300">
                   {initials}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -304,8 +304,8 @@ export function SupportChatsPage() {
           <>
             {/* Header */}
             <div className="flex items-center gap-3 border-b border-line bg-card px-6 py-3">
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-wine/10">
-                <User size={18} className="text-wine" />
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-wine/10 dark:bg-wine/15">
+                <User size={18} className="text-wine dark:text-wine-300" />
               </div>
               <div>
                 <p className="text-sm font-bold text-ink">

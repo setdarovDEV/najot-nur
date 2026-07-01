@@ -5,10 +5,10 @@ import type { ReactNode } from "react";
 export type StatTone = "wine" | "orange" | "sky" | "ink";
 
 const TONE_BG: Record<StatTone, string> = {
-  wine: "bg-wine/10 text-wine",
-  orange: "bg-orange/10 text-orange",
-  sky: "bg-skyblue/15 text-skyblue",
-  ink: "bg-ink/10 text-ink",
+  wine: "bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300",
+  orange: "bg-orange/10 text-orange dark:bg-orange/15 dark:text-orange",
+  sky: "bg-skyblue/15 text-skyblue dark:bg-skyblue/20 dark:text-skyblue",
+  ink: "bg-ink/10 text-ink dark:bg-white/10",
 };
 
 const TONE_GRADIENT: Record<StatTone, string> = {
@@ -61,8 +61,8 @@ export function StatCard({
               gradient
                 ? "bg-white/20 text-white"
                 : positive
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-600"
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
             }`}
           >
             {positive ? (

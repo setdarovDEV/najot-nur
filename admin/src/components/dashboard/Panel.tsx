@@ -24,7 +24,7 @@ export function Panel({
       <header className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           {icon && (
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-wine/10 text-wine">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300">
               {icon}
             </div>
           )}

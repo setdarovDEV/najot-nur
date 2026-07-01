@@ -17,18 +17,18 @@ const METHOD_LABELS: Record<Order["payment_method"], string> = {
 };
 
 const METHOD_STYLES: Record<Order["payment_method"], string> = {
-  uzum: "bg-purple-100 text-purple-700",
-  uzum_nasiya: "bg-orange-100 text-orange-700",
-  cash: "bg-green-100 text-green-700 font-extrabold",
+  uzum: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  uzum_nasiya: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  cash: "bg-green-100 text-green-700 font-extrabold dark:bg-green-900/30 dark:text-green-400",
 };
 
 const STATUS_STYLES: Record<
   Order["status"],
   { label: string; classes: string }
 > = {
-  pending: { label: "Kutilmoqda", classes: "bg-yellow-100 text-yellow-700" },
-  approved: { label: "Tasdiqlangan", classes: "bg-green-100 text-green-700" },
-  rejected: { label: "Rad etilgan", classes: "bg-red-100 text-red-600" },
+  pending: { label: "Kutilmoqda", classes: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
+  approved: { label: "Tasdiqlangan", classes: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+  rejected: { label: "Rad etilgan", classes: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" },
 };
 
 type StatusFilter = "all" | Order["status"];

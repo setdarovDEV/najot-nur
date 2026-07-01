@@ -33,8 +33,8 @@ const VARIANT_STYLES: Record<
   },
   primary: {
     ring: "border-wine/20",
-    bg: "bg-wine/10",
-    fg: "text-wine",
+    bg: "bg-wine/10 dark:bg-wine/15",
+    fg: "text-wine dark:text-wine-300",
     btn: "bg-wine hover:bg-wine-dark",
     Icon: CheckCircle2,
   },

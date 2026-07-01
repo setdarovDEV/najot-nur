@@ -176,7 +176,7 @@ class CodeStep extends StatelessWidget {
             return null;
           },
           decoration: InputDecoration(
-            hintText: '•••••',
+            hintText: '••••••',
             border: const OutlineInputBorder(),
             focusedBorder: const OutlineInputBorder(
               borderSide: BorderSide(color: AppColors.wine, width: 1.6),
@@ -263,7 +263,7 @@ class TelegramVerificationHint extends StatelessWidget {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Kod shu chatga yuborildi',
+                    '6 xonali kod shu chatga yuborildi',
                     style: TextStyle(fontSize: 12, color: Color(0xFF455A64)),
                   ),
                 ],

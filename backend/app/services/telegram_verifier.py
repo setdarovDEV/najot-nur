@@ -83,15 +83,17 @@ async def send_code(phone: str) -> tuple[str, int]:
     await client.connect()
     try:
         try:
-            # Prefer in-app delivery to Telegram's official "Verification
-            # Codes" chat over SMS. Telegram still falls back to SMS if the
-            # account/device does not support in-app delivery.
-            settings = types.CodeSettings(
-                allow_app_hash=True,
-                current_number=True,
+            # Prefer in-app delivery (SentCodeTypeApp) so the code appears in
+            # the user's Telegram "Verification Codes" section on newer mobile
+            # clients.  current_number=False is correct here: the server is
+            # not the device that owns the SIM.  Telegram falls back to SMS if
+            # in-app delivery is unavailable (e.g. Telegram not installed).
+            code_settings = types.CodeSettings(
+                allow_app_hash=False,
+                current_number=False,
                 allow_firebase=False,
             )
-            sent = await client.send_code_request(phone, settings=settings)
+            sent = await client.send_code_request(phone, settings=code_settings)
         except ApiIdInvalidError as exc:
             raise AppError(
                 "Telegram api_id / api_hash noto'g'ri. "
@@ -123,7 +125,20 @@ async def send_code(phone: str) -> tuple[str, int]:
             sent.phone_code_hash,
             ttl=ttl,
         )
-        log.info("telegram_verify.sent", phone=phone, ttl=ttl)
+        sent_type = type(sent.type).__name__ if sent.type else "unknown"
+        log.info(
+            "telegram_verify.sent",
+            phone=phone,
+            ttl=ttl,
+            delivery=sent_type,
+        )
+        if "App" not in sent_type:
+            log.warning(
+                "telegram_verify.not_app_delivery",
+                phone=phone,
+                delivery=sent_type,
+                hint="Telefonda Telegram o'rnatilmagan yoki kod SMS orqali ketdi",
+            )
         return sent.phone_code_hash, ttl
     finally:
         await client.disconnect()

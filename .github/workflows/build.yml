@@ -46,10 +46,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: { name: backend,  context: ./backend,  dockerfile: Dockerfile.prod, build_args: "" }
-          - service: { name: admin,    context: ./admin,    dockerfile: Dockerfile.prod, build_args: "VITE_API_URL=/api/v1 VITE_EXPECTED_HOST=admin.notiqlik.uz" }
-          - service: { name: curator,  context: ./curator,  dockerfile: Dockerfile.prod, build_args: "VITE_API_URL=/api/v1 VITE_EXPECTED_HOST=curator.notiqlik.uz" }
-          - service: { name: landing,  context: ./landing,  dockerfile: Dockerfile.prod, build_args: "" }
+          - service:
+              name: backend
+              context: ./backend
+              dockerfile: Dockerfile.prod
+              build_args: ""
+          - service:
+              name: admin
+              context: ./admin
+              dockerfile: Dockerfile.prod
+              build_args: |
+                VITE_API_URL=/api/v1
+                VITE_EXPECTED_HOST=admin.notiqlik.uz
+          - service:
+              name: curator
+              context: ./curator
+              dockerfile: Dockerfile.prod
+              build_args: |
+                VITE_API_URL=/api/v1
+                VITE_EXPECTED_HOST=curator.notiqlik.uz
+          - service:
+              name: landing
+              context: ./landing
+              dockerfile: Dockerfile.prod
+              build_args: ""
 
     steps:
       - name: Checkout

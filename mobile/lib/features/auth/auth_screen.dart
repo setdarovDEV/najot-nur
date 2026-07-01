@@ -106,9 +106,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           setState(() => _error = l.phoneAlreadyRegistered);
           return;
         }
-        final devCode = await ref.read(authRepositoryProvider).requestOtp(phone);
+        await ref.read(authRepositoryProvider).requestOtp(phone);
         if (!mounted) return;
-        if (devCode != null) _code.text = devCode;
         setState(() => _step = _Step.code);
       } else {
         setState(() => _step = _Step.password);
@@ -148,8 +147,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     });
     try {
       final phone = normaliseUzPhone(_phone.text);
-      final devCode = await ref.read(authRepositoryProvider).requestOtp(phone);
-      if (devCode != null) _code.text = devCode;
+      await ref.read(authRepositoryProvider).requestOtp(phone);
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {

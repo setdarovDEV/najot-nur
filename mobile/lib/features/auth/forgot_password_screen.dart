@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/phone_formatter.dart';
-import '../../data/repositories.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../providers/providers.dart';
 import 'auth_widgets.dart';
@@ -60,9 +59,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         setState(() => _error = l.phoneNotRegistered);
         return;
       }
-      final devCode = await ref.read(authRepositoryProvider).requestOtp(phone);
+      await ref.read(authRepositoryProvider).requestOtp(phone);
       if (!mounted) return;
-      if (devCode != null) _code.text = devCode;
       setState(() => _step = _ForgotStep.code);
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
@@ -99,8 +97,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     });
     try {
       final phone = normaliseUzPhone(_phone.text);
-      final devCode = await ref.read(authRepositoryProvider).requestOtp(phone);
-      if (devCode != null) _code.text = devCode;
+      await ref.read(authRepositoryProvider).requestOtp(phone);
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {

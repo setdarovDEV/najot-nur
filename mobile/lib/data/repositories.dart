@@ -24,10 +24,9 @@ class AuthRepository {
   AuthRepository(this._api);
   final ApiClient _api;
 
-  Future<String?> requestOtp(String phone) async {
+  Future<void> requestOtp(String phone) async {
     try {
-      final r = await _api.dio.post('/auth/otp/request', data: {'phone': phone});
-      return r.data['dev_code'] as String?; // present only in DEBUG
+      await _api.dio.post('/auth/otp/request', data: {'phone': phone});
     } catch (e) {
       throw _api.toApiException(e);
     }

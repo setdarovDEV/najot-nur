@@ -3,18 +3,18 @@
 The mobile client splits registration into three steps:
   1. POST /auth/otp/request  → asks Telegram's official
                                 "Verification Codes" service to send a
-                                6-digit code to the user's chat
-  2. POST /auth/otp/check    → light format check only (does NOT call
-                                Telegram — we want to avoid burning a
-                                `signIn` for users who never finish
-                                registration)
-  3. POST /auth/otp/verify   → calls `auth.signIn` against Telegram,
-                                finalises registration, creates the
-                                user, issues the JWT pair
+                                code to the user's chat
+  2. POST /auth/otp/check    → verifies the code against Telegram and
+                                marks the phone as verified in Redis
+  3. POST /auth/otp/verify   → creates the user and issues the JWT pair
+                                (re-verifies against Telegram if the step-2
+                                flag is missing)
 
-These tests guard the schema and the /check → /verify split.
+These tests guard the schema and the Telegram verifier integration.
 """
 from __future__ import annotations
+
+from unittest.mock import patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -23,17 +23,17 @@ from app.main import app
 
 
 @pytest.mark.asyncio
-async def test_otp_check_returns_valid_for_any_well_formed_code():
-    """`/otp/check` is a UX fast-path: it just confirms the user typed
-    something that looks like a code. The real check happens in
-    `/otp/verify` (and against Telegram)."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
-        r = await client.post(
-            "/api/v1/auth/otp/check",
-            json={"phone": "+998901112233", "code": "999999"},
-        )
+async def test_otp_check_returns_valid_when_telegram_accepts_code():
+    """`/otp/check` calls Telegram and returns valid when the code is
+    accepted."""
+    with patch("app.api.v1.auth.telegram_verifier.check_code", return_value=True):
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            r = await client.post(
+                "/api/v1/auth/otp/check",
+                json={"phone": "+998901112233", "code": "999999"},
+            )
     assert r.status_code == 200
     body = r.json()
     assert body["valid"] is True

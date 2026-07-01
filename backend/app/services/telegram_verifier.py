@@ -24,7 +24,7 @@ from __future__ import annotations
 import asyncio
 
 from telethon import TelegramClient
-from telethon.tl import types
+from telethon.tl import functions, types
 from telethon.errors import (
     ApiIdInvalidError,
     FloodWaitError,
@@ -83,17 +83,20 @@ async def send_code(phone: str) -> tuple[str, int]:
     await client.connect()
     try:
         try:
-            # Prefer in-app delivery (SentCodeTypeApp) so the code appears in
-            # the user's Telegram "Verification Codes" section on newer mobile
-            # clients.  current_number=False is correct here: the server is
-            # not the device that owns the SIM.  Telegram falls back to SMS if
-            # in-app delivery is unavailable (e.g. Telegram not installed).
-            code_settings = types.CodeSettings(
-                allow_app_hash=False,
-                current_number=False,
-                allow_firebase=False,
-            )
-            sent = await client.send_code_request(phone, settings=code_settings)
+            # Use the raw MTProto call so we can pass CodeSettings and prefer
+            # in-app delivery (SentCodeTypeApp → "Verification Codes" section
+            # on newer Telegram Mobile).  current_number=False is correct for
+            # a server — the server is not the device that owns the SIM.
+            sent = await client(functions.auth.SendCodeRequest(
+                phone_number=phone,
+                api_id=settings.telegram_api_id,
+                api_hash=settings.telegram_api_hash,
+                settings=types.CodeSettings(
+                    allow_app_hash=False,
+                    current_number=False,
+                    allow_firebase=False,
+                ),
+            ))
         except ApiIdInvalidError as exc:
             raise AppError(
                 "Telegram api_id / api_hash noto'g'ri. "

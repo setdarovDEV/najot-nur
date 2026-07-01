@@ -487,79 +487,97 @@ class _MethodPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final items = <(OrderPaymentMethod, String, IconData, Color)>[
+    final items = <(OrderPaymentMethod, String, IconData, Color, bool)>[
+      (
+        OrderPaymentMethod.cash,
+        l.methodCash,
+        Icons.payments_rounded,
+        AppColors.wine,
+        true,
+      ),
       (
         OrderPaymentMethod.uzum,
         l.methodUzum,
         Icons.account_balance_wallet_rounded,
         const Color(0xFF7B2CBF),
+        false,
       ),
       (
         OrderPaymentMethod.uzumNasiya,
         l.methodUzumNasiya,
         Icons.credit_card_rounded,
         const Color(0xFFFF6B35),
-      ),
-      (
-        OrderPaymentMethod.cash,
-        l.methodCash,
-        Icons.payments_rounded,
-        AppColors.wine,
+        false,
       ),
     ];
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: items.map((it) {
+      children: List.generate(items.length, (i) {
+        final it = items[i];
         final active = it.$1 == selected;
+        final isAvailable = it.$5;
         final accent = it.$4;
         return Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: () => onChanged(it.$1),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: active ? accent : Colors.white,
-                  border: Border.all(
-                    color: active ? accent : AppColors.line,
-                    width: 1.4,
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 10),
-                    Icon(
-                      it.$3,
-                      color: active ? Colors.white : accent,
-                      size: 22,
+            padding: EdgeInsets.only(right: i < items.length - 1 ? 8 : 0),
+            child: Opacity(
+              opacity: isAvailable ? 1.0 : 0.5,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: isAvailable ? () => onChanged(it.$1) : null,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: active ? accent : Colors.white,
+                    border: Border.all(
+                      color: active ? accent : AppColors.line,
+                      width: 1.4,
                     ),
-                    const SizedBox(height: 6),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        it.$2,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: active ? Colors.white : AppColors.ink,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 10),
+                      Icon(
+                        it.$3,
+                        color: active ? Colors.white : accent,
+                        size: 22,
+                      ),
+                      const SizedBox(height: 6),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          it.$2,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: active ? Colors.white : AppColors.ink,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                      if (!isAvailable) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          'Tez kunda',
+                          style: TextStyle(
+                            color: accent,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         );
-      }).toList(),
+      }),
     );
   }
 }

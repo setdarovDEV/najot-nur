@@ -201,6 +201,11 @@ async def approve_order(
             title=push_title,
             body=push_body,
             sent_by=admin_id,
+            extra_data={
+                "order_status": "approved",
+                "course_id": str(order.course_id) if order.course_id else "",
+                "audiobook_id": str(order.audiobook_id) if order.audiobook_id else "",
+            },
         )
     except Exception as exc:  # noqa: BLE001
         log.error(
@@ -257,6 +262,11 @@ async def reject_order(
             title=push_title,
             body=push_body,
             sent_by=admin_id,
+            extra_data={
+                "order_status": "rejected",
+                "course_id": str(order.course_id) if order.course_id else "",
+                "audiobook_id": str(order.audiobook_id) if order.audiobook_id else "",
+            },
         )
     except Exception as exc:  # noqa: BLE001
         log.error(
@@ -342,6 +352,7 @@ async def _notify_user(
     title: str,
     body: str,
     sent_by: uuid.UUID,
+    extra_data: dict | None = None,
 ) -> None:
     """Send FCM push to the user's device tokens and write an in-app
     PushNotification row so the message also appears in /users/me/notifications.
@@ -356,7 +367,7 @@ async def _notify_user(
             tokens,
             title=title,
             body=body,
-            data={"kind": "order_status"},
+            data={"kind": "order_status", **(extra_data or {})},
         )
     notif = PushNotification(
         title=title,

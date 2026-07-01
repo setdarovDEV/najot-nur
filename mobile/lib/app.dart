@@ -24,8 +24,31 @@ class _NotiqAiAppState extends ConsumerState<NotiqAiApp> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ref.read(pushServiceProvider).init();
+      if (mounted) _initPush();
     });
+  }
+
+  void _initPush() {
+    final push = ref.read(pushServiceProvider);
+    push.onOrderStatusChanged = (status, courseId, audiobookId) {
+      // Invalidate orders list so status badge updates everywhere.
+      ref.invalidate(myOrdersProvider);
+      // Invalidate course/audiobook progress — the user now has (or lost) access.
+      ref.invalidate(courseProgressProvider);
+      ref.invalidate(audiobookAccessProvider);
+      if (courseId.isNotEmpty) {
+        ref.invalidate(coursesProvider);
+        ref.invalidate(courseDetailProvider(courseId));
+      }
+      if (audiobookId.isNotEmpty) {
+        ref.invalidate(audiobooksProvider);
+        ref.invalidate(audiobookDetailProvider(audiobookId));
+      }
+    };
+    push.onNavigate = (route) {
+      ref.read(goRouterProvider).go(route);
+    };
+    push.init();
   }
 
   @override
@@ -51,7 +74,7 @@ class _NotiqAiAppState extends ConsumerState<NotiqAiApp> {
       if (next.isLoggedIn && !_wasLoggedIn) {
         _wasLoggedIn = true;
         Future.microtask(() {
-          if (mounted) ref.read(pushServiceProvider).init();
+          if (mounted) _initPush();
         });
       } else if (!next.isLoggedIn) {
         _wasLoggedIn = false;

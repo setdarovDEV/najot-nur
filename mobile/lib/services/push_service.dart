@@ -21,6 +21,14 @@ class PushService {
   final ApiClient _api;
   final FlutterLocalNotificationsPlugin _local = FlutterLocalNotificationsPlugin();
 
+  /// Called when an order-status push arrives (foreground or background-to-fg).
+  /// The app wires this up in [_NotiqAiAppState] to invalidate Riverpod providers.
+  void Function(String orderStatus, String courseId, String audiobookId)?
+      onOrderStatusChanged;
+
+  /// Called when the user taps a notification — navigate to a given route.
+  void Function(String route)? onNavigate;
+
   static const _channelId = 'notiqai_push_high';
   static const _channelName = 'Muhim xabarlar';
   static const _channelDesc = 'Kurator va admin e\'lonlari';
@@ -50,6 +58,12 @@ class PushService {
       FirebaseMessaging.onBackgroundMessage(_onBackground);
       FirebaseMessaging.onMessage.listen(_onForeground);
       FirebaseMessaging.onMessageOpenedApp.listen(_onOpenedFromBackground);
+
+      // Cold-start: app was closed and user tapped the notification.
+      final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+      if (initialMessage != null) {
+        _handleOrderMessage(initialMessage, navigate: true);
+      }
 
       // Initial token + listen for rotation.
       await _refreshToken();
@@ -145,11 +159,25 @@ class PushService {
       ),
       payload: message.data['notification_id']?.toString(),
     );
+    // Refresh app state so course/audiobook access reflects the new status.
+    _handleOrderMessage(message, navigate: false);
   }
 
   void _onOpenedFromBackground(RemoteMessage message) {
-    // Deep-link could be wired here (e.g. go to /profile/notifications).
     debugPrint('PushService: opened from background ${message.messageId}');
+    _handleOrderMessage(message, navigate: true);
+  }
+
+  void _handleOrderMessage(RemoteMessage message, {required bool navigate}) {
+    if (message.data['kind'] != 'order_status') return;
+    final status = message.data['order_status']?.toString() ?? '';
+    final courseId = message.data['course_id']?.toString() ?? '';
+    final audiobookId = message.data['audiobook_id']?.toString() ?? '';
+    onOrderStatusChanged?.call(status, courseId, audiobookId);
+    if (navigate) {
+      // Navigate to orders so the user sees the updated status.
+      onNavigate?.call('/profile/orders');
+    }
   }
 
   String? get lastToken => _lastToken;

@@ -293,6 +293,9 @@ services:
   #  Watchtower — auto-pulls new images and restarts containers.
   #  Polls GHCR every 5 minutes. Updates only containers with
   #  label `com.centurylinklabs.watchtower.enable: true`.
+  #
+  #  DOCKER_API_VERSION must match the server's minimum API
+  #  version. Check with: docker version --format '{{.Server.APIVersion}}'
   # ─────────────────────────────────────────────────────────────
   watchtower:
     image: containrrr/watchtower:latest
@@ -301,6 +304,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
+      DOCKER_API_VERSION: "1.40"
       WATCHTOWER_LABEL_ENABLE: "true"
       WATCHTOWER_CLEANUP: "true"
       WATCHTOWER_POLL_INTERVAL: "300"
@@ -310,7 +314,6 @@ services:
       WATCHTOWER_TIMEOUT: "60s"
     networks:
       - notiq
-    # Don't update watchtower itself
     labels:
       com.centurylinklabs.watchtower.enable: "false"
 

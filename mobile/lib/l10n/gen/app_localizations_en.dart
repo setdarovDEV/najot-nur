@@ -56,11 +56,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stepInfo => 'Details';
 
   @override
+  String get stepNewPassword => 'New password';
+
+  @override
   String get enterPhoneTitle => 'Enter your phone number';
 
   @override
   String get enterPhoneSubtitle =>
       'A verification code will be sent to your phone';
+
+  @override
+  String get enterPhoneForLogin =>
+      'Enter your phone number to sign in';
+
+  @override
+  String get enterPhoneForRegister =>
+      'Enter your phone number to sign up';
+
+  @override
+  String get enterPhoneForReset =>
+      'Enter your phone number to reset your password';
 
   @override
   String get invalidPhone => 'Enter a valid phone number';
@@ -70,6 +85,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get codeTooShort => 'Enter the full code';
+
+  @override
+  String get confirmPassword => 'Confirm password';
+
+  @override
+  String get confirmPasswordRequired => 'Please confirm your password';
+
+  @override
+  String get passwordsDoNotMatch => 'Passwords do not match';
+
+  @override
+  String get newPassword => 'New password';
+
+  @override
+  String get createNewPassword => 'Create a new password';
+
+  @override
+  String get createNewPasswordSubtitle =>
+      'Set a new password for your account';
+
+  @override
+  String get forgotPassword => 'Forgot password?';
+
+  @override
+  String get sendCode => 'Send code';
+
+  @override
+  String get saveAndLogin => 'Save and sign in';
+
+  @override
+  String get phoneAlreadyRegistered =>
+      'This phone number is already registered. Please sign in.';
+
+  @override
+  String get phoneNotRegistered =>
+      'This phone number is not registered.';
 
   @override
   String get resendCode => 'Resend code';

@@ -190,6 +190,12 @@ abstract class AppLocalizations {
   /// **'Ma\'lumot'**
   String get stepInfo;
 
+  /// No description provided for @stepNewPassword.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yangi parol'**
+  String get stepNewPassword;
+
   /// No description provided for @enterPhoneTitle.
   ///
   /// In uz, this message translates to:
@@ -201,6 +207,24 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Sizning raqamingizga tasdiqlash kodi yuboriladi'**
   String get enterPhoneSubtitle;
+
+  /// No description provided for @enterPhoneForLogin.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tizimga kirish uchun telefon raqamingizni kiriting'**
+  String get enterPhoneForLogin;
+
+  /// No description provided for @enterPhoneForRegister.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ro\'yxatdan o\'tish uchun telefon raqamingizni kiriting'**
+  String get enterPhoneForRegister;
+
+  /// No description provided for @enterPhoneForReset.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parolni tiklash uchun telefon raqamingizni kiriting'**
+  String get enterPhoneForReset;
 
   /// No description provided for @invalidPhone.
   ///
@@ -219,6 +243,72 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Kodni to\'liq kiriting'**
   String get codeTooShort;
+
+  /// No description provided for @confirmPassword.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parolni tasdiqlang'**
+  String get confirmPassword;
+
+  /// No description provided for @confirmPasswordRequired.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parolni tasdiqlang'**
+  String get confirmPasswordRequired;
+
+  /// No description provided for @passwordsDoNotMatch.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parollar mos kelmadi'**
+  String get passwordsDoNotMatch;
+
+  /// No description provided for @newPassword.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yangi parol'**
+  String get newPassword;
+
+  /// No description provided for @createNewPassword.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yangi parol yarating'**
+  String get createNewPassword;
+
+  /// No description provided for @createNewPasswordSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hisobingizga kirish uchun yangi parol belgilang'**
+  String get createNewPasswordSubtitle;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parolni unutdingizmi?'**
+  String get forgotPassword;
+
+  /// No description provided for @sendCode.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kod yuborish'**
+  String get sendCode;
+
+  /// No description provided for @saveAndLogin.
+  ///
+  /// In uz, this message translates to:
+  /// **'Saqlash va kirish'**
+  String get saveAndLogin;
+
+  /// No description provided for @phoneAlreadyRegistered.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu telefon raqam allaqachon ro\'yxatdan o\'gan. Iltimos, kirish uchun o\'ting.'**
+  String get phoneAlreadyRegistered;
+
+  /// No description provided for @phoneNotRegistered.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu telefon raqam ro\'yxatdan o\'tmagan.'**
+  String get phoneNotRegistered;
 
   /// No description provided for @resendCode.
   ///

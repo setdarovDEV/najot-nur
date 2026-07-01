@@ -146,7 +146,7 @@ class _Header extends StatelessWidget {
             )
           else
             TextButton.icon(
-              onPressed: () => context.push('/auth/phone'),
+              onPressed: () => context.push('/auth'),
               style: TextButton.styleFrom(
                 foregroundColor: Colors.white,
                 backgroundColor: Colors.white.withValues(alpha: 0.18),

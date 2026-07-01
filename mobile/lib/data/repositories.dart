@@ -76,6 +76,27 @@ class AuthRepository {
     }
   }
 
+  Future<AuthResult> resetPassword({
+    required String phone,
+    required String code,
+    required String newPassword,
+  }) async {
+    try {
+      final r = await _api.dio.post('/auth/password/reset', data: {
+        'phone': phone,
+        'code': code,
+        'new_password': newPassword,
+      });
+      return AuthResult(
+        access: r.data['access_token'] as String,
+        refresh: r.data['refresh_token'] as String,
+        isNew: false,
+      );
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
   /// Verifies the OTP and, for a brand-new account, also creates the
   /// password-provider identity and stores the offer agreement.
   Future<AuthResult> verifyOtp({

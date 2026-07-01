@@ -221,7 +221,7 @@ class _LoginGate extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             FilledButton(
-              onPressed: () => context.push('/auth/phone'),
+              onPressed: () => context.push('/auth'),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.wine,
                 padding:

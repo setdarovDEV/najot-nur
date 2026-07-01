@@ -57,11 +57,26 @@ class AppLocalizationsRu extends AppLocalizations {
   String get stepInfo => 'Данные';
 
   @override
+  String get stepNewPassword => 'Новый пароль';
+
+  @override
   String get enterPhoneTitle => 'Введите номер телефона';
 
   @override
   String get enterPhoneSubtitle =>
       'На ваш номер будет отправлен код подтверждения';
+
+  @override
+  String get enterPhoneForLogin =>
+      'Введите номер телефона для входа';
+
+  @override
+  String get enterPhoneForRegister =>
+      'Введите номер телефона для регистрации';
+
+  @override
+  String get enterPhoneForReset =>
+      'Введите номер телефона для восстановления пароля';
 
   @override
   String get invalidPhone => 'Введите корректный номер телефона';
@@ -71,6 +86,42 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get codeTooShort => 'Введите код полностью';
+
+  @override
+  String get confirmPassword => 'Подтвердите пароль';
+
+  @override
+  String get confirmPasswordRequired => 'Подтвердите пароль';
+
+  @override
+  String get passwordsDoNotMatch => 'Пароли не совпадают';
+
+  @override
+  String get newPassword => 'Новый пароль';
+
+  @override
+  String get createNewPassword => 'Создайте новый пароль';
+
+  @override
+  String get createNewPasswordSubtitle =>
+      'Установите новый пароль для своей учётной записи';
+
+  @override
+  String get forgotPassword => 'Забыли пароль?';
+
+  @override
+  String get sendCode => 'Отправить код';
+
+  @override
+  String get saveAndLogin => 'Сохранить и войти';
+
+  @override
+  String get phoneAlreadyRegistered =>
+      'Этот номер телефона уже зарегистрирован. Пожалуйста, войдите.';
+
+  @override
+  String get phoneNotRegistered =>
+      'Этот номер телефона не зарегистрирован.';
 
   @override
   String get resendCode => 'Отправить код повторно';

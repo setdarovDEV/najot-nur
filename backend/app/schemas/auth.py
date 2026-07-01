@@ -55,6 +55,14 @@ class PhoneLoginRequest(BaseModel):
     password: str = Field(..., min_length=6, max_length=128)
 
 
+class PasswordResetRequest(BaseModel):
+    """Forgot-password flow: verify the Telegram code and set a new password."""
+
+    phone: str = Field(..., pattern=r"^\+?\d{9,15}$")
+    code: str = Field(..., min_length=4, max_length=8)
+    new_password: str = Field(..., min_length=6, max_length=128)
+
+
 # ───── OAuth ─────
 class GoogleAuthRequest(BaseModel):
     id_token: str = Field(..., description="Google ID token from the mobile client")

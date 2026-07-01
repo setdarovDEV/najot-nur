@@ -12,7 +12,7 @@ class LanguageScreen extends ConsumerStatefulWidget {
   const LanguageScreen({super.key, this.fromContext});
 
   /// 'onboarding' → go to /home after selecting
-  /// 'auth'       → go to /auth/phone after selecting
+  /// 'auth'       → go to /auth after selecting
   /// null         → pop back (e.g. from profile settings)
   final String? fromContext;
 
@@ -34,7 +34,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
         case 'onboarding':
           context.go('/home');
         case 'auth':
-          context.pushReplacement('/auth/phone');
+          context.pushReplacement('/auth');
         default:
           // Called from profile settings — just pop back
           if (context.canPop()) {

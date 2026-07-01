@@ -26,6 +26,7 @@ from app.schemas.auth import (
     OTPCheckRequest,
     OTPCheckResponse,
     OTPVerifyRequest,
+    PasswordResetRequest,
     PhoneExistsResponse,
     PhoneLoginRequest,
     PhoneRequest,
@@ -148,6 +149,42 @@ async def phone_login(payload: PhoneLoginRequest, db: DbSession) -> TokenPair:
         raise UnauthorizedError("Bu hisob uchun parol o'rnatilmagan.")
     if not verify_password(payload.password, identity.password_hash):
         raise UnauthorizedError("Telefon raqam yoki parol noto'g'ri.")
+    return _tokens_for(user)
+
+
+@router.post("/password/reset", response_model=TokenPair)
+async def reset_password(payload: PasswordResetRequest, db: DbSession) -> TokenPair:
+    """Forgot-password: verify the Telegram code, then set (or overwrite) the
+    password identity for the phone. Issues a fresh token pair on success.
+    """
+    user = (
+        await db.execute(select(User).where(User.phone == payload.phone))
+    ).scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise UnauthorizedError("Telefon raqam yoki parol noto'g'ri.")
+
+    valid = await telegram_verifier.check_code(payload.phone, payload.code)
+    if not valid:
+        if not (settings.debug and payload.code == "0000"):
+            raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+
+    identity = (
+        await db.execute(
+            select(AuthIdentity).where(
+                AuthIdentity.user_id == user.id,
+                AuthIdentity.provider == AuthProvider.password,
+            )
+        )
+    ).scalar_one_or_none()
+    if identity is None:
+        identity = AuthIdentity(
+            user_id=user.id,
+            provider=AuthProvider.password,
+            provider_uid=payload.phone,
+        )
+        db.add(identity)
+    identity.password_hash = hash_password(payload.new_password)
+    await db.flush()
     return _tokens_for(user)
 
 

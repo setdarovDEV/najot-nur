@@ -58,11 +58,26 @@ class AppLocalizationsUz extends AppLocalizations {
   String get stepInfo => 'Ma\'lumot';
 
   @override
+  String get stepNewPassword => 'Yangi parol';
+
+  @override
   String get enterPhoneTitle => 'Telefon raqamingizni kiriting';
 
   @override
   String get enterPhoneSubtitle =>
       'Sizning raqamingizga tasdiqlash kodi yuboriladi';
+
+  @override
+  String get enterPhoneForLogin =>
+      'Tizimga kirish uchun telefon raqamingizni kiriting';
+
+  @override
+  String get enterPhoneForRegister =>
+      'Ro\'yxatdan o\'tish uchun telefon raqamingizni kiriting';
+
+  @override
+  String get enterPhoneForReset =>
+      'Parolni tiklash uchun telefon raqamingizni kiriting';
 
   @override
   String get invalidPhone => 'To\'g\'ri telefon raqam kiriting';
@@ -72,6 +87,41 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get codeTooShort => 'Kodni to\'liq kiriting';
+
+  @override
+  String get confirmPassword => 'Parolni tasdiqlang';
+
+  @override
+  String get confirmPasswordRequired => 'Parolni tasdiqlang';
+
+  @override
+  String get passwordsDoNotMatch => 'Parollar mos kelmadi';
+
+  @override
+  String get newPassword => 'Yangi parol';
+
+  @override
+  String get createNewPassword => 'Yangi parol yarating';
+
+  @override
+  String get createNewPasswordSubtitle =>
+      'Hisobingizga kirish uchun yangi parol belgilang';
+
+  @override
+  String get forgotPassword => 'Parolni unutdingizmi?';
+
+  @override
+  String get sendCode => 'Kod yuborish';
+
+  @override
+  String get saveAndLogin => 'Saqlash va kirish';
+
+  @override
+  String get phoneAlreadyRegistered =>
+      'Bu telefon raqam allaqachon ro\'yxatdan o\'gan. Iltimos, kirish uchun o\'ting.';
+
+  @override
+  String get phoneNotRegistered => 'Bu telefon raqam ro\'yxatdan o\'tmagan.';
 
   @override
   String get resendCode => 'Kodni qayta yuborish';

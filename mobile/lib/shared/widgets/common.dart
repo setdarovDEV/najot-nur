@@ -245,15 +245,7 @@ Future<void> showLoginRequiredSheet(BuildContext context) {
               Navigator.pop(ctx);
               ctx.push('/auth');
             },
-            child: Text(l.register),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ctx.push('/auth');
-            },
-            child: Text(l.login),
+            child: Text(l.registerLogin),
           ),
         ],
       ),

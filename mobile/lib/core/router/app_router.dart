@@ -4,10 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/audiobooks/reader_screen.dart';
 import '../../features/auth/auth_screen.dart';
+import '../../features/auth/forgot_password_screen.dart';
 import '../../features/auth/language_screen.dart';
-import '../../features/auth/login_screen.dart';
-import '../../features/auth/register_screen.dart';
-import '../../features/auth/telegram_login_screen.dart';
 import '../../features/courses/course_detail_screen.dart';
 import '../../features/courses/course_learning_screen.dart';
 import '../../features/courses/lesson_screen.dart';
@@ -54,10 +52,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // has stashed a post-auth return path (e.g. psychology AI analysis),
       // honour it so the user lands back where they came from.
       if (isLoggedIn &&
-          (loc == '/auth' ||
-              loc == '/auth/register' ||
-              loc == '/auth/login' ||
-              loc == '/auth/telegram')) {
+          (loc == '/auth' || loc.startsWith('/auth/'))) {
         final pending = ref.read(pendingReturnPathProvider);
         if (pending != null) {
           ref.read(pendingReturnPathProvider.notifier).state = null;
@@ -76,21 +71,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/home', builder: (_, __) => const HomeShell()),
       GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
       GoRoute(
+        path: '/auth/forgot-password',
+        builder: (_, __) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
         path: '/language',
         builder: (_, state) =>
             LanguageScreen(fromContext: state.extra as String?),
-      ),
-      GoRoute(
-        path: '/auth/register',
-        builder: (_, __) => const RegisterScreen(),
-      ),
-      GoRoute(
-        path: '/auth/login',
-        builder: (_, __) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/auth/telegram',
-        builder: (_, __) => const TelegramLoginScreen(),
       ),
 
       // ───── Speech ─────

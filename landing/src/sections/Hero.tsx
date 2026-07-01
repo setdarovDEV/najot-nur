@@ -77,11 +77,11 @@ export function Hero() {
           <div className="relative aspect-square w-full max-w-md">
             <div
               aria-hidden
-              className="absolute inset-0 animate-blob bg-gradient-to-br from-wine via-orange to-skyblue opacity-90"
+              className="absolute inset-0 animate-blob rounded-full bg-gradient-to-br from-wine via-orange to-skyblue opacity-90"
             />
             <div
               aria-hidden
-              className="absolute inset-0 animate-blob bg-gradient-to-tr from-orange/40 to-skyblue/40 mix-blend-overlay"
+              className="absolute inset-0 animate-blob rounded-full bg-gradient-to-tr from-orange/40 to-skyblue/40 mix-blend-overlay"
               style={{ animationDelay: "2s" }}
             />
             <div
@@ -95,13 +95,13 @@ export function Hero() {
 
             <div
               aria-hidden
-              className="absolute left-1/2 top-1/2 -z-10 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 animate-spin-slow"
+              className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 animate-spin-slow"
             >
               <svg viewBox="0 0 200 200" className="h-full w-full">
                 <defs>
                   <path id="circle-path" d="M 100,100 m -80,0 a 80,80 0 1,1 160,0 a 80,80 0 1,1 -160,0" />
                 </defs>
-                <text fontSize="12" fontWeight="800" fill="#14181F" letterSpacing="3">
+                <text fontSize="12" fontWeight="800" fill="#ffffff" letterSpacing="3">
                   <textPath href="#circle-path">
                     NOTIQ · AI · NOTIQLIK · NUTQ · OVOZ · NOTIQ · AI ·
                   </textPath>

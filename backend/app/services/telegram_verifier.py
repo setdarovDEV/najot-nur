@@ -24,6 +24,7 @@ from __future__ import annotations
 import asyncio
 
 from telethon import TelegramClient
+from telethon.tl import types
 from telethon.errors import (
     ApiIdInvalidError,
     FloodWaitError,
@@ -82,7 +83,15 @@ async def send_code(phone: str) -> tuple[str, int]:
     await client.connect()
     try:
         try:
-            sent = await client.send_code_request(phone)
+            # Prefer in-app delivery to Telegram's official "Verification
+            # Codes" chat over SMS. Telegram still falls back to SMS if the
+            # account/device does not support in-app delivery.
+            settings = types.CodeSettings(
+                allow_app_hash=True,
+                current_number=True,
+                allow_firebase=False,
+            )
+            sent = await client.send_code_request(phone, settings=settings)
         except ApiIdInvalidError as exc:
             raise AppError(
                 "Telegram api_id / api_hash noto'g'ri. "

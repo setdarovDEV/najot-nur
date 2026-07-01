@@ -185,8 +185,20 @@ jobs:
             echo "▶ Konteynerlar qayta yaratilmoqda..."
             docker compose up -d
 
+            echo "▶ Nginx reload (config o'zgargan bo'lsa)..."
+            docker compose exec -T nginx nginx -s reload 2>/dev/null || true
+
             echo "▶ Caddy reload (config o'zgargan bo'lsa)..."
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
+
+            echo "▶ Domenlar tekshirilmoqda..."
+            for domain in admin.notiqlik.uz curator.notiqlik.uz notiqlik.uz api.notiqlik.uz; do
+              status=$(curl -sk -o /dev/null -w "%{http_code}" "https://$domain" 2>/dev/null || echo "000")
+              echo "  $domain → HTTP $status"
+              if [ "$status" = "000" ] || [ "$status" -ge "500" ]; then
+                echo "  ⚠ $domain not responding correctly"
+              fi
+            done
 
             echo "▶ Eski imagelar tozalanmoqda..."
             docker image prune -f

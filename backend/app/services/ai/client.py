@@ -26,6 +26,20 @@ log = get_logger("ai")
 
 _claude_client: Any | None = None
 
+# Shared HTTP client — reuses TCP/TLS connections across LLM calls instead of
+# paying a fresh handshake per request.
+_http: httpx.AsyncClient | None = None
+
+
+def _get_http() -> httpx.AsyncClient:
+    global _http
+    if _http is None or _http.is_closed:
+        _http = httpx.AsyncClient(
+            timeout=httpx.Timeout(60.0, connect=10.0),
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        )
+    return _http
+
 
 # ──────────────────────────── Groq LLM ──────────────────────────────────────
 
@@ -96,8 +110,7 @@ async def _groq_llm_completion(
             "max_tokens": max_tokens,
         }
         try:
-            async with httpx.AsyncClient(timeout=45.0) as client:
-                r = await client.post(url, json=payload, headers=headers)
+            r = await _get_http().post(url, json=payload, headers=headers)
 
             if r.status_code == 403:
                 log.warning("ai.groq_model_blocked", model=model)
@@ -178,8 +191,7 @@ async def _gemini_completion(
         "x-goog-api-key": settings.gemini_api_key,
     }
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            r = await client.post(url, json=payload, headers=headers)
+        r = await _get_http().post(url, json=payload, headers=headers)
         if r.status_code >= 400:
             log.error("ai.gemini_http_error", status=r.status_code, body=r.text[:400])
             return None

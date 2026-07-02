@@ -4,6 +4,7 @@ Used for audio recordings, lesson/audiobook media and generated certificates.
 """
 from __future__ import annotations
 
+import asyncio
 import uuid
 from pathlib import Path
 
@@ -27,11 +28,11 @@ async def save_bytes(
     if settings.s3_bucket and settings.s3_access_key:
         return await _save_s3(data, folder, name, content_type)
 
-    # Local fallback
+    # Local fallback — file IO off the event loop (uploads reach 64MB)
     base = Path(settings.local_media_dir) / folder
     base.mkdir(parents=True, exist_ok=True)
     path = base / name
-    path.write_bytes(data)
+    await asyncio.to_thread(path.write_bytes, data)
     url = f"/media/{folder}/{name}"
     log.info("storage.saved_local", path=str(path))
     return url
@@ -48,7 +49,7 @@ async def load_bytes(url: str) -> bytes | None:
         rel = url[len("/media/"):]
         path = Path(settings.local_media_dir) / rel
         if path.exists():
-            return path.read_bytes()
+            return await asyncio.to_thread(path.read_bytes)
         log.warning("storage.load_bytes_missing", url=url)
         return None
     # S3/external URLs: not implemented — return None (caller falls back gracefully)

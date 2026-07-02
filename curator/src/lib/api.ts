@@ -11,11 +11,16 @@ export const WS_URL: string = (() => {
 
 export const TOKEN_KEY = "notiq_curator_token";
 
-export const api = axios.create({ baseURL: API_URL });
+// 30s default so a hung backend can't spin the UI forever; uploads
+// (FormData bodies — up to 200MB quiz videos) get 10 minutes instead.
+export const api = axios.create({ baseURL: API_URL, timeout: 30_000 });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY);
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+    config.timeout = 600_000;
+  }
   return config;
 });
 

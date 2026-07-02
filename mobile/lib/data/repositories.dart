@@ -284,9 +284,11 @@ class SpeechRepository {
   }
 
   // STT + AI take a few seconds; allow more headroom than the default 30s.
+  // Worst case (long audio + LLM provider fallback chain) can pass 90s, and a
+  // client-side cut wastes the whole upload — give the server room to finish.
   static final _audioOptions = Options(
-    sendTimeout: const Duration(seconds: 90),
-    receiveTimeout: const Duration(seconds: 90),
+    sendTimeout: const Duration(seconds: 150),
+    receiveTimeout: const Duration(seconds: 150),
   );
 
   /// Upload a read-aloud recording: server transcribes (Groq Whisper) and runs

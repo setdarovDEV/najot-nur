@@ -55,7 +55,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         }:
             return await call_next(request)
 
-        client_ip = request.client.host if request.client else "unknown"
+        # Behind caddy→nginx the socket peer is always the proxy container, so
+        # keying on request.client.host would give ALL users one shared bucket.
+        client_ip = (
+            request.headers.get("X-Real-IP")
+            or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+            or (request.client.host if request.client else "unknown")
+        )
         bucket = int(time.time()) // self.window
         key = f"rl:{client_ip}:{bucket}"
         count = await incr_with_ttl(key, self.window)

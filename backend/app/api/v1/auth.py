@@ -13,9 +13,9 @@ from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.redis_client import cache_delete, cache_get, cache_set
 from app.core.security import (
     decode_token,
-    hash_password,
+    hash_password_async,
     issue_token_pair,
-    verify_password,
+    verify_password_async,
 )
 
 from app.models.enums import AuthProvider, Role
@@ -157,7 +157,7 @@ async def phone_login(payload: PhoneLoginRequest, db: DbSession) -> TokenPair:
     ).scalar_one_or_none()
     if identity is None or not identity.password_hash:
         raise UnauthorizedError("Bu hisob uchun parol o'rnatilmagan.")
-    if not verify_password(payload.password, identity.password_hash):
+    if not await verify_password_async(payload.password, identity.password_hash):
         raise UnauthorizedError("Telefon raqam yoki parol noto'g'ri.")
     return _tokens_for(user)
 
@@ -198,7 +198,7 @@ async def reset_password(payload: PasswordResetRequest, db: DbSession) -> TokenP
             provider_uid=payload.phone,
         )
         db.add(identity)
-    identity.password_hash = hash_password(payload.new_password)
+    identity.password_hash = await hash_password_async(payload.new_password)
     await db.flush()
     return _tokens_for(user)
 
@@ -255,7 +255,7 @@ async def otp_verify(
                         user_id=user.id,
                         provider=AuthProvider.password,
                         provider_uid=payload.phone,
-                        password_hash=hash_password(payload.password),
+                        password_hash=await hash_password_async(payload.password),
                     )
                 )
         await _maybe_push_lead(bg, user, "phone")
@@ -323,7 +323,7 @@ async def email_login(
     ).scalar_one_or_none()
     if identity is None or not identity.password_hash:
         raise UnauthorizedError("Email yoki parol noto'g'ri.")
-    if not verify_password(payload.password, identity.password_hash):
+    if not await verify_password_async(payload.password, identity.password_hash):
         raise UnauthorizedError("Email yoki parol noto'g'ri.")
 
     user = await db.get(User, identity.user_id)

@@ -19,7 +19,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import AdminUser, CuratorUser, DbSession
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.core.logging import get_logger
-from app.core.security import hash_password
+from app.core.security import hash_password_async
 from app.models.analysis import PronunciationReference, SpeechAnalysis
 from app.models.audiobook import Audiobook, AudiobookPage
 from app.models.certificate_request import CertificateRequest
@@ -1111,7 +1111,7 @@ async def create_curator(
             user_id=user.id,
             provider=AuthProvider.password,
             provider_uid=email,
-            password_hash=hash_password(payload.password),
+            password_hash=await hash_password_async(payload.password),
         )
     )
     await db.flush()
@@ -1146,7 +1146,7 @@ async def update_curator(
         ).scalar_one_or_none()
         if identity is None:
             raise NotFoundError("Kuratorning login ma'lumotlari topilmadi.")
-        identity.password_hash = hash_password(payload.password)
+        identity.password_hash = await hash_password_async(payload.password)
 
     await db.flush()
     log.info("curator.updated", curator_id=str(curator_id))

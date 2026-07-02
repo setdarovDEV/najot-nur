@@ -163,6 +163,17 @@ async def analyze_speech(
         temperature=0.2,
     )
 
+    # A structurally invalid LLM reply (missing required scores) must not 500
+    # the request — treat it like a failed call and use the fallback below.
+    def _valid(res: dict | None) -> bool:
+        return res is not None and all(
+            isinstance(res.get(k), int)
+            for k in ("overall_score", "meaning_score", "fluency_score")
+        ) and bool(res.get("summary"))
+
+    if not _valid(ai):
+        ai = None
+
     # Fall back to any configured provider
     if ai is None:
         ai = await structured_completion(
@@ -174,6 +185,8 @@ async def analyze_speech(
             max_tokens=1500,
             temperature=0.2,
         )
+        if not _valid(ai):
+            ai = None
 
     if ai is None:
         # Deterministic fallback — only when no AI is configured at all.

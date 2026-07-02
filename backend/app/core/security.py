@@ -1,6 +1,7 @@
 """JWT issuing/verification and password hashing."""
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
@@ -23,6 +24,15 @@ def verify_password(password: str, hashed: str) -> bool:
         return bcrypt.checkpw(password.encode(), hashed.encode())
     except (ValueError, TypeError):
         return False
+
+
+# bcrypt is CPU-bound (~100-300ms); run it off the event loop in handlers.
+async def hash_password_async(password: str) -> str:
+    return await asyncio.to_thread(hash_password, password)
+
+
+async def verify_password_async(password: str, hashed: str) -> bool:
+    return await asyncio.to_thread(verify_password, password, hashed)
 
 
 # ───────────────────── JWT ─────────────────────

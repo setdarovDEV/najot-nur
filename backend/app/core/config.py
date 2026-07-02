@@ -79,12 +79,14 @@ class Settings(BaseSettings):
     ai_model: str = "claude-opus-4-8"
     # Gemini (Google) — used when AI_PROVIDER=gemini or AI_PROVIDER=dual
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash-preview-05-20"
+    gemini_model: str = "gemini-2.5-flash"
     # Override the base URL if you go through a proxy (OpenRouter, LiteLLM, …)
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     # Groq LLM — used when AI_PROVIDER=groq or AI_PROVIDER=dual
     # Same groq_api_key serves both STT (Whisper) and LLM (Llama)
-    groq_llm_model: str = "qwen/qwen3-32b"
+    # llama-3.3-70b: strong Uzbek, and (unlike qwen3-32b) enabled on our
+    # Groq project — a blocked primary costs one wasted round-trip per call.
+    groq_llm_model: str = "llama-3.3-70b-versatile"
     # AI_PROVIDER controls which LLM backend runs the analysis prompts:
     #   mock  — no LLM, fully deterministic fallback
     #   groq  — Groq Llama (fast, cheap, good Uzbek)

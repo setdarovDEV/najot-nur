@@ -9,7 +9,8 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    HOME=/tmp
 
 WORKDIR /app
 
@@ -38,6 +39,6 @@ CMD ["sh", "-c", "alembic upgrade heads && gunicorn app.main:app \
         -k uvicorn.workers.UvicornWorker \
         -b 0.0.0.0:8000 \
         --workers ${WEB_CONCURRENCY:-2} \
-        --timeout 60 \
+        --timeout 120 \
         --access-logfile - \
         --error-logfile -"]

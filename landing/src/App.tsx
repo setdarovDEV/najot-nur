@@ -1,35 +1,31 @@
-import { Navbar } from "./components/Navbar";
-import { Footer } from "./components/Footer";
-import { Hero } from "./sections/Hero";
-import { About } from "./sections/About";
-import { Features } from "./sections/Features";
-import { How } from "./sections/How";
-import { Stats } from "./sections/Stats";
-import { Pricing } from "./sections/Pricing";
-import { Testimonials } from "./sections/Testimonials";
-import { FAQ } from "./sections/FAQ";
-import { QRBanner } from "./sections/QRBanner";
-import { CTA } from "./sections/CTA";
-import { Contact } from "./sections/Contact";
+import Header from "./components/Header";
+import Hero from "./components/Hero";
+import Trust from "./components/Trust";
+import Problem from "./components/Problem";
+import Features from "./components/Features";
+import Results from "./components/Results";
+import Audience from "./components/Audience";
+import HowItWorks from "./components/HowItWorks";
+import FinalCTA from "./components/FinalCTA";
+import Footer from "./components/Footer";
+import StickyCTA from "./components/StickyCTA";
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-paper text-ink">
-      <Navbar />
+    <div className="min-h-screen">
+      <Header />
       <main>
         <Hero />
-        <About />
+        <Trust />
+        <Problem />
         <Features />
-        <How />
-        <Stats />
-        <Pricing />
-        <Testimonials />
-        <QRBanner />
-        <FAQ />
-        <CTA />
-        <Contact />
+        <Results />
+        <Audience />
+        <HowItWorks />
+        <FinalCTA />
       </main>
       <Footer />
+      <StickyCTA />
     </div>
   );
 }

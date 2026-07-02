@@ -1,47 +1,37 @@
-# NotiqAI · Landing (marketing sahifa)
+# NotiqAI Landing
 
-Najot Nur notiqlik markazining ommaviy marketing sahifasi.
-`notiqlik.uz` domenida ishlaydi (yoki lokal — `localhost:5175`).
+Konversion landing sahifa — `docs/landing_tz.txt` TZ va `docs/NN_aydentika.pdf`
+brand aydentikasi asosida qurilgan. Vite + React 19 + TypeScript + Tailwind CSS v4.
 
-## Texnologiyalar
-- React 19 + Vite 6 + TypeScript
-- Tailwind CSS 4 (brand tokens)
-- Lucide React (ikonlar)
-
-## Bo'limlar
-- 🏠 Hero (asosiy taklif)
-- ✨ Imkoniyatlar (6 ta modul)
-- 🔁 Qanday ishlaydi (3 qadam)
-- 📊 Statistika
-- 💰 Narxlar (Bepul, Pro, Jamoa)
-- 💬 Foydalanuvchilar fikri
-- ❓ FAQ (accordion)
-- 📥 CTA (mobil ilovaga yo'naltirish)
-- ✉️ Bog'lanish formasi
-- 🔗 Footer
-
-## Lokal ishga tushirish
+## Ishga tushirish
 
 ```bash
 npm install
-npm run dev      # http://localhost:5175
+npm run dev        # http://localhost:5175
+npm run build      # tsc + vite build → dist/
 ```
 
-## Production build
+## Muhit o‘zgaruvchilari (build vaqtida)
 
-```bash
-npm run build    # dist/ ichida statik fayllar
-```
+| O‘zgaruvchi            | Vazifasi                                              | Default      |
+| ---------------------- | ----------------------------------------------------- | ------------ |
+| `VITE_APP_URL`         | Barcha CTA tugmalar ochadigan manzil (web-app / link) | `#boshlash`  |
+| `VITE_PLAY_MARKET_URL` | Google Play havolasi                                  | `#`          |
+| `VITE_APP_STORE_URL`   | App Store havolasi                                    | `#`          |
 
-Production uchun `docker-compose.yml` orqali
-`notiq_landing` konteyneriga o'raladi (nginx:alpine SPA).
+`VITE_APP_URL` berilmasa, CTA tugmalar sahifa oxiridagi Final CTA blokiga olib boradi.
 
-## Domen
+## Tracking
 
-| Domen | Tavsif |
-|-------|--------|
-| `notiqlik.uz` | **Landing (marketing sahifa)** — shu frontend |
-| `www.notiqlik.uz` | Landing (www) |
-| `admin.notiqlik.uz` | Admin paneli |
-| `curator.notiqlik.uz` | Kurator paneli |
-| `api.notiqlik.uz` | Backend API |
+CTA bosishlar `window.dataLayer` ga push qilinadi (GTM/Pixel uchun tayyor).
+Event nomlari TZ 12-bo‘lim bo‘yicha qat'iy:
+
+- `speech_test_click`
+- `voice_test_click`
+- `observation_test_click`
+- `main_cta_click`
+
+## Deploy
+
+`Dockerfile.prod` — statik build + nginx (port 80, healthcheck bilan),
+`docker-compose.yml` dagi `landing` servisi va GH Actions build pipeline'iga mos.

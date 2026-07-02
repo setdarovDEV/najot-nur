@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-wine-50: #FFF5F7;
+  --color-wine-100: #FFE3EA;
+  --color-wine-200: #FFC9D7;
+  --color-wine-300: #FFA1BC;
+  --color-wine-400: #FF6995;
+  --color-wine-500: #F3396F;
+  --color-wine-600: #D81B52;
+  --color-wine-700: #B10F3E;
+  --color-wine-800: #970F3F;
+  --color-wine-900: #8B0F3A;
+  --color-wine-950: #4D031D;
+}
+
+/* Base styles and custom overrides */
+body {
+  font-family: var(--font-sans);
+  background-color: #070104; /* Elegant Dark midnight background */
+  color: #f3f4f6;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+/* Custom animated pulse for recording buttons */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+/* Glassmorphism utility for elegant dark theme */
+.glass-effect {
+  background: rgba(15, 4, 10, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Scrollbar styling for phone view */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139, 15, 58, 0.4);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 15, 58, 0.7);
+}

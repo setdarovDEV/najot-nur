@@ -67,6 +67,8 @@ rsync -a --delete \
   --exclude='curator/node_modules' \
   --exclude='landing/dist' \
   --exclude='landing/node_modules' \
+  --exclude='landing_demo/dist' \
+  --exclude='landing_demo/node_modules' \
   --exclude='backend/media' \
   --exclude='bugs' \
   "$PROJECT_DIR/" "$INSTALL_DIR/"

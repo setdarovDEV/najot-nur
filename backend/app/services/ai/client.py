@@ -103,10 +103,14 @@ async def _groq_llm_completion(
                 log.warning("ai.groq_model_blocked", model=model)
                 continue  # try next fallback
 
+            if r.status_code == 429:
+                log.warning("ai.groq_rate_limited", model=model)
+                continue
+
             if r.status_code >= 400:
                 log.error("ai.groq_llm_http_error", status=r.status_code,
                           model=model, body=r.text[:300])
-                return None
+                continue
 
             data = r.json()
             content = (
@@ -116,18 +120,27 @@ async def _groq_llm_completion(
             )
             if not content:
                 log.warning("ai.groq_llm_empty_content", model=model)
-                return None
+                continue
+
+            # Strip <think>...</think> reasoning tokens (qwen3, deepseek-r1)
+            import re as _re
+            content = _re.sub(r"<think>.*?</think>", "", content, flags=_re.DOTALL).strip()
+            if not content:
+                log.warning("ai.groq_llm_empty_after_strip", model=model)
+                continue
 
             if model != primary:
                 log.info("ai.groq_fallback_used", model=model)
-            return json.loads(content)
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError as exc:
+                log.error("ai.groq_llm_json_error", model=model, error=str(exc),
+                          content_preview=content[:200])
+                continue
 
-        except json.JSONDecodeError as exc:
-            log.error("ai.groq_llm_json_error", model=model, error=str(exc))
-            return None
         except Exception as exc:
             log.error("ai.groq_llm_failed", model=model, error=str(exc))
-            return None
+            continue
 
     log.error(
         "ai.groq_all_models_blocked",

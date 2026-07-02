@@ -113,6 +113,9 @@ services:
       - "8000"
     volumes:
       - media:/app/media
+      # FCM service-account JSON lives on the host (gitignored, not baked into
+      # the image). Mounted read-only so FCM_SERVICE_ACCOUNT_PATH resolves.
+      - ./secrets:/app/secrets:ro
     depends_on:
       postgres:
         condition: service_healthy

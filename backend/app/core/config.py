@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     sms_provider: Literal["mock", "eskiz", "playmobile"] = "mock"
     sms_api_url: str = ""
     sms_api_token: str = ""
-    sms_sender: str = "NotiqAI"
+    eskiz_sender: str = "NOTIQLIK.UZ"
     # Eskiz credentials (token auto-refreshed on startup when provider=eskiz)
     eskiz_email: str = ""
     eskiz_password: str = ""

@@ -43,6 +43,7 @@ sentry-sdk[fastapi]>=2.0
 
 # ─── PDF certificates ───
 reportlab>=4.1
+pypdf>=4.0
 
 # ─── Misc ───
 python-slugify>=8.0

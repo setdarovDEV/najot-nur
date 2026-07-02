@@ -6,6 +6,128 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/phone_formatter.dart';
 import '../../l10n/gen/app_localizations.dart';
 
+/// 6 ta alohida katakchali OTP kiritish widget'i.
+class OtpInput extends StatefulWidget {
+  const OtpInput({
+    super.key,
+    required this.controller,
+    this.onCompleted,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback? onCompleted;
+
+  @override
+  State<OtpInput> createState() => _OtpInputState();
+}
+
+class _OtpInputState extends State<OtpInput> {
+  late final List<TextEditingController> _ctrls;
+  late final List<FocusNode> _nodes;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrls = List.generate(6, (_) => TextEditingController());
+    _nodes = List.generate(6, (_) => FocusNode());
+    for (int i = 0; i < 6; i++) {
+      final idx = i;
+      _nodes[idx].onKeyEvent = (_, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace &&
+            _ctrls[idx].text.isEmpty &&
+            idx > 0) {
+          _ctrls[idx - 1].clear();
+          _nodes[idx - 1].requestFocus();
+          _syncParent();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      };
+    }
+  }
+
+  void _syncParent() {
+    widget.controller.text = _ctrls.map((c) => c.text).join();
+  }
+
+  void _onChanged(String val, int idx) {
+    if (val.length > 1) {
+      // paste holatini boshqarish
+      final digits = val.replaceAll(RegExp(r'[^0-9]'), '');
+      for (int i = 0; i < 6; i++) {
+        _ctrls[i].text = i < digits.length ? digits[i] : '';
+      }
+      _syncParent();
+      final next = digits.length < 6 ? digits.length : 5;
+      _nodes[next].requestFocus();
+      if (digits.length >= 6) widget.onCompleted?.call();
+      return;
+    }
+    _syncParent();
+    if (val.isNotEmpty && idx < 5) {
+      _nodes[idx + 1].requestFocus();
+    }
+    if (widget.controller.text.length == 6) {
+      widget.onCompleted?.call();
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _ctrls) c.dispose();
+    for (final n in _nodes) n.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List.generate(6, _buildBox),
+    );
+  }
+
+  Widget _buildBox(int i) {
+    return SizedBox(
+      width: 48,
+      height: 58,
+      child: TextFormField(
+        controller: _ctrls[i],
+        focusNode: _nodes[i],
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        maxLength: 1,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w800,
+          color: AppColors.wine,
+        ),
+        decoration: InputDecoration(
+          counterText: '',
+          contentPadding: EdgeInsets.zero,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.line),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.line),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.wine, width: 2),
+          ),
+          filled: true,
+          fillColor: AppColors.wine100,
+        ),
+        onChanged: (val) => _onChanged(val, i),
+      ),
+    );
+  }
+}
+
 /// Slim top progress bar that highlights the current step. Shared by
 /// the multi-step registration flow.
 class StepIndicator extends StatelessWidget {
@@ -154,33 +276,27 @@ class CodeStep extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         const TelegramVerificationHint(),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: code,
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 12,
-            color: AppColors.wine,
-          ),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(8),
-          ],
-          validator: (v) {
-            if (v == null || v.trim().length < 4) {
-              return l.codeTooShort;
-            }
+        const SizedBox(height: 20),
+        FormField<String>(
+          validator: (_) {
+            if (code.text.length < 6) return l.codeTooShort;
             return null;
           },
-          decoration: InputDecoration(
-            hintText: '••••••',
-            border: const OutlineInputBorder(),
-            focusedBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: AppColors.wine, width: 1.6),
-            ),
+          builder: (field) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              OtpInput(
+                controller: code,
+                onCompleted: onSubmit,
+              ),
+              if (field.errorText != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  field.errorText!,
+                  style: const TextStyle(color: AppColors.danger, fontSize: 12),
+                ),
+              ],
+            ],
           ),
         ),
         if (error != null) ...[

@@ -36,7 +36,7 @@ from app.schemas.auth import (
     TokenPair,
 )
 from app.schemas.user import UserPublic
-from app.services import amocrm, auth_service, telegram_verifier
+from app.services import amocrm, auth_service, sms, telegram_verifier
 from app.services.oauth.google import verify_google_token
 
 PHONE_VERIFIED_KEY = "phone_verified:{phone}"
@@ -71,38 +71,44 @@ async def _maybe_push_lead(bg: BackgroundTasks, user: User, source: str) -> None
     )
 
 
-# ───────────────────── Phone OTP (Telegram Verification Codes) ─────────────────────
+# ───────────────────── Phone OTP ─────────────────────
+# SMS_PROVIDER=eskiz|mock  → sms.send_otp / sms.verify_otp
+# SMS_PROVIDER unset        → Telegram Verification Codes (eski yo'l)
+
+def _use_sms() -> bool:
+    return settings.sms_provider in ("eskiz", "playmobile", "mock")
+
+
 @router.post("/otp/request")
 async def otp_request(payload: PhoneRequest) -> dict:
-    """Step 1 of the mobile registration flow: ask Telegram to send a
-    6-digit code to the user's "Verification Codes" chat. The user types
-    that code into the mobile app in step 2.
-    """
+    """Step 1: telefon raqamga OTP kod yuboradi."""
+    if _use_sms():
+        code = await sms.send_otp(payload.phone, ttl=settings.otp_ttl_seconds)
+        body: dict = {"sent": True, "ttl": settings.otp_ttl_seconds, "provider": settings.sms_provider}
+        if settings.debug:
+            body["dev_code"] = code
+        return body
+
     phone_code_hash, ttl = await telegram_verifier.send_code(payload.phone)
-    body: dict = {
-        "sent": True,
-        "ttl": ttl,
-        "provider": "telegram_verification_codes",
-    }
+    body = {"sent": True, "ttl": ttl, "provider": "telegram_verification_codes"}
     if settings.debug:
-        # Never expose the actual code in production. We use the hash as a
-        # debug-only sentinel so QA can confirm the request reached
-        # Telegram without scraping the chat.
         body["dev_code_hash"] = phone_code_hash
     return body
 
 
 @router.post("/otp/check", response_model=OTPCheckResponse)
 async def otp_check(payload: OTPCheckRequest) -> OTPCheckResponse:
-    """Step 2 of the mobile registration flow: verify the code against
-    Telegram. If valid, mark the phone as verified in Redis so the final
-    step (`/otp/verify`) can finish registration without calling Telegram
-    again.
-    """
-    valid = await telegram_verifier.check_code(payload.phone, payload.code)
-    if not valid:
-        if not (settings.debug and payload.code == "0000"):
-            raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+    """Step 2: kodni tekshiradi va telefon raqamni tasdiqlanган deb belgilaydi."""
+    if _use_sms():
+        valid = await sms.verify_otp(payload.phone, payload.code)
+        if not valid:
+            if not (settings.debug and payload.code == "000000"):
+                raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+    else:
+        valid = await telegram_verifier.check_code(payload.phone, payload.code)
+        if not valid:
+            if not (settings.debug and payload.code == "0000"):
+                raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
 
     await cache_set(
         PHONE_VERIFIED_KEY.format(phone=payload.phone),

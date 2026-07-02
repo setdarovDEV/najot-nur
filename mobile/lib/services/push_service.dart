@@ -153,7 +153,10 @@ class PushService {
           channelDescription: _channelDesc,
           importance: Importance.high,
           priority: Priority.high,
+          // Status-bar (small) icon + the app logo as the large icon so the
+          // notification shows Najot Nur's branding, with the app name below.
           icon: '@mipmap/ic_launcher',
+          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
         ),
         iOS: DarwinNotificationDetails(),
       ),
@@ -208,6 +211,7 @@ Future<void> _onBackground(RemoteMessage message) async {
         importance: Importance.high,
         priority: Priority.high,
         icon: '@mipmap/ic_launcher',
+        largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
       ),
       iOS: DarwinNotificationDetails(),
     ),

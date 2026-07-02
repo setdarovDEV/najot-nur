@@ -171,7 +171,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key_path: /home/runner/.ssh/deploy_key
-          command_timeout: 10m
+          command_timeout: 30m
           script: |
             set -euo pipefail
             cd /opt/notiqai

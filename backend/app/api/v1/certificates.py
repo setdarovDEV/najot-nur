@@ -7,14 +7,19 @@ from datetime import UTC, datetime
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, CuratorUser, DbSession
 from app.core.exceptions import AppError, NotFoundError
+from app.models.analysis import SpeechAnalysis, VoiceAnalysis
+from app.models.audiobook import AudiobookProgress, Audiobook
 from app.models.certificate import Certificate
 from app.models.certificate_request import CertificateRequest
-from app.models.course import Course, Enrollment
+from app.models.course import Course, Enrollment, LessonProgress
 from app.models.enums import CertificateRequestStatus, EnrollmentStatus, PushAudience
 from app.models.notification import PushNotification, PushToken
+from app.models.practicum import Practicum
+from app.models.practicum_submission import PracticumSubmission
 from app.models.user import User
 from app.schemas.common import Message
 from app.services import certificate_service, fcm
@@ -143,6 +148,124 @@ async def list_certificate_requests(
         }
         for req, user, course in rows
     ]
+
+
+@admin_router.get("/certificate-requests/{request_id}/student-stats")
+async def certificate_request_student_stats(
+    request_id: uuid.UUID,
+    _: CuratorUser,
+    db: DbSession,
+) -> dict:
+    """Full learning stats for the student who submitted this certificate request."""
+    req = await db.get(CertificateRequest, request_id)
+    if req is None:
+        raise NotFoundError("So'rov topilmadi.")
+
+    user_id = req.user_id
+    course_id = req.course_id
+
+    # ── 1. Kurs progress ────────────────────────────────────────────────
+    enrollment = (
+        await db.execute(
+            select(Enrollment)
+            .options(selectinload(Enrollment.lesson_progress))
+            .where(Enrollment.user_id == user_id, Enrollment.course_id == course_id)
+        )
+    ).scalar_one_or_none()
+
+    course = await db.get(Course, course_id)
+
+    course_stats: dict = {}
+    if enrollment and course:
+        lp_map = {lp.lesson_id: lp for lp in enrollment.lesson_progress}
+        from app.models.course import Lesson  # local import to avoid circular
+        lessons_q = await db.execute(
+            select(Lesson).where(Lesson.course_id == course_id).order_by(Lesson.order_index)
+        )
+        lessons = lessons_q.scalars().all()
+        lesson_rows = []
+        for ls in lessons:
+            lp = lp_map.get(ls.id)
+            lesson_rows.append({
+                "title": ls.title,
+                "order_index": ls.order_index,
+                "completed": lp.is_completed if lp else False,
+                "quiz_score": lp.auto_score if lp else None,
+            })
+        completed_count = sum(1 for r in lesson_rows if r["completed"])
+        course_stats = {
+            "lessons_total": len(lessons),
+            "lessons_completed": completed_count,
+            "progress_pct": enrollment.progress_pct,
+            "status": enrollment.status.value,
+            "lessons": lesson_rows,
+        }
+
+    # ── 2. Audiokitoblar ────────────────────────────────────────────────
+    ab_rows = (
+        await db.execute(
+            select(AudiobookProgress, Audiobook)
+            .join(Audiobook, AudiobookProgress.audiobook_id == Audiobook.id)
+            .where(AudiobookProgress.user_id == user_id)
+            .order_by(AudiobookProgress.last_listened_at.desc())
+        )
+    ).all()
+    audiobooks_stats = [
+        {
+            "title": ab.title,
+            "author": ab.author,
+            "current_page": prog.current_page,
+            "total_pages": ab.total_pages,
+            "last_listened_at": prog.last_listened_at.isoformat(),
+        }
+        for prog, ab in ab_rows
+    ]
+
+    # ── 3. Praktikum natijalari ────────────────────────────────────────
+    prac_rows = (
+        await db.execute(
+            select(PracticumSubmission, Practicum)
+            .join(Practicum, PracticumSubmission.practicum_id == Practicum.id)
+            .where(PracticumSubmission.user_id == user_id)
+            .order_by(PracticumSubmission.created_at.desc())
+        )
+    ).all()
+    practicum_stats = [
+        {
+            "title": prac.title,
+            "score": sub.overall_score,
+            "status": sub.status,
+            "submitted_at": sub.created_at.isoformat(),
+        }
+        for sub, prac in prac_rows
+    ]
+
+    # ── 4. Nutq tahlili natijalari (so'nggi 10 ta) ───────────────────
+    speech_rows = (
+        await db.execute(
+            select(SpeechAnalysis)
+            .where(SpeechAnalysis.user_id == user_id)
+            .order_by(SpeechAnalysis.created_at.desc())
+            .limit(10)
+        )
+    ).scalars().all()
+    speech_stats = [
+        {
+            "overall_score": s.overall_score,
+            "meaning_score": s.meaning_score,
+            "fluency_score": s.fluency_score,
+            "summary": s.summary,
+            "created_at": s.created_at.isoformat(),
+        }
+        for s in speech_rows
+    ]
+
+    return {
+        "course": course_stats,
+        "audiobooks": audiobooks_stats,
+        "practicums": practicum_stats,
+        "speech_analyses": speech_stats,
+    }
 
 
 class RejectPayload(BaseModel):

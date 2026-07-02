@@ -52,6 +52,21 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
     final l = AppLocalizations.of(context);
     final course = ref.watch(courseDetailProvider(widget.courseId));
     final progressAsync = ref.watch(courseProgressProvider(widget.courseId));
+
+    // Kurs sotib olingan bo'lsa — reklam sahifasini o'tkazib, to'g'ridan-to'g'ri
+    // o'rganish ekraniga yuborish.
+    ref.listen(courseProgressProvider(widget.courseId), (_, next) {
+      next.whenData((p) {
+        if (p.enrolled && mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              context.replace('/courses/${widget.courseId}/learn');
+            }
+          });
+        }
+      });
+    });
+
     final progress = progressAsync.valueOrNull;
     final isEnrolled = progress?.enrolled ?? false;
     final hasPendingOrder = progress?.hasPendingOrder ?? false;

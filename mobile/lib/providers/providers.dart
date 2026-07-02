@@ -164,6 +164,12 @@ class AuthController extends StateNotifier<AuthState> {
     state = state.copyWith(user: user);
   }
 
+  /// Clears local state immediately without network calls.
+  /// Used when the server already invalidated the session (e.g. 401 expiry).
+  void logoutLocally() {
+    state = const AuthState(isLoggedIn: false);
+  }
+
   Future<void> logout() async {
     // Close the security session first so the server can revoke the token
     // jti before we wipe the local credentials.

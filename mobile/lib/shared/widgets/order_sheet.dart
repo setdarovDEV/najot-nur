@@ -134,7 +134,7 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
         ),
       );
       // Bounce the user to "My orders" so they can see the status.
-      context.push('/orders');
+      context.push('/profile/orders');
     } catch (e) {
       if (!mounted) return;
       setState(() {

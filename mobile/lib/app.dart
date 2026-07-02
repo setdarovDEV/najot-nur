@@ -53,11 +53,14 @@ class _NotiqAiAppState extends ConsumerState<NotiqAiApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Surface a snackbar whenever the API client reports a session expiry.
+    // Surface a snackbar and update AuthController whenever the API client
+    // reports a session expiry (401 on a previously-authenticated request).
     ref.listen<int>(authEventsProvider.select((e) => e.sessionExpiredCount),
         (prev, next) {
       if (next == _lastSessionExpiredSeen) return;
       _lastSessionExpiredSeen = next;
+      // Sync AuthController state — tokens were already cleared by ApiClient.
+      ref.read(authControllerProvider.notifier).logoutLocally();
       final l = AppLocalizations.of(context);
       _scaffoldMessengerKey.currentState
         ?..clearSnackBars()

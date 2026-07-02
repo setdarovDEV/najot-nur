@@ -1,0 +1,54 @@
+docker exec -i notiq_backend python <<'PY'
+import asyncio
+from sqlalchemy import select
+from app.core.database import AsyncSessionLocal
+from app.core.logging import configure_logging
+from app.core.security import hash_password
+from app.models.enums import AuthProvider, Role
+from app.models.user import AuthIdentity, User
+
+configure_logging()
+
+PHONE = "+998953271309"
+PASSWORD = "abbos123"
+FULL_NAME = "Setdarov Abbos"
+
+async def main():
+    async with AsyncSessionLocal() as db:
+        u = (await db.execute(
+            select(User).where(User.phone.in_([PHONE, "953271309"]))
+        )).scalars().first()
+
+        if u is None:
+            u = User(full_name=FULL_NAME, phone=PHONE,
+                     role=Role.user, is_verified=True, is_active=True)
+            db.add(u); await db.flush()
+            print("created:", u.id)
+        else:
+            u.full_name = FULL_NAME
+            u.phone = PHONE
+            u.is_active = True
+            u.is_verified = True
+            print("updated:", u.id, "old phone was:", u.phone)
+
+        ident = (await db.execute(
+            select(AuthIdentity).where(
+                AuthIdentity.user_id == u.id,
+                AuthIdentity.provider == AuthProvider.password,
+            )
+        )).scalar_one_or_none()
+
+        if ident is None:
+            ident = AuthIdentity(user_id=u.id,
+                                 provider=AuthProvider.password,
+                                 provider_uid=PHONE)
+            db.add(ident)
+        else:
+            ident.provider_uid = PHONE
+        ident.password_hash = hash_password(PASSWORD)
+
+        await db.commit()
+        print(f"OK phone={PHONE} name={FULL_NAME} pw_len={len(PASSWORD)}")
+
+asyncio.run(main())
+PY

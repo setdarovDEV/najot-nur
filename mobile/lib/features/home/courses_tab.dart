@@ -8,6 +8,18 @@ import '../../models/learning_models.dart';
 import '../../providers/providers.dart';
 import '../../shared/widgets/common.dart';
 
+/// Kurs kartasini bosganda to'g'ri marshrutni tanlaydi.
+/// Cache da progress ma'lumoti bo'lsa va foydalanuvchi enrolled bo'lsa —
+/// reklam sahifasini o'tkazib, bevosita o'rganish ekraniga yuboradi.
+void _navigateToCourse(WidgetRef ref, BuildContext context, String courseId) {
+  final cached = ref.read(courseProgressProvider(courseId)).valueOrNull;
+  if (cached != null && cached.enrolled) {
+    context.push('/courses/$courseId/learn');
+  } else {
+    context.push('/courses/$courseId');
+  }
+}
+
 class CoursesTab extends ConsumerWidget {
   const CoursesTab({super.key});
 
@@ -42,15 +54,15 @@ class CoursesTab extends ConsumerWidget {
   }
 }
 
-class _CourseCard extends StatelessWidget {
+class _CourseCard extends ConsumerWidget {
   const _CourseCard({required this.course});
   final Course course;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     return GestureDetector(
-      onTap: () => context.push('/courses/${course.id}'),
+      onTap: () => _navigateToCourse(ref, context, course.id),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,

@@ -145,3 +145,46 @@ export interface CertificateRequest {
   created_at: string;
   reviewed_at: string | null;
 }
+
+export interface LessonStat {
+  title: string;
+  order_index: number;
+  completed: boolean;
+  quiz_score: number | null;
+}
+
+export interface AudiobookStat {
+  title: string;
+  author: string | null;
+  current_page: number;
+  total_pages: number;
+  last_listened_at: string;
+}
+
+export interface PracticumStat {
+  title: string;
+  score: number | null;
+  status: string;
+  submitted_at: string;
+}
+
+export interface SpeechStat {
+  overall_score: number | null;
+  meaning_score: number | null;
+  fluency_score: number | null;
+  summary: string | null;
+  created_at: string;
+}
+
+export interface StudentStats {
+  course: {
+    lessons_total: number;
+    lessons_completed: number;
+    progress_pct: number;
+    status: string;
+    lessons: LessonStat[];
+  };
+  audiobooks: AudiobookStat[];
+  practicums: PracticumStat[];
+  speech_analyses: SpeechStat[];
+}

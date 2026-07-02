@@ -48,11 +48,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = prefs.accessToken != null;
       final loc = state.matchedLocation;
 
+      // Token expired / not logged in → send to auth (except public routes).
+      if (!isLoggedIn) {
+        final isPublic = loc == '/onboarding' ||
+            loc == '/auth' ||
+            loc.startsWith('/auth/') ||
+            loc == '/language';
+        if (!isPublic) return '/auth';
+      }
+
       // Already logged in → don't show the auth screens. If a gated flow
       // has stashed a post-auth return path (e.g. psychology AI analysis),
       // honour it so the user lands back where they came from.
-      if (isLoggedIn &&
-          (loc == '/auth' || loc.startsWith('/auth/'))) {
+      if (isLoggedIn && (loc == '/auth' || loc.startsWith('/auth/'))) {
         final pending = ref.read(pendingReturnPathProvider);
         if (pending != null) {
           ref.read(pendingReturnPathProvider.notifier).state = null;

@@ -4,20 +4,27 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, File, Form, UploadFile
-from sqlalchemy import select
+from sqlalchemy import desc, select
 
-from app.api.deps import AdminUser, CurrentUser, CuratorUser, DbSession
+from app.api.deps import AdminUser, CuratorUser, CurrentUser, DbSession
 from app.core.config import settings
 from app.core.exceptions import AppError, NotFoundError
+from app.core.logging import get_logger
 from app.models.analysis import VoiceAnalysis
 from app.models.enums import AnalysisStatus
 from app.models.practicum import Practicum
 from app.models.practicum_submission import PracticumSubmission
-from app.schemas.practicum import PracticumCreate, PracticumRead, PracticumSubmissionRead
+from app.models.user import User
+from app.schemas.practicum import (
+    PracticumCreate,
+    PracticumRead,
+    PracticumSubmissionRead,
+)
 from app.services import storage
 from app.services.ai import analyze_voice, transcribe
 
 router = APIRouter()
+log = get_logger("practicums")
 
 
 def _to_read(p: Practicum) -> PracticumRead:
@@ -33,6 +40,35 @@ def _to_read(p: Practicum) -> PracticumRead:
         status=p.status,
         created_at=p.created_at,
     )
+
+
+async def _transcribe_expert_audio(p: Practicum, db: DbSession) -> None:
+    """Best-effort STT pass on the practicum's expert audio. Stores the
+    transcript on ``p.expert_transcript`` so the analysis pipeline doesn't
+    re-run STT for every user submission."""
+    if not p.expert_audio_url:
+        return
+    if p.expert_transcript:
+        return  # already cached
+    if not settings.stt_enabled:
+        return
+    data = await storage.load_bytes(p.expert_audio_url)
+    if not data:
+        return
+    filename = p.expert_audio_url.rsplit("/", 1)[-1] or "expert.m4a"
+    result = await transcribe(
+        data=data,
+        filename=filename,
+        content_type="audio/mp4",
+        language=settings.stt_language,
+    )
+    if result and result.get("text"):
+        p.expert_transcript = result["text"].strip()
+        log.info(
+            "practicum.expert_transcribed",
+            practicum_id=str(p.id),
+            length=len(p.expert_transcript),
+        )
 
 
 # ─── Public / user endpoints ───
@@ -115,19 +151,27 @@ async def submit_practicum(
         if stt_result and stt_result.get("text"):
             stt_text = stt_result["text"]
 
+    # Make sure the expert audio is transcribed at least once so we have a
+    # reference text for the AI comparison even when the curator only
+    # uploaded audio (without typing expert_text).
+    await _transcribe_expert_audio(p, db)
+
+    # Pick the best reference text: curator-typed > STT of expert audio.
+    reference_text = (p.expert_text or "").strip() or (p.expert_transcript or "").strip() or None
+
     # Run voice analysis if we have a transcript and reference text
     analysis_fields: dict = {}
     voice_analysis_id: uuid.UUID | None = None
     overall_score: int | None = None
 
-    if stt_text and p.expert_text:
+    if stt_text and reference_text:
         result = await analyze_voice(
-            reference_text=p.expert_text,
+            reference_text=reference_text,
             transcript=stt_text,
         )
         va = VoiceAnalysis(
             user_id=user.id,
-            reference_text=p.expert_text,
+            reference_text=reference_text,
             audio_url=audio_url,
             transcript=stt_text,
             status=AnalysisStatus.done,
@@ -254,6 +298,9 @@ async def upload_practicum_audio(
         content_type=file.content_type,
     )
     p.expert_audio_url = url
+    # Drop the cached transcript so it gets re-derived from the new audio.
+    p.expert_transcript = None
+    await _transcribe_expert_audio(p, db)
     await db.commit()
     await db.refresh(p)
     return _to_read(p)
@@ -269,6 +316,102 @@ async def my_drafts(db: DbSession, user: CuratorUser) -> list[PracticumRead]:
         )
     ).scalars().all()
     return [_to_read(p) for p in rows]
+
+
+# ─── Curator / admin: submissions review ─────────────────────────────────────
+
+async def _submission_to_read(
+    row: PracticumSubmission,
+    db: DbSession,
+    user: User | None = None,
+    reference_text: str | None = None,
+) -> PracticumSubmissionRead:
+    """Flatten a PracticumSubmission row + its VoiceAnalysis into the read shape."""
+    analysis_fields: dict = {}
+    if row.voice_analysis_id is not None:
+        va = await db.get(VoiceAnalysis, row.voice_analysis_id)
+        if va is not None:
+            analysis_fields = {
+                "accuracy_score": va.accuracy_score,
+                "word_errors": va.word_errors,
+                "word_analysis": va.word_analysis,
+                "char_stats": va.char_stats,
+                "phoneme_errors": va.phoneme_errors,
+                "summary": va.summary,
+                "reference_text": va.reference_text,
+            }
+    return PracticumSubmissionRead(
+        id=row.id,
+        practicum_id=row.practicum_id,
+        audio_url=row.audio_url,
+        transcript=row.transcript,
+        overall_score=row.overall_score,
+        status=row.status,
+        created_at=row.created_at,
+        user_full_name=user.full_name if user else None,
+        user_phone=user.phone if user else None,
+        reference_text=reference_text,
+        **analysis_fields,
+    )
+
+
+@router.get("/{practicum_id}/submissions", response_model=list[PracticumSubmissionRead])
+async def list_practicum_submissions(
+    practicum_id: uuid.UUID,
+    db: DbSession,
+    _: CuratorUser,
+) -> list[PracticumSubmissionRead]:
+    """List all user submissions for a practicum (curator / admin view)."""
+    p = await db.get(Practicum, practicum_id)
+    if p is None:
+        raise NotFoundError("Praktikum topilmadi.")
+
+    rows = (
+        await db.execute(
+            select(PracticumSubmission, User)
+            .join(User, User.id == PracticumSubmission.user_id)
+            .where(PracticumSubmission.practicum_id == practicum_id)
+            .order_by(desc(PracticumSubmission.created_at))
+            .limit(500)
+        )
+    ).all()
+
+    out: list[PracticumSubmissionRead] = []
+    for sub, usr in rows:
+        out.append(
+            await _submission_to_read(
+                sub,
+                db,
+                user=usr,
+                reference_text=(p.expert_text or p.expert_transcript),
+            )
+        )
+    return out
+
+
+@router.get(
+    "/{practicum_id}/submissions/{submission_id}",
+    response_model=PracticumSubmissionRead,
+)
+async def get_practicum_submission(
+    practicum_id: uuid.UUID,
+    submission_id: uuid.UUID,
+    db: DbSession,
+    _: CuratorUser,
+) -> PracticumSubmissionRead:
+    p = await db.get(Practicum, practicum_id)
+    if p is None:
+        raise NotFoundError("Praktikum topilmadi.")
+    sub = await db.get(PracticumSubmission, submission_id)
+    if sub is None or sub.practicum_id != practicum_id:
+        raise NotFoundError("Topshiriq topilmadi.")
+    usr = await db.get(User, sub.user_id)
+    return await _submission_to_read(
+        sub,
+        db,
+        user=usr,
+        reference_text=(p.expert_text or p.expert_transcript),
+    )
 
 
 # ─── Admin endpoints ───

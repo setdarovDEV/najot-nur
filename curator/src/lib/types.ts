@@ -66,6 +66,9 @@ export interface Homework {
   curator_feedback: string | null;
   reviewed_at: string | null;
   created_at: string;
+  user_full_name?: string | null;
+  user_phone?: string | null;
+  lesson_title?: string | null;
 }
 
 export interface Audiobook {
@@ -166,6 +169,57 @@ export interface PracticumStat {
   score: number | null;
   status: string;
   submitted_at: string;
+}
+
+export interface PracticumSubmissionCharOp {
+  position: number;
+  expected_char: string | null;
+  spoken_char: string | null;
+  operation: "match" | "substitute" | "delete" | "insert" | "transpose";
+  phoneme_group?: string;
+  penalty?: number;
+  tip?: string;
+}
+
+export interface PracticumSubmissionWord {
+  ref_index?: number;
+  reference_word: string;
+  spoken_word: string | null;
+  is_correct: boolean;
+  word_score: number;
+  char_ops?: PracticumSubmissionCharOp[];
+  ai_comment?: string | null;
+  recommendation?: string | null;
+}
+
+export interface PracticumSubmission {
+  id: string;
+  practicum_id: string;
+  audio_url: string | null;
+  transcript: string | null;
+  overall_score: number | null;
+  accuracy_score: number | null;
+  status: string;
+  created_at: string;
+  user_full_name?: string | null;
+  user_phone?: string | null;
+  reference_text?: string | null;
+  word_errors?: Array<{ index: number; word: string; error_type: string; note: string | null }> | null;
+  word_analysis?: PracticumSubmissionWord[] | null;
+  char_stats?: {
+    top_problem_chars?: Array<{ char: string; count: number }>;
+    phoneme_tips?: Array<{
+      char: string;
+      tip: string;
+      tongue_position?: string;
+      practice_words?: string[];
+    }>;
+    minimal_pairs?: string[];
+    error_patterns?: Array<{ pattern: string; count: number }>;
+    phoneme_group_accuracy?: Record<string, number>;
+  } | null;
+  phoneme_errors?: Array<{ word: string; sound: string; note: string }> | null;
+  summary?: string | null;
 }
 
 export interface SpeechStat {

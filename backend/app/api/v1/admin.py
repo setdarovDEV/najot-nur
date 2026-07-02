@@ -177,11 +177,39 @@ async def list_homeworks(
     _: CuratorUser,
     status: HomeworkStatus | None = None,
 ) -> list[Homework]:
-    stmt = select(Homework).order_by(Homework.created_at.desc())
+    """List homework submissions with the student and lesson joined in so the
+    curator can see who submitted what without an extra round-trip."""
+    stmt = (
+        select(Homework, User, Lesson)
+        .join(User, User.id == Homework.user_id)
+        .join(Lesson, Lesson.id == Homework.lesson_id)
+        .order_by(Homework.created_at.desc())
+    )
     if status:
         stmt = stmt.where(Homework.status == status)
-    rows = (await db.execute(stmt.limit(200))).scalars().all()
-    return list(rows)
+    stmt = stmt.limit(200)
+
+    rows = (await db.execute(stmt)).all()
+    out: list[HomeworkRow] = []
+    for hw, user, lesson in rows:
+        out.append(
+            HomeworkRow(
+                id=hw.id,
+                user_id=hw.user_id,
+                lesson_id=hw.lesson_id,
+                status=hw.status,
+                submission_text=hw.submission_text,
+                submission_url=hw.submission_url,
+                curator_score=hw.curator_score,
+                curator_feedback=hw.curator_feedback,
+                reviewed_at=hw.reviewed_at,
+                created_at=hw.created_at,
+                user_full_name=user.full_name,
+                user_phone=user.phone,
+                lesson_title=lesson.title,
+            )
+        )
+    return out
 
 
 @router.post("/homeworks/{homework_id}/grade", response_model=HomeworkRow)

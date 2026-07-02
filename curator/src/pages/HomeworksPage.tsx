@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, apiError } from "../lib/api";
+import { Headphones, FileText, ExternalLink, Mic } from "lucide-react";
+import { api, apiError, mediaUrl } from "../lib/api";
 import type { Homework } from "../lib/types";
 import { PageHeader } from "../components/Layout";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "../components/Modal";
 import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
 
@@ -11,6 +13,7 @@ export function HomeworksPage() {
   const { t } = useLang();
   const toast = useToast();
   const [filter, setFilter] = useState<"submitted" | "reviewed" | "">("submitted");
+  const [openHw, setOpenHw] = useState<Homework | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["homeworks", filter],
@@ -31,6 +34,7 @@ export function HomeworksPage() {
     onSuccess: () => {
       toast.success(t.homeworks.gradeSuccess);
       qc.invalidateQueries({ queryKey: ["homeworks"] });
+      setOpenHw(null);
     },
     onError: (e) => toast.error(apiError(e)),
   });
@@ -70,18 +74,25 @@ export function HomeworksPage() {
         </p>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {data?.map((hw) => (
-          <HomeworkCard
-            key={hw.id}
-            hw={hw}
-            onGrade={(score, feedback) =>
-              grade.mutateAsync({ id: hw.id, score, feedback })
-            }
-          />
+          <HomeworkCard key={hw.id} hw={hw} onOpen={() => setOpenHw(hw)} />
         ))}
       </div>
-      {grade.isError && (
+
+      {openHw && (
+        <HomeworkDetailModal
+          hw={openHw}
+          saving={grade.isPending}
+          error={grade.isError ? apiError(grade.error) : null}
+          onClose={() => setOpenHw(null)}
+          onGrade={async (score, feedback) => {
+            await grade.mutateAsync({ id: openHw.id, score, feedback });
+          }}
+        />
+      )}
+
+      {grade.isError && !openHw && (
         <p className="mt-3 text-sm text-red-500">{apiError(grade.error)}</p>
       )}
     </div>
@@ -90,72 +101,203 @@ export function HomeworksPage() {
 
 function HomeworkCard({
   hw,
+  onOpen,
+}: {
+  hw: Homework;
+  onOpen: () => void;
+}) {
+  const { t } = useLang();
+  const hasText = !!hw.submission_text;
+  const hasAudio = !!hw.submission_url;
+  const displayName =
+    hw.user_full_name || hw.user_phone || hw.user_id.slice(0, 8);
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full rounded-2xl border border-line bg-card p-5 text-left transition hover:border-wine hover:shadow-md"
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+          <span>{displayName}</span>
+          {hw.lesson_title && (
+            <span className="rounded-md bg-surface px-2 py-0.5 text-xs font-medium text-muted">
+              {hw.lesson_title}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {hasText && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              <FileText size={12} /> {t.homeworks.hasText}
+            </span>
+          )}
+          {hasAudio && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+              <Mic size={12} /> {t.homeworks.hasAudio}
+            </span>
+          )}
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+              hw.status === "reviewed"
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+            }`}
+          >
+            {hw.status === "reviewed" ? t.homeworks.reviewed : t.homeworks.new_}
+          </span>
+        </div>
+      </div>
+      <p className="line-clamp-2 text-sm text-muted">
+        {hw.submission_text ?? "—"}
+      </p>
+      <div className="mt-3 flex items-center justify-between text-xs text-muted">
+        <span>{new Date(hw.created_at).toLocaleString()}</span>
+        <span className="inline-flex items-center gap-1 text-wine">
+          <ExternalLink size={12} /> {t.homeworks.openDetails}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function HomeworkDetailModal({
+  hw,
+  saving,
+  error,
+  onClose,
   onGrade,
 }: {
   hw: Homework;
+  saving: boolean;
+  error: string | null;
+  onClose: () => void;
   onGrade: (score: number, feedback: string) => Promise<unknown>;
 }) {
   const { t } = useLang();
   const [score, setScore] = useState(hw.curator_score ?? 80);
   const [feedback, setFeedback] = useState(hw.curator_feedback ?? "");
-  const [saving, setSaving] = useState(false);
+
+  const audioSrc = mediaUrl(hw.submission_url);
+  const isAudioPlayable = audioSrc !== null;
+
+  const displayName =
+    hw.user_full_name || hw.user_phone || hw.user_id.slice(0, 8);
 
   return (
-    <div className="rounded-2xl border border-line bg-card p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs text-muted">
-          {new Date(hw.created_at).toLocaleString()}
-        </span>
-        <span
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-            hw.status === "reviewed"
-              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-          }`}
-        >
-          {hw.status === "reviewed" ? t.homeworks.reviewed : t.homeworks.new_}
-        </span>
-      </div>
-      <p className="mb-4 text-sm text-ink">
-        {hw.submission_text ?? hw.submission_url ?? "—"}
-      </p>
+    <Modal open onClose={onClose} size="lg">
+      <ModalHeader title={displayName} onClose={onClose} />
+      <ModalBody>
+        <div className="space-y-4">
+          {/* Meta: lesson + timestamp */}
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+            {hw.lesson_title && (
+              <span className="rounded-md bg-surface px-2 py-1 text-xs font-medium">
+                {t.homeworks.lesson}: {hw.lesson_title}
+              </span>
+            )}
+            <span className="rounded-md bg-surface px-2 py-1 text-xs font-medium">
+              {t.homeworks.submittedAt}: {new Date(hw.created_at).toLocaleString()}
+            </span>
+            {hw.user_phone && (
+              <span className="rounded-md bg-surface px-2 py-1 text-xs font-medium">
+                {hw.user_phone}
+              </span>
+            )}
+          </div>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="mb-1 block font-semibold text-ink">{t.homeworks.score} (0-100)</span>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            value={score}
-            onChange={(e) => setScore(Number(e.target.value))}
-            className="w-24 rounded-lg border border-line bg-card px-3 py-2 text-ink outline-none focus:border-wine dark:bg-[#251d20]"
-          />
-        </label>
-        <label className="flex-1 text-sm">
-          <span className="mb-1 block font-semibold text-ink">{t.homeworks.feedback}</span>
-          <input
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            placeholder="..."
-            className="w-full rounded-lg border border-line bg-card px-3 py-2 text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20]"
-          />
-        </label>
+          {/* Text answer */}
+          <div>
+            <h3 className="mb-2 inline-flex items-center gap-1 text-sm font-bold text-ink">
+              <FileText size={14} /> {t.homeworks.textAnswer}
+            </h3>
+            {hw.submission_text ? (
+              <div className="max-h-64 overflow-y-auto rounded-xl border border-line bg-surface p-4 text-sm leading-relaxed text-ink">
+                {hw.submission_text}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-dashed border-line bg-surface p-4 text-sm text-muted">
+                {t.homeworks.noTextAnswer}
+              </p>
+            )}
+          </div>
+
+          {/* Voice answer */}
+          <div>
+            <h3 className="mb-2 inline-flex items-center gap-1 text-sm font-bold text-ink">
+              <Headphones size={14} /> {t.homeworks.voiceAnswer}
+            </h3>
+            {isAudioPlayable ? (
+              <div className="rounded-xl border border-line bg-surface p-3">
+                <audio
+                  src={audioSrc ?? undefined}
+                  controls
+                  className="w-full"
+                  preload="metadata"
+                />
+              </div>
+            ) : (
+              <p className="rounded-xl border border-dashed border-line bg-surface p-4 text-sm text-muted">
+                {t.homeworks.noVoiceAnswer}
+              </p>
+            )}
+          </div>
+
+          {/* Grade form */}
+          <div className="border-t border-line pt-4">
+            <h3 className="mb-3 text-sm font-bold text-ink">{t.homeworks.grade}</h3>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[120px_1fr]">
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold text-ink">
+                  {t.homeworks.score} (0-100)
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={score}
+                  onChange={(e) => setScore(Number(e.target.value))}
+                  className="w-full rounded-lg border border-line bg-card px-3 py-2 text-ink outline-none focus:border-wine dark:bg-[#251d20]"
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold text-ink">
+                  {t.homeworks.feedback}
+                </span>
+                <textarea
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  rows={3}
+                  placeholder="..."
+                  className="w-full rounded-lg border border-line bg-card px-3 py-2 text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20]"
+                />
+              </label>
+            </div>
+            {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+          </div>
+        </div>
+      </ModalBody>
+      <ModalFooter>
         <button
-          disabled={saving}
-          onClick={async () => {
-            setSaving(true);
-            try {
-              await onGrade(score, feedback);
-            } finally {
-              setSaving(false);
-            }
-          }}
-          className="rounded-lg bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark disabled:opacity-60"
+          type="button"
+          onClick={onClose}
+          className="rounded-xl border border-line px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
         >
-          {saving ? t.common.saving : t.homeworks.grade}
+          {t.common.cancel}
         </button>
-      </div>
-    </div>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => void onGrade(score, feedback)}
+          className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark disabled:opacity-60"
+        >
+          {saving && (
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          )}
+          {saving ? t.homeworks.grading : t.homeworks.submitGrade}
+        </button>
+      </ModalFooter>
+    </Modal>
   );
 }

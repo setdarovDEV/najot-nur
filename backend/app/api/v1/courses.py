@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, File, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
@@ -31,6 +31,7 @@ from app.schemas.course import (
     QuizResult,
     QuizSubmitRequest,
 )
+from app.services import storage
 from app.services.certificate_service import build_certificate_pdf, generate_serial
 
 router = APIRouter()
@@ -400,6 +401,12 @@ async def complete_lesson(
 # ─────────────────── Homework ───────────────────
 
 class HomeworkSubmit(BaseModel):
+    """Text and voice homework can be submitted together or independently.
+
+    A student may send a text answer first and then attach a voice recording
+    (or vice versa). Either field is optional but at least one must be set.
+    """
+
     submission_text: str | None = None
     submission_url: str | None = None
 
@@ -431,14 +438,19 @@ async def my_homework(
     }
 
 
-@router.post("/lessons/{lesson_id}/homework", response_model=Message)
-async def submit_homework(
+@router.post("/lessons/{lesson_id}/homework/audio", response_model=dict)
+async def upload_homework_audio(
     lesson_id: uuid.UUID,
-    payload: HomeworkSubmit,
     user: CurrentUser,
     db: DbSession,
-) -> Message:
-    """Submit or resubmit homework for a lesson."""
+    file: UploadFile = File(...),
+) -> dict:
+    """Upload a voice recording for homework and return a server URL.
+
+    The mobile app calls this endpoint first to upload the audio file, then
+    calls ``POST /lessons/{id}/homework`` with the returned ``audio_url`` in
+    ``submission_url`` (optionally alongside text in ``submission_text``).
+    """
     lesson = await db.get(Lesson, lesson_id)
     if lesson is None:
         raise NotFoundError("Dars topilmadi.")
@@ -454,8 +466,70 @@ async def submit_homework(
     if enrollment is None:
         raise ForbiddenError("Bu kursga yozilmagansiz.")
 
-    if not payload.submission_text and not payload.submission_url:
-        raise AppError("Matn yoki fayl URL kiriting.", status_code=400)
+    content_type = file.content_type or ""
+    if not content_type.startswith("audio/"):
+        raise AppError(
+            "Faqat audio fayllari qabul qilinadi (audio/*).",
+            status_code=400,
+        )
+
+    data = await file.read()
+    if not data:
+        raise AppError("Audio fayl bo'sh.", status_code=400)
+
+    ext = (file.filename or "homework.m4a").rsplit(".", 1)[-1].lower()
+    if ext not in {"m4a", "mp3", "aac", "wav", "ogg", "webm"}:
+        ext = "m4a"
+
+    url = await storage.save_bytes(
+        data,
+        folder="homework",
+        filename=f"hw_{user.id}_{lesson_id}.{ext}",
+        content_type=content_type or "audio/mp4",
+    )
+    log.info(
+        "homework.audio_uploaded",
+        user_id=str(user.id),
+        lesson_id=str(lesson_id),
+        url=url,
+    )
+    return {"audio_url": url}
+
+
+@router.post("/lessons/{lesson_id}/homework", response_model=Message)
+async def submit_homework(
+    lesson_id: uuid.UUID,
+    payload: HomeworkSubmit,
+    user: CurrentUser,
+    db: DbSession,
+) -> Message:
+    """Submit or resubmit homework for a lesson.
+
+    A single Homework row per (user, lesson) can hold both text and voice.
+    Sending text after a voice submission preserves the existing voice URL,
+    and vice versa: only fields that are explicitly set in ``payload`` are
+    updated. Empty strings are treated as ``None``.
+    """
+    lesson = await db.get(Lesson, lesson_id)
+    if lesson is None:
+        raise NotFoundError("Dars topilmadi.")
+
+    enrollment = (
+        await db.execute(
+            select(Enrollment).where(
+                Enrollment.user_id == user.id,
+                Enrollment.course_id == lesson.course_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if enrollment is None:
+        raise ForbiddenError("Bu kursga yozilmagansiz.")
+
+    new_text = (payload.submission_text or "").strip() or None
+    new_url = (payload.submission_url or "").strip() or None
+
+    if not new_text and not new_url:
+        raise AppError("Matn yoki audio yuboring.", status_code=400)
 
     hw = (
         await db.execute(
@@ -469,10 +543,22 @@ async def submit_homework(
         hw = Homework(user_id=user.id, lesson_id=lesson_id)
         db.add(hw)
 
-    hw.submission_text = payload.submission_text
-    hw.submission_url = payload.submission_url
+    # Preserve existing text/url when the new payload does not provide them.
+    if new_text is not None:
+        hw.submission_text = new_text
+    if new_url is not None:
+        hw.submission_url = new_url
+
     hw.status = HomeworkStatus.submitted
     hw.curator_score = None
     hw.curator_feedback = None
     hw.reviewed_at = None
+    await db.flush()
+    log.info(
+        "homework.submitted",
+        user_id=str(user.id),
+        lesson_id=str(lesson_id),
+        has_text=bool(hw.submission_text),
+        has_audio=bool(hw.submission_url),
+    )
     return Message(message="Uy vazifasi yuborildi.")

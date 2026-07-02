@@ -171,7 +171,7 @@ export function AdminDashboard() {
           tone="bg-skyblue/10 text-skyblue dark:bg-skyblue/20 dark:text-skyblue"
         />
         <QuickLink
-          to="/courses"
+          to="/video-lessons"
           label="Video kurslar"
           value={totalCourses}
           icon={BookOpen}

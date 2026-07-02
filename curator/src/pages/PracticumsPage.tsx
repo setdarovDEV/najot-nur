@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Check,
   ChevronDown,
   ChevronUp,
   Edit2,
   Headphones,
+  Loader2,
   Mic,
   Play,
   Plus,
@@ -15,9 +17,11 @@ import {
 import { api, apiError, mediaUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { PageHeader } from "../components/Layout";
+import { Modal, ModalBody, ModalHeader } from "../components/Modal";
 import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
+import type { PracticumSubmission } from "../lib/types";
 
 interface Practicum {
   id: string;
@@ -58,6 +62,8 @@ export function PracticumsPage() {
   const [editTarget, setEditTarget] = useState<Practicum | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [openSubmission, setOpenSubmission] =
+    useState<PracticumSubmission | null>(null);
 
   const fetchPracticums = useCallback(async () => {
     try {
@@ -235,6 +241,7 @@ export function PracticumsPage() {
                   prev.map((x) => x.id === updated.id ? updated : x)
                 )
               }
+              onOpenSubmission={(sub) => setOpenSubmission(sub)}
             />
           ))}
         </div>
@@ -257,6 +264,13 @@ export function PracticumsPage() {
             );
             setEditTarget(null);
           }}
+        />
+      )}
+
+      {openSubmission && (
+        <SubmissionDetailModal
+          submission={openSubmission}
+          onClose={() => setOpenSubmission(null)}
         />
       )}
     </div>
@@ -327,6 +341,7 @@ function PracticumCard({
   onEdit,
   onDelete,
   onAudioUploaded,
+  onOpenSubmission,
 }: {
   practicum: Practicum;
   isAdmin: boolean;
@@ -337,6 +352,7 @@ function PracticumCard({
   onEdit: () => void;
   onDelete: () => void;
   onAudioUploaded: (updated: Practicum) => void;
+  onOpenSubmission: (sub: PracticumSubmission) => void;
 }) {
   const { t } = useLang();
   const p = t.practicums;
@@ -546,7 +562,128 @@ function PracticumCard({
             </span>
             {practicum.category && <span>Kategoriya: {practicum.category}</span>}
           </div>
+
+          {/* Submissions list */}
+          <SubmissionsSection
+            practicumId={practicum.id}
+            expertAudioUrl={practicum.expert_audio_url}
+            expertText={practicum.expert_text}
+            onOpenSubmission={onOpenSubmission}
+          />
         </div>
+      )}
+    </div>
+  );
+}
+
+function SubmissionsSection({
+  practicumId,
+  expertAudioUrl,
+  expertText,
+  onOpenSubmission,
+}: {
+  practicumId: string;
+  expertAudioUrl: string | null;
+  expertText: string | null;
+  onOpenSubmission: (sub: PracticumSubmission) => void;
+}) {
+  const { t } = useLang();
+  const p = t.practicums;
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["practicum-submissions", practicumId],
+    queryFn: async () => {
+      const r = await api.get<PracticumSubmission[]>(
+        `/practicums/${practicumId}/submissions`
+      );
+      return r.data;
+    },
+    // Skip fetch when there is no audio/text (nothing to grade against).
+    enabled: Boolean(expertAudioUrl || expertText),
+  });
+
+  return (
+    <div className="rounded-xl border border-line bg-card p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted">
+          {p.submissions}
+        </p>
+        {data && data.length > 0 && (
+          <span className="rounded-full bg-wine/10 px-2 py-0.5 text-[11px] font-bold text-wine">
+            {p.submissionCount(data.length)}
+          </span>
+        )}
+      </div>
+
+      {isLoading && (
+        <div className="flex items-center gap-2 py-4 text-sm text-muted">
+          <Loader2 size={14} className="animate-spin" /> {t.common.loading}
+        </div>
+      )}
+
+      {error && (
+        <p className="py-2 text-sm text-red-500">{apiError(error)}</p>
+      )}
+
+      {data && data.length === 0 && (
+        <p className="py-2 text-sm text-muted">{p.noSubmissions}</p>
+      )}
+
+      {data && data.length > 0 && (
+        <ul className="space-y-2">
+          {data.map((sub) => {
+            const score = sub.overall_score;
+            const accuracy = sub.accuracy_score;
+            const scoreColor =
+              score == null
+                ? "bg-line text-muted"
+                : score >= 85
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  : score >= 65
+                    ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+            const displayName =
+              sub.user_full_name || sub.user_phone || sub.id.slice(0, 8);
+            return (
+              <li key={sub.id}>
+                <button
+                  type="button"
+                  onClick={() => onOpenSubmission(sub)}
+                  className="flex w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 text-left transition hover:border-wine/40 hover:bg-wine/5"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-wine/10 text-xs font-bold text-wine">
+                    {(displayName[0] ?? "?").toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="truncate text-sm font-semibold text-ink">
+                        {displayName}
+                      </span>
+                      {sub.user_phone && (
+                        <span className="text-xs text-muted">{sub.user_phone}</span>
+                      )}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted">
+                      <span>{new Date(sub.created_at).toLocaleString()}</span>
+                      {accuracy != null && (
+                        <span>· {p.accuracy}: {accuracy}%</span>
+                      )}
+                    </div>
+                  </div>
+                  {score != null && (
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-bold ${scoreColor}`}
+                    >
+                      {score}/100
+                    </span>
+                  )}
+                  <span className="hidden text-xs font-semibold text-wine sm:inline">
+                    {p.viewAnalysis}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
@@ -908,6 +1045,311 @@ function Field({
     <div>
       <label className="mb-1.5 block text-sm font-bold text-ink">{label}</label>
       {children}
+    </div>
+  );
+}
+
+// ── Submission detail modal ──────────────────────────────────────────────────
+
+function SubmissionDetailModal({
+  submission,
+  onClose,
+}: {
+  submission: PracticumSubmission;
+  onClose: () => void;
+}) {
+  const { t } = useLang();
+  const p = t.practicums;
+  const displayName =
+    submission.user_full_name ||
+    submission.user_phone ||
+    submission.id.slice(0, 8);
+
+  const userAudioSrc = mediaUrl(submission.audio_url);
+  const overall = submission.overall_score;
+  const accuracy = submission.accuracy_score;
+  const wordAnalysis = submission.word_analysis ?? [];
+  const erroredWords = wordAnalysis.filter((w) => !w.is_correct);
+  const charStats = submission.char_stats;
+  const phonemeTips = charStats?.phoneme_tips ?? [];
+  const minimalPairs = charStats?.minimal_pairs ?? [];
+
+  return (
+    <Modal open onClose={onClose} size="xl">
+      <ModalHeader title={displayName} onClose={onClose} />
+      <ModalBody>
+        <div className="space-y-4">
+          {/* Meta */}
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+            <span className="rounded-md bg-surface px-2 py-1 font-medium">
+              {new Date(submission.created_at).toLocaleString()}
+            </span>
+            {submission.user_phone && (
+              <span className="rounded-md bg-surface px-2 py-1 font-medium">
+                {submission.user_phone}
+              </span>
+            )}
+            <span
+              className={`rounded-md px-2 py-1 font-semibold ${
+                submission.status === "done"
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  : submission.status === "failed"
+                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+              }`}
+            >
+              {submission.status}
+            </span>
+          </div>
+
+          {/* Score strip */}
+          <div className="grid grid-cols-2 gap-3">
+            <ScoreTile
+              label={p.overallScore}
+              value={overall}
+              color="wine"
+            />
+            <ScoreTile
+              label={p.accuracy}
+              value={accuracy}
+              color="indigo"
+              suffix="%"
+            />
+          </div>
+
+          {/* Summary */}
+          {submission.summary && (
+            <div className="rounded-xl border border-line bg-surface p-4">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted">
+                {t.homeworks?.grade ?? "Tahlil"}
+              </p>
+              <p className="text-sm leading-relaxed text-ink">
+                {submission.summary}
+              </p>
+            </div>
+          )}
+
+          {/* Audio players */}
+          {userAudioSrc && (
+            <div className="rounded-xl border border-line bg-surface p-3">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
+                {p.audio}
+              </p>
+              <p className="mb-2 text-xs text-muted">{p.userAudio}:</p>
+              <audio
+                src={userAudioSrc}
+                controls
+                className="w-full"
+                preload="metadata"
+              />
+            </div>
+          )}
+
+          {/* Reference + transcript */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-line bg-card p-4">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted">
+                {p.expertAudio}
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-inkSoft">
+                {submission.reference_text || "—"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-line bg-card p-4">
+              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted">
+                {p.transcript}
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
+                {submission.transcript || (
+                  <span className="italic text-muted">{p.noTranscript}</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Letter-by-letter analysis */}
+          <div>
+            <h3 className="mb-2 inline-flex items-center gap-1 text-sm font-bold text-ink">
+              <Mic size={14} /> {p.letterAnalysis}
+            </h3>
+            {wordAnalysis.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-line bg-surface p-4 text-sm text-muted">
+                {p.noAnalysis}
+              </p>
+            ) : erroredWords.length === 0 ? (
+              <p className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
+                ✓ Barcha so'zlar to'g'ri talaffuz qilindi.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {erroredWords.map((w, i) => {
+                  const ops = w.char_ops ?? [];
+                  return (
+                    <li
+                      key={`${w.reference_word}-${i}`}
+                      className="rounded-xl border border-line bg-card p-3"
+                    >
+                      <div className="mb-2 flex items-center gap-3">
+                        <span className="rounded-md bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">
+                          #{i + 1}
+                        </span>
+                        <span className="text-base font-extrabold text-ink">
+                          {w.reference_word}
+                        </span>
+                        {w.spoken_word && w.spoken_word !== w.reference_word && (
+                          <span className="text-sm text-muted">
+                            → "{w.spoken_word}"
+                          </span>
+                        )}
+                        <span
+                          className={`ml-auto rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                            w.word_score >= 65
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {w.word_score}/100
+                        </span>
+                      </div>
+
+                      {ops.length > 0 && (
+                        <div className="mb-2 flex flex-wrap gap-1.5">
+                          {w.reference_word.split("").map((ch, idx) => {
+                            const op = ops.find(
+                              (o) => o.position === idx,
+                            );
+                            const isMatch =
+                              op?.operation === "match" || op == null;
+                            return (
+                              <div
+                                key={idx}
+                                className={`flex h-9 w-9 flex-col items-center justify-center rounded-md border text-xs font-bold ${
+                                  isMatch
+                                    ? "border-green-200 bg-green-50 text-green-700"
+                                    : "border-red-200 bg-red-50 text-red-700"
+                                }`}
+                                title={op?.tip ?? "to'g'ri"}
+                              >
+                                <span>{ch}</span>
+                                {op && op.operation !== "match" && (
+                                  <span className="text-[9px] font-normal">
+                                    {op.spoken_char ?? "∅"}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {w.ai_comment && (
+                        <p className="text-xs text-inkSoft">
+                          💬 {w.ai_comment}
+                        </p>
+                      )}
+                      {w.recommendation && (
+                        <p className="mt-1 text-xs text-muted">
+                          💡 {w.recommendation}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Phoneme tips */}
+          {phonemeTips.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-sm font-bold text-ink">
+                Fonem mashqlari
+              </h3>
+              <ul className="space-y-2">
+                {phonemeTips.map((tip, i) => (
+                  <li
+                    key={i}
+                    className="rounded-xl border border-line bg-card p-3"
+                  >
+                    <div className="mb-1 flex items-center gap-2">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-wine text-sm font-extrabold text-white">
+                        {tip.char}
+                      </span>
+                      <span className="text-sm font-semibold text-ink">
+                        {tip.tip}
+                      </span>
+                    </div>
+                    {tip.tongue_position && (
+                      <p className="ml-9 text-xs text-muted">
+                        👅 {tip.tongue_position}
+                      </p>
+                    )}
+                    {tip.practice_words && tip.practice_words.length > 0 && (
+                      <div className="ml-9 mt-1.5 flex flex-wrap gap-1">
+                        {tip.practice_words.map((pw, j) => (
+                          <span
+                            key={j}
+                            className="rounded-md bg-surface px-2 py-0.5 text-[11px] font-semibold text-ink"
+                          >
+                            {pw}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Minimal pairs */}
+          {minimalPairs.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-sm font-bold text-ink">
+                Minimal juftliklar
+              </h3>
+              <div className="flex flex-wrap gap-1.5">
+                {minimalPairs.map((mp, i) => (
+                  <span
+                    key={i}
+                    className="rounded-md border border-green-200 bg-green-50 px-2 py-1 text-xs font-semibold text-green-700"
+                  >
+                    {mp}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </ModalBody>
+    </Modal>
+  );
+}
+
+function ScoreTile({
+  label,
+  value,
+  color,
+  suffix,
+}: {
+  label: string;
+  value: number | null | undefined;
+  color: "wine" | "indigo";
+  suffix?: string;
+}) {
+  const bg =
+    color === "wine"
+      ? "bg-wine/8 border-wine/20"
+      : "bg-indigo-50 border-indigo-200";
+  const text = color === "wine" ? "text-wine" : "text-indigo-700";
+  return (
+    <div className={`rounded-xl border p-4 ${bg}`}>
+      <p className={`text-xs font-bold uppercase tracking-wider ${text}`}>
+        {label}
+      </p>
+      <p className="mt-1 text-3xl font-black text-ink">
+        {value == null ? "—" : `${value}${suffix ?? "/100"}`}
+      </p>
     </div>
   );
 }

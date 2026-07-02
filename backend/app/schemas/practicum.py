@@ -23,6 +23,7 @@ class PracticumRead(BaseModel):
     category: str | None
     expert_text: str | None
     expert_audio_url: str | None
+    expert_transcript: str | None = None
     is_free: bool
     price: float
     status: str
@@ -41,6 +42,9 @@ class PracticumSubmissionRead(BaseModel):
     overall_score: int | None
     status: str
     created_at: datetime
+    # joined metadata for the curator list
+    user_full_name: str | None = None
+    user_phone: str | None = None
     # voice analysis fields (flattened for convenience):
     accuracy_score: int | None = None
     word_errors: list | None = None
@@ -48,3 +52,4 @@ class PracticumSubmissionRead(BaseModel):
     char_stats: dict | None = None
     phoneme_errors: list | None = None
     summary: str | None = None
+    reference_text: str | None = None

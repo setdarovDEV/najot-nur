@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/practicum_models.dart';
 import '../../providers/providers.dart';
+import '../../shared/widgets/deep_letter_analysis.dart';
 import '../../shared/widgets/voice_recorder.dart';
 
 class PracticumDetailScreen extends ConsumerWidget {
@@ -626,6 +627,14 @@ class _VoicePracticeSection extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   VoiceAnalysisResult(submission: sub),
+                  const SizedBox(height: 16),
+                  DeepLetterAnalysis(
+                    expertAudioUrl: practicum.expertAudioUrl,
+                    userAudioUrl: sub.audioUrl,
+                    referenceText: practicum.expertText,
+                    transcript: sub.transcript,
+                    wordAnalysis: sub.wordAnalysis ?? const [],
+                  ),
                 ],
               ),
             );

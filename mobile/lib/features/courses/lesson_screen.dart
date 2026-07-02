@@ -731,19 +731,38 @@ class _HomeworkTabState extends ConsumerState<_HomeworkTab> {
   }
 
   Future<void> _submitVoice(String filePath) async {
-    await ref.read(learningRepositoryProvider).submitHomework(
-          lessonId: widget.lessonId,
-          submissionUrl: filePath,
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      // Upload the audio file first to get a real server URL, then send it
+      // alongside (or instead of) the previously submitted text.
+      final audioUrl =
+          await ref.read(learningRepositoryProvider).uploadHomeworkAudio(
+                lessonId: widget.lessonId,
+                filePath: filePath,
+              );
+      await ref.read(learningRepositoryProvider).submitHomework(
+            lessonId: widget.lessonId,
+            submissionUrl: audioUrl,
+          );
+      ref.invalidate(lessonHomeworkProvider(widget.lessonId));
+      if (mounted) {
+        setState(() => _editing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ovozli uyga vazifa yuborildi!'),
+            backgroundColor: AppColors.wine,
+          ),
         );
-    ref.invalidate(lessonHomeworkProvider(widget.lessonId));
-    if (mounted) {
-      setState(() => _editing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ovozli uyga vazifa yuborildi!'),
-          backgroundColor: AppColors.wine,
-        ),
-      );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
   }
 

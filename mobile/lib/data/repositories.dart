@@ -579,6 +579,40 @@ class LearningRepository {
     }
   }
 
+  /// Upload a recorded voice file for homework and return the server URL
+  /// that should be sent in ``submitHomework(submissionUrl: ...)``.
+  Future<String> uploadHomeworkAudio({
+    required String lessonId,
+    required String filePath,
+  }) async {
+    try {
+      final form = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          filePath,
+          filename: 'homework_${DateTime.now().millisecondsSinceEpoch}.m4a',
+        ),
+      });
+      final r = await _api.dio.post(
+        '/courses/lessons/$lessonId/homework/audio',
+        data: form,
+        options: Options(
+          sendTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 60),
+        ),
+      );
+      final url = (r.data as Map<String, dynamic>)['audio_url'] as String?;
+      if (url == null || url.isEmpty) {
+        throw Exception('Server audio URL qaytarmadi.');
+      }
+      return url;
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  /// Submit (or update) homework for a lesson. Text and voice are merged
+  /// into a single Homework row on the server: passing only the voice URL
+  /// preserves the previously submitted text, and vice versa.
   Future<void> submitHomework({
     required String lessonId,
     String? submissionText,

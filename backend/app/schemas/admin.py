@@ -38,6 +38,10 @@ class HomeworkRow(BaseModel):
     curator_feedback: str | None
     reviewed_at: datetime | None
     created_at: datetime
+    # joined metadata for the curator list
+    user_full_name: str | None = None
+    user_phone: str | None = None
+    lesson_title: str | None = None
 
 
 class GradeRequest(BaseModel):

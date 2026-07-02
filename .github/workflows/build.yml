@@ -178,11 +178,26 @@ jobs:
             echo "▶ Git pull (config/Caddyfile changes)..."
             git pull --ff-only origin main
 
-            # Image'larni oldindan tortamiz. Bounded timeout — registry sekin
-            # bo'lsa ham cheksiz osilib qolmasin.
-            echo "▶ Image lar GHCR dan tortilmoqda (maks 12 min)..."
-            if ! timeout 12m docker compose pull; then
-              echo "✗ docker compose pull timeout/xato berdi." >&2
+            # Image'larni oldindan tortamiz. ghcr.io ba'zan TLS handshake
+            # timeout beradi (server↔ghcr tarmog'i flaky) — shuning uchun
+            # retry bilan o'raymiz. Tortilgan image'lar cache'da qoladi, shu
+            # bois qayta urinish faqat uzilgan image'ni tortadi (tez).
+            echo "▶ Image lar GHCR dan tortilmoqda (retry bilan)..."
+            pull_ok=0
+            for attempt in 1 2 3 4; do
+              echo "  ▶ pull urinish ${attempt}/4..."
+              if timeout 6m docker compose pull; then
+                pull_ok=1
+                break
+              fi
+              if [ "$attempt" -lt 4 ]; then
+                wait_s=$((attempt * 15))
+                echo "  ⚠ urinish ${attempt} muvaffaqiyatsiz (ghcr.io TLS/tarmoq flaky). ${wait_s}s kutib qayta urinamiz..." >&2
+                sleep "$wait_s"
+              fi
+            done
+            if [ "$pull_ok" -ne 1 ]; then
+              echo "✗ docker compose pull 4 urinishdan keyin ham muvaffaqiyatsiz (ghcr.io tarmoq muammosi)." >&2
               exit 1
             fi
 

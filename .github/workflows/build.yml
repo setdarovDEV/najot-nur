@@ -75,9 +75,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
+      # QEMU olib tashlandi: biz faqat linux/amd64 quramiz va runner ham
+      # amd64. Emulyatsiya kerak emas — u faqat build'ni sekinlashtiradi.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -171,29 +170,46 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key_path: /home/runner/.ssh/deploy_key
-          command_timeout: 30m
+          command_timeout: 20m
           script: |
-            set -euo pipefail
+            set -uo pipefail
             cd /opt/notiqai
 
             echo "▶ Git pull (config/Caddyfile changes)..."
             git pull --ff-only origin main
 
-            echo "▶ Image lar GHCR dan tortilmoqda..."
-            docker compose pull
+            # Image'larni oldindan tortamiz. Bounded timeout — registry sekin
+            # bo'lsa ham cheksiz osilib qolmasin.
+            echo "▶ Image lar GHCR dan tortilmoqda (maks 12 min)..."
+            if ! timeout 12m docker compose pull; then
+              echo "✗ docker compose pull timeout/xato berdi." >&2
+              exit 1
+            fi
 
-            echo "▶ Konteynerlar qayta yaratilmoqda..."
-            docker compose up -d
+            # Konteynerlarni qayta yaratamiz. depends_on: service_healthy sabab
+            # `up -d` sog'lomlikni kutadi — biror servis sog'lom bo'lolmasa
+            # cheksiz osilmasligi uchun `timeout` bilan chegaralaymiz.
+            echo "▶ Konteynerlar qayta yaratilmoqda (maks 6 min)..."
+            if ! timeout 6m docker compose up -d --remove-orphans; then
+              echo "⚠ up -d 6 min ichida tugamadi — sog'lom bo'lmagan servis loglari:" >&2
+              for svc in backend admin curator landing nginx; do
+                if [ "$(docker inspect -f '{{.State.Health.Status}}' "notiq_${svc}" 2>/dev/null)" != "healthy" ]; then
+                  echo "──── $svc (oxirgi 40 qator) ────" >&2
+                  docker compose logs --tail 40 "$svc" 2>&1 | sed 's/^/    /' >&2
+                fi
+              done
+              exit 1
+            fi
 
             echo "▶ Nginx reload (config o'zgargan bo'lsa)..."
             docker compose exec -T nginx nginx -s reload 2>/dev/null || true
 
             echo "▶ Caddy reload (config o'zgargan bo'lsa)..."
-            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true
 
             echo "▶ Domenlar tekshirilmoqda..."
             for domain in admin.notiqlik.uz curator.notiqlik.uz notiqlik.uz api.notiqlik.uz; do
-              status=$(curl -sk -o /dev/null -w "%{http_code}" "https://$domain" 2>/dev/null || echo "000")
+              status=$(curl -sk --max-time 10 -o /dev/null -w "%{http_code}" "https://$domain" 2>/dev/null || echo "000")
               echo "  $domain → HTTP $status"
               if [ "$status" = "000" ] || [ "$status" -ge "500" ]; then
                 echo "  ⚠ $domain not responding correctly"

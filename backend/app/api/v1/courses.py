@@ -112,7 +112,7 @@ async def my_enrollment_status(user: CurrentUser, db: DbSession) -> dict:
         await db.execute(
             select(Enrollment.id).where(
                 Enrollment.user_id == user.id,
-                Enrollment.status == EnrollmentStatus.active,
+                Enrollment.status.in_([EnrollmentStatus.active, EnrollmentStatus.completed]),
             ).limit(1)
         )
     ).scalar_one_or_none()

@@ -215,3 +215,38 @@ export interface CertificateRequest {
   created_at: string;
   reviewed_at: string | null;
 }
+
+export interface StudentStats {
+  course: {
+    lessons_total: number;
+    lessons_completed: number;
+    progress_pct: number;
+    status: string;
+    lessons: {
+      title: string;
+      order_index: number;
+      completed: boolean;
+      quiz_score: number | null;
+    }[];
+  };
+  audiobooks: {
+    title: string;
+    author: string | null;
+    current_page: number;
+    total_pages: number;
+    last_listened_at: string;
+  }[];
+  practicums: {
+    title: string;
+    score: number | null;
+    status: string;
+    submitted_at: string;
+  }[];
+  speech_analyses: {
+    overall_score: number;
+    meaning_score: number;
+    fluency_score: number;
+    summary: string;
+    created_at: string;
+  }[];
+}

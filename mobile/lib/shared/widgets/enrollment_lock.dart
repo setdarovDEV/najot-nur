@@ -41,59 +41,84 @@ class EnrollmentLock extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final copy = _copy(l, reason);
-    return Center(
+    return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.fromLTRB(20, 32, 20, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Icon container
             Container(
-              width: 96,
-              height: 96,
+              width: 88,
+              height: 88,
               decoration: BoxDecoration(
-                color: AppColors.wine.withValues(alpha: 0.08),
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.wine.withValues(alpha: 0.12),
+                    AppColors.wine.withValues(alpha: 0.06),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.wine.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
               ),
               child: Icon(
-                Icons.lock_rounded,
-                size: 44,
-                color: AppColors.wine.withValues(alpha: 0.7),
+                Icons.lock_outline_rounded,
+                size: 40,
+                color: AppColors.wine.withValues(alpha: 0.8),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+
+            // Title
             Text(
               copy.title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: AppColors.ink,
+                height: 1.3,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
+
+            // Body
             Text(
               copy.body,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 14,
                 color: AppColors.muted,
-                height: 1.5,
+                height: 1.6,
               ),
             ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: () => context.go('/home'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.wine,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              child: Text(
-                copy.cta,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
+            const SizedBox(height: 28),
+
+            // CTA button
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => context.go('/home'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.wine,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                icon: const Icon(Icons.school_outlined, color: Colors.white, size: 20),
+                label: Text(
+                  copy.cta,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ),

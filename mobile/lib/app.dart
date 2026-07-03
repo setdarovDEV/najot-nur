@@ -24,12 +24,12 @@ class _NotiqAiAppState extends ConsumerState<NotiqAiApp> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _initPush();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) await _initPush();
     });
   }
 
-  void _initPush() {
+  Future<void> _initPush() async {
     final push = ref.read(pushServiceProvider);
     push.onOrderStatusChanged = (status, courseId, audiobookId) {
       // Invalidate orders list so status badge updates everywhere.
@@ -49,7 +49,7 @@ class _NotiqAiAppState extends ConsumerState<NotiqAiApp> {
     push.onNavigate = (route) {
       ref.read(goRouterProvider).go(route);
     };
-    push.init();
+    await push.init();
   }
 
   @override

@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/quiz_models.dart';
 import '../../providers/providers.dart';
+import '../../shared/widgets/enrollment_lock.dart';
 import '../practicums/practicum_card.dart';
 
 class QuizzesTab extends ConsumerWidget {
@@ -20,6 +21,13 @@ class QuizzesTab extends ConsumerWidget {
     if (!auth.isLoggedIn) {
       return _LoginGate(l: l);
     }
+
+    final enrollment = ref.watch(enrollmentStatusProvider);
+    final isLocked = enrollment.when(
+      loading: () => false,
+      error: (_, __) => false,
+      data: (s) => !s.hasActiveEnrollment && !s.isStaff,
+    );
 
     return DefaultTabController(
       length: 2,
@@ -49,6 +57,44 @@ class QuizzesTab extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (isLocked)
+                GestureDetector(
+                  onTap: () => context.go('/home'),
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.wine.withValues(alpha: 0.12),
+                          AppColors.wine.withValues(alpha: 0.06),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: AppColors.wine.withValues(alpha: 0.25)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.lock_outline_rounded,
+                            color: AppColors.wine, size: 16),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Ko\'rish rejimi — topshirish uchun kurs kerak',
+                            style: TextStyle(
+                                color: AppColors.wine,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 12, color: AppColors.wine),
+                      ],
+                    ),
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
@@ -134,6 +180,11 @@ class _PracticumsList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final practicumsAsync = ref.watch(practicumsProvider);
+    final isLocked = ref.watch(enrollmentStatusProvider).when(
+      loading: () => false,
+      error: (_, __) => false,
+      data: (s) => !s.hasActiveEnrollment && !s.isStaff,
+    );
 
     return practicumsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -150,7 +201,10 @@ class _PracticumsList extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           itemCount: approved.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (_, i) => PracticumInlineCard(practicum: approved[i]),
+          itemBuilder: (_, i) => PracticumInlineCard(
+            practicum: approved[i],
+            isLocked: isLocked,
+          ),
         );
       },
     );

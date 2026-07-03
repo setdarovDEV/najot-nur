@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
@@ -49,6 +50,81 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     }
   }
 
+  void _showLockedSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.line,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.wine.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.lock_rounded,
+                  color: AppColors.wine, size: 30),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Natijani ko\'rish uchun kurs kerak',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 17,
+                color: AppColors.ink,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Testni to\'liq topshirib ball olish va natijangizni ko\'rish uchun avval kurs sotib oling.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.muted, fontSize: 14, height: 1.5),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.go('/home');
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.wine,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+                icon: const Icon(Icons.school_outlined,
+                    color: Colors.white, size: 20),
+                label: const Text(
+                  'Kurs sotib olish',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     final quiz = _quiz;
     if (quiz == null) return;
@@ -87,14 +163,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     final isLocked = enrollment.when(
       loading: () => false,
       error: (_, __) => false,
-      data: (s) => !s.hasActiveEnrollment,
+      data: (s) => !s.hasActiveEnrollment && !s.isStaff,
     );
-    if (isLocked) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l.testsTitle)),
-        body: const EnrollmentLock(reason: EnrollmentLockReason.quiz),
-      );
-    }
 
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -228,7 +298,11 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                         ? null
                         : () {
                             if (isLast) {
-                              _submit();
+                              if (isLocked) {
+                                _showLockedSheet(context);
+                              } else {
+                                _submit();
+                              }
                             } else {
                               setState(() => _currentIndex++);
                             }

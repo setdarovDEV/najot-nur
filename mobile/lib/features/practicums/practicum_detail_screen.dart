@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -25,19 +26,8 @@ class PracticumDetailScreen extends ConsumerWidget {
     final isLocked = enrollment.when(
       loading: () => false,
       error: (_, __) => false,
-      data: (s) => !s.hasActiveEnrollment,
+      data: (s) => !s.hasActiveEnrollment && !s.isStaff,
     );
-    if (isLocked) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(l.practicumsTitle),
-          backgroundColor: Colors.white,
-          foregroundColor: AppColors.ink,
-          elevation: 0,
-        ),
-        body: const EnrollmentLock(reason: EnrollmentLockReason.practicum),
-      );
-    }
 
     final async = ref.watch(practicumDetailProvider(practicumId));
 
@@ -52,16 +42,25 @@ class PracticumDetailScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(l.errorPrefix(e.toString()))),
-        data: (p) => _Body(practicum: p, practicumId: practicumId),
+        data: (p) => _Body(
+          practicum: p,
+          practicumId: practicumId,
+          isLocked: isLocked,
+        ),
       ),
     );
   }
 }
 
 class _Body extends ConsumerStatefulWidget {
-  const _Body({required this.practicum, required this.practicumId});
+  const _Body({
+    required this.practicum,
+    required this.practicumId,
+    required this.isLocked,
+  });
   final Practicum practicum;
   final String practicumId;
+  final bool isLocked;
 
   @override
   ConsumerState<_Body> createState() => _BodyState();
@@ -480,19 +479,22 @@ class _BodyState extends ConsumerState<_Body> {
 
           const SizedBox(height: 16),
 
-          // Voice practice section (only when reference text exists)
+          // Voice practice section
           if (p.expertText != null && p.expertText!.isNotEmpty)
-            _VoicePracticeSection(
-              practicum: p,
-              onSubmit: (filePath) async {
-                await ref
-                    .read(practicumRepositoryProvider)
-                    .submitVoice(widget.practicumId, filePath);
-                ref.invalidate(myPracticumSubmissionProvider(widget.practicumId));
-              },
-              submissionAsync:
-                  ref.watch(myPracticumSubmissionProvider(widget.practicumId)),
-            )
+            widget.isLocked
+                ? _LockedPracticeSection(practicum: p)
+                : _VoicePracticeSection(
+                    practicum: p,
+                    onSubmit: (filePath) async {
+                      await ref
+                          .read(practicumRepositoryProvider)
+                          .submitVoice(widget.practicumId, filePath);
+                      ref.invalidate(
+                          myPracticumSubmissionProvider(widget.practicumId));
+                    },
+                    submissionAsync: ref
+                        .watch(myPracticumSubmissionProvider(widget.practicumId)),
+                  )
           else
             Container(
               padding: const EdgeInsets.all(16),
@@ -525,6 +527,291 @@ class _BodyState extends ConsumerState<_Body> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Locked Practice Section (non-enrolled preview) ───────────────────────────
+
+class _LockedPracticeSection extends StatelessWidget {
+  const _LockedPracticeSection({required this.practicum});
+  final Practicum practicum;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Section header (same style as unlocked, but locked state)
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.wine.withValues(alpha: 0.08),
+                AppColors.wine.withValues(alpha: 0.03),
+              ],
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.wine.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.mic_rounded,
+                    color: AppColors.wine, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ovozli mashq',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  Text(
+                    'Matnni o\'qing — AI tahlil qiladi',
+                    style: TextStyle(color: AppColors.muted, fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Locked content
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius:
+                const BorderRadius.vertical(bottom: Radius.circular(20)),
+            border: Border(
+              left: BorderSide(color: AppColors.wine.withValues(alpha: 0.15)),
+              right: BorderSide(color: AppColors.wine.withValues(alpha: 0.15)),
+              bottom: BorderSide(color: AppColors.wine.withValues(alpha: 0.15)),
+            ),
+          ),
+          child: Column(
+            children: [
+              // AI preview cards (what they'd get)
+              Row(
+                children: [
+                  _PreviewMetric(
+                    icon: Icons.stars_rounded,
+                    label: 'Umumiy ball',
+                    value: '—/100',
+                    color: AppColors.wine,
+                  ),
+                  const SizedBox(width: 10),
+                  _PreviewMetric(
+                    icon: Icons.track_changes_rounded,
+                    label: 'Aniqlik',
+                    value: '—%',
+                    color: Colors.blue,
+                  ),
+                  const SizedBox(width: 10),
+                  _PreviewMetric(
+                    icon: Icons.spellcheck_rounded,
+                    label: 'Xato so\'zlar',
+                    value: '—',
+                    color: Colors.orange,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // AI analysis preview blurred hint
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.line),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.auto_awesome_rounded,
+                            size: 16, color: AppColors.wine),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'AI tahlil ko\'rinishi:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: AppColors.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _BlurredLine(width: double.infinity),
+                    const SizedBox(height: 6),
+                    _BlurredLine(width: 220),
+                    const SizedBox(height: 6),
+                    _BlurredLine(width: 180),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        _BlurredChip(),
+                        const SizedBox(width: 8),
+                        _BlurredChip(width: 80),
+                        const SizedBox(width: 8),
+                        _BlurredChip(width: 60),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Lock icon + message
+              const Icon(Icons.lock_rounded, size: 36, color: AppColors.wine),
+              const SizedBox(height: 10),
+              const Text(
+                'Ovoz yozish va AI tahlil olish\nuchun kurs sotib oling',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: AppColors.ink,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Kurs egalari:\n• Ovoz yozib topshiradi\n• AI talaffuz tahlilini oladi\n• So\'z va fonem xatolarini ko\'radi\n• Ekspert ovozi bilan solishtiriladi',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 13,
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // CTA button
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => context.go('/home'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.wine,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  icon: const Icon(Icons.school_outlined,
+                      color: Colors.white, size: 20),
+                  label: const Text(
+                    'Kurs sotib olish',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PreviewMetric extends StatelessWidget {
+  const _PreviewMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.15)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 20, color: color.withValues(alpha: 0.6)),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                color: color.withValues(alpha: 0.4),
+              ),
+            ),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.muted, fontSize: 10),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BlurredLine extends StatelessWidget {
+  const _BlurredLine({this.width = double.infinity});
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: 10,
+      decoration: BoxDecoration(
+        color: AppColors.muted.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+    );
+  }
+}
+
+class _BlurredChip extends StatelessWidget {
+  const _BlurredChip({this.width = 100});
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: 24,
+      decoration: BoxDecoration(
+        color: AppColors.wine.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
       ),
     );
   }

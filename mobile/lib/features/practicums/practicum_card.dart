@@ -5,8 +5,13 @@ import '../../core/theme/app_colors.dart';
 import '../../models/practicum_models.dart';
 
 class PracticumInlineCard extends StatelessWidget {
-  const PracticumInlineCard({super.key, required this.practicum});
+  const PracticumInlineCard({
+    super.key,
+    required this.practicum,
+    this.isLocked = false,
+  });
   final Practicum practicum;
+  final bool isLocked;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +69,21 @@ class PracticumInlineCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (practicum.expertAudioUrl != null)
+                  if (isLocked)
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppColors.wine.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.lock_outline_rounded,
+                        size: 18,
+                        color: AppColors.wine,
+                      ),
+                    )
+                  else if (practicum.expertAudioUrl != null)
                     Container(
                       width: 38,
                       height: 38,

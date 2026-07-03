@@ -74,10 +74,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             loading: () => const _DarkScaffold(
                 child: Center(
                     child: CircularProgressIndicator(color: Colors.white54))),
-            error: (_, __) => _LockedGate(
-              book: b,
-              onBuy: () => _onBuyPressed(context, b),
-              onBack: () => Navigator.of(context).pop(),
+            error: (_, __) => Scaffold(
+              body: ErrorView(
+                message: 'Kirish tekshirishda xatolik. Qaytadan urinib ko\'ring.',
+                onRetry: () => ref.invalidate(audiobookAccessProvider(widget.audiobookId)),
+              ),
             ),
             data: (a) {
               if (a.canRead) {
@@ -166,11 +167,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
     final url = ref.read(apiClientProvider).resolveMediaUrl(raw);
     if (url != _loadedUrl || widget.pageIndex != _loadedPage) {
       try {
-        setState(() {
-          _error = null;
-          _loadedUrl = url;
-          _loadedPage = widget.pageIndex;
-        });
+        setState(() => _error = null);
         final artUri = widget.book.coverUrl != null &&
                 widget.book.coverUrl!.isNotEmpty
             ? Uri.tryParse(
@@ -183,6 +180,10 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
           artUri: artUri,
         );
         await _handler.setSpeed(_speed);
+        setState(() {
+          _loadedUrl = url;
+          _loadedPage = widget.pageIndex;
+        });
       } catch (e) {
         setState(() => _error = l.audioLoadError(e.toString()));
         return;

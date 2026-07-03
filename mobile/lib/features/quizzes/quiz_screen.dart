@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/quiz_models.dart';
 import '../../providers/providers.dart';
+import '../../shared/widgets/enrollment_lock.dart';
 
 class QuizScreen extends ConsumerStatefulWidget {
   const QuizScreen({super.key, required this.quizId});
@@ -81,6 +82,19 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+
+    final enrollment = ref.watch(enrollmentStatusProvider);
+    final isLocked = enrollment.when(
+      loading: () => false,
+      error: (_, __) => false,
+      data: (s) => !s.hasActiveEnrollment,
+    );
+    if (isLocked) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l.testsTitle)),
+        body: const EnrollmentLock(reason: EnrollmentLockReason.quiz),
+      );
+    }
 
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
@@ -507,13 +508,18 @@ class _CertificateCard extends StatelessWidget {
           const SizedBox(height: 14),
           if (cert.pdfUrl != null)
             OutlinedButton.icon(
-              onPressed: () {
-                final url = cert.pdfUrl!.startsWith('http')
+              onPressed: () async {
+                final rawUrl = cert.pdfUrl!.startsWith('http')
                     ? cert.pdfUrl!
                     : '${AppConstants.apiUrl.replaceAll('/api/v1', '')}${cert.pdfUrl}';
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l.pdfUrl(url))),
-                );
+                final uri = Uri.tryParse(rawUrl);
+                if (uri == null) return;
+                final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                if (!ok && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l.pdfUrl(rawUrl))),
+                  );
+                }
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.white,

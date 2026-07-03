@@ -10,6 +10,7 @@ import '../../l10n/gen/app_localizations.dart';
 import '../../models/practicum_models.dart';
 import '../../providers/providers.dart';
 import '../../shared/widgets/deep_letter_analysis.dart';
+import '../../shared/widgets/enrollment_lock.dart';
 import '../../shared/widgets/voice_recorder.dart';
 
 class PracticumDetailScreen extends ConsumerWidget {
@@ -19,6 +20,25 @@ class PracticumDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+
+    final enrollment = ref.watch(enrollmentStatusProvider);
+    final isLocked = enrollment.when(
+      loading: () => false,
+      error: (_, __) => false,
+      data: (s) => !s.hasActiveEnrollment,
+    );
+    if (isLocked) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(l.practicumsTitle),
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.ink,
+          elevation: 0,
+        ),
+        body: const EnrollmentLock(reason: EnrollmentLockReason.practicum),
+      );
+    }
+
     final async = ref.watch(practicumDetailProvider(practicumId));
 
     return Scaffold(

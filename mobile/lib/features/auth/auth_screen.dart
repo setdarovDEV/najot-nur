@@ -248,15 +248,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         backgroundColor: AppColors.white,
         foregroundColor: AppColors.wine,
         elevation: 0,
-        leading: _step == _Step.phone
+        automaticallyImplyLeading: false,
+        leading: _step != _Step.phone
             ? IconButton(
-                onPressed: () => context.pop(),
-                icon: const Icon(Icons.arrow_back),
-              )
-            : IconButton(
                 onPressed: _loading ? null : _goBack,
                 icon: const Icon(Icons.arrow_back),
-              ),
+              )
+            : null,
         title: Text(
           l.registerLogin,
           style: const TextStyle(

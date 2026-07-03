@@ -82,7 +82,7 @@ class EnrollmentLock extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: () => context.push('/courses'),
+              onPressed: () => context.go('/home'),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.wine,
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),

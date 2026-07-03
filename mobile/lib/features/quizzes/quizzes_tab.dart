@@ -7,7 +7,6 @@ import '../../core/theme/app_colors.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/quiz_models.dart';
 import '../../providers/providers.dart';
-import '../../shared/widgets/enrollment_lock.dart';
 import '../practicums/practicum_card.dart';
 
 class QuizzesTab extends ConsumerWidget {
@@ -21,8 +20,6 @@ class QuizzesTab extends ConsumerWidget {
     if (!auth.isLoggedIn) {
       return _LoginGate(l: l);
     }
-
-    final enrollment = ref.watch(enrollmentStatusProvider);
 
     return DefaultTabController(
       length: 2,
@@ -88,26 +85,12 @@ class QuizzesTab extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              Expanded(
-                child: enrollment.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (_, __) => const EnrollmentLock(
-                    reason: EnrollmentLockReason.generic,
-                  ),
-                  data: (status) {
-                    if (!status.hasActiveEnrollment) {
-                      return const EnrollmentLock(
-                        reason: EnrollmentLockReason.quiz,
-                      );
-                    }
-                    return const TabBarView(
-                      children: [
-                        _QuizzesList(),
-                        _PracticumsList(),
-                      ],
-                    );
-                  },
+              const Expanded(
+                child: TabBarView(
+                  children: [
+                    _QuizzesList(),
+                    _PracticumsList(),
+                  ],
                 ),
               ),
             ],

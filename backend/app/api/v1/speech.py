@@ -13,7 +13,7 @@ from types import SimpleNamespace
 from fastapi import APIRouter, File, Form, UploadFile
 from sqlalchemy import select
 
-from app.api.deps import DbSession, EnrolledUser, OptionalUser
+from app.api.deps import CurrentUser, DbSession, EnrolledUser, OptionalUser
 from app.core.config import settings
 from app.core.exceptions import AppError, NotFoundError
 from app.core.logging import get_logger
@@ -156,7 +156,7 @@ async def free_talk_audio(
 
 
 @router.get("/history", response_model=list[SpeechAnalysisRead])
-async def speech_history(user: EnrolledUser, db: DbSession) -> list[SpeechAnalysis]:
+async def speech_history(user: CurrentUser, db: DbSession) -> list[SpeechAnalysis]:
     rows = (
         await db.execute(
             select(SpeechAnalysis)

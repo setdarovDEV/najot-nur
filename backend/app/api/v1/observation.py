@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter
 from sqlalchemy import select
 
-from app.api.deps import DbSession, EnrolledUser
+from app.api.deps import CurrentUser, DbSession, EnrolledUser
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.core.redis_client import cache_get, cache_set, get_redis
@@ -151,7 +151,7 @@ async def submit(
 
 
 @router.get("/attempts", response_model=list[ObservationAttemptRead])
-async def attempts(user: EnrolledUser, db: DbSession) -> list[ObservationAttempt]:
+async def attempts(user: CurrentUser, db: DbSession) -> list[ObservationAttempt]:
     rows = (
         await db.execute(
             select(ObservationAttempt)

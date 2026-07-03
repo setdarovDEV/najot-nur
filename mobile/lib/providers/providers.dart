@@ -139,10 +139,9 @@ class AuthController extends StateNotifier<AuthState> {
           isLoggedIn: _ref.read(tokenStoreProvider).isLoggedIn,
         )) {
     if (state.isLoggedIn) {
-      // Re-open the security session for users who come back to the app
-      // without re-authenticating (e.g. after a cold start with a stored
-      // access token).
-      Future.microtask(_resumeSecuritySession);
+      // Cold start: token stored → load user profile so displayName is available
+      // immediately without requiring a fresh login.
+      Future.microtask(_loadUserOnColdStart);
     }
   }
 
@@ -173,11 +172,17 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> _resumeSecuritySession() async {
-    final user = state.user;
-    if (user == null) return;
-    // ignore: discarded_futures
-    _ref.read(securityServiceProvider).onLogin(user);
+  Future<void> _loadUserOnColdStart() async {
+    try {
+      final user = await _ref.read(authRepositoryProvider).me();
+      state = AuthState(isLoggedIn: true, user: user);
+      // Re-open the security session after we have the user object.
+      // ignore: discarded_futures
+      _ref.read(securityServiceProvider).onLogin(user);
+    } catch (_) {
+      // Token expired or invalid — force re-login.
+      await logout();
+    }
   }
 
   void updateUser(AppUser user) {

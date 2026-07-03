@@ -16,7 +16,7 @@ PAGE_W = 841.89
 PAGE_H = 1190.55
 
 # Template lives next to source so it's always inside the Docker build context
-_TEMPLATE = Path(__file__).resolve().parent / "resources" / "certificate_template.pdf"
+_TEMPLATE = Path(__file__).resolve().parent.parent / "resources" / "certificate_template.pdf"
 
 
 def generate_serial() -> str:

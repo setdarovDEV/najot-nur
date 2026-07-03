@@ -6,7 +6,7 @@ import uuid
 from fastapi import APIRouter, File, Form, UploadFile
 from sqlalchemy import desc, select
 
-from app.api.deps import AdminUser, CuratorUser, CurrentUser, DbSession
+from app.api.deps import AdminUser, CuratorUser, DbSession, EnrolledUser
 from app.core.config import settings
 from app.core.exceptions import AppError, NotFoundError
 from app.core.logging import get_logger
@@ -74,7 +74,7 @@ async def _transcribe_expert_audio(p: Practicum, db: DbSession) -> None:
 # ─── Public / user endpoints ───
 
 @router.get("", response_model=list[PracticumRead])
-async def list_practicums(db: DbSession, user: CurrentUser) -> list[PracticumRead]:
+async def list_practicums(db: DbSession, user: EnrolledUser) -> list[PracticumRead]:
     rows = (
         await db.execute(
             select(Practicum)
@@ -86,7 +86,7 @@ async def list_practicums(db: DbSession, user: CurrentUser) -> list[PracticumRea
 
 
 @router.get("/{practicum_id}", response_model=PracticumRead)
-async def get_practicum(practicum_id: uuid.UUID, db: DbSession, user: CurrentUser) -> PracticumRead:
+async def get_practicum(practicum_id: uuid.UUID, db: DbSession, user: EnrolledUser) -> PracticumRead:
     p = await db.get(Practicum, practicum_id)
     if p is None or p.status != "approved":
         raise NotFoundError("Praktikum topilmadi.")
@@ -99,7 +99,7 @@ async def get_practicum(practicum_id: uuid.UUID, db: DbSession, user: CurrentUse
 async def submit_practicum(
     practicum_id: uuid.UUID,
     db: DbSession,
-    user: CurrentUser,
+    user: EnrolledUser,
     file: UploadFile = File(...),
     language: str | None = Form(None),
 ) -> PracticumSubmissionRead:
@@ -214,7 +214,7 @@ async def submit_practicum(
 async def my_submission(
     practicum_id: uuid.UUID,
     db: DbSession,
-    user: CurrentUser,
+    user: EnrolledUser,
 ) -> PracticumSubmissionRead:
     """Return the user's latest submission for this practicum."""
     row = (

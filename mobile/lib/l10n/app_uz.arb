@@ -562,5 +562,9 @@
   "sending": "Yuborilmoqda...",
   "cancel": "Bekor qilish",
   "securityCaptureDetected": "Ekran yozilayotgani aniqlandi",
-  "securityCaptureSubtitle": "Sizning ekraningiz yozib olinmoqda. Maxfiy kontent yashirilgan. Davom etish uchun yozishni to'xtating."
+  "securityCaptureSubtitle": "Sizning ekraningiz yozib olinmoqda. Maxfiy kontent yashirilgan. Davom etish uchun yozishni to'xtating.",
+  "updateRequiredTitle": "Yangilash talab qilinadi",
+  "updateRequiredMessage": "NotiqAI ning yangi versiyasi chiqdi. Davom etish uchun ilovani yangilang.",
+  "updateNow": "Yangilash",
+  "updateLater": "Keyinroq"
 }

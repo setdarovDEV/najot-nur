@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import DbSession, EnrolledUser
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.core.redis_client import cache_get, cache_set, get_redis
@@ -106,7 +106,7 @@ async def submit_guest(
 
 @router.post("/submit", response_model=ObservationAttemptRead)
 async def submit(
-    payload: ObservationSubmitRequest, user: CurrentUser, db: DbSession
+    payload: ObservationSubmitRequest, user: EnrolledUser, db: DbSession
 ) -> ObservationAttempt:
     test_ids = [a.test_id for a in payload.answers]
     tests = {
@@ -151,7 +151,7 @@ async def submit(
 
 
 @router.get("/attempts", response_model=list[ObservationAttemptRead])
-async def attempts(user: CurrentUser, db: DbSession) -> list[ObservationAttempt]:
+async def attempts(user: EnrolledUser, db: DbSession) -> list[ObservationAttempt]:
     rows = (
         await db.execute(
             select(ObservationAttempt)
@@ -164,7 +164,7 @@ async def attempts(user: CurrentUser, db: DbSession) -> list[ObservationAttempt]
 
 @router.post("/generate", response_model=GeneratedSessionResponse)
 async def generate_ai_tests(
-    payload: GenerateTestRequest, user: CurrentUser
+    payload: GenerateTestRequest, user: EnrolledUser
 ) -> dict:
     """Generate 10 AI-based tests for an authenticated user by difficulty."""
     tests = await generate_tests(payload.difficulty)
@@ -179,7 +179,7 @@ async def generate_ai_tests(
 
 @router.post("/submit-ai", response_model=ObservationAttemptRead)
 async def submit_ai_tests(
-    payload: AiSubmitRequest, user: CurrentUser, db: DbSession
+    payload: AiSubmitRequest, user: EnrolledUser, db: DbSession
 ) -> ObservationAttemptRead:
     """Submit answers for an AI-generated test session and save the attempt."""
     key = f"obs_session:{payload.session_id}"
@@ -236,7 +236,7 @@ async def submit_ai_tests(
 
 @router.get("/attempts/{attempt_id}", response_model=ObservationAttemptRead)
 async def get_attempt(
-    attempt_id: uuid.UUID, user: CurrentUser, db: DbSession
+    attempt_id: uuid.UUID, user: EnrolledUser, db: DbSession
 ) -> ObservationAttempt:
     obj = await db.get(ObservationAttempt, attempt_id)
     if obj is None or obj.user_id != user.id:

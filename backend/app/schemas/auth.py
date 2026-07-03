@@ -18,6 +18,14 @@ class RefreshRequest(BaseModel):
 # ───── Phone OTP ─────
 class PhoneRequest(BaseModel):
     phone: str = Field(..., pattern=r"^\+?\d{9,15}$", examples=["+998901234567"])
+    purpose: str | None = Field(
+        None,
+        description=(
+            "SMS matnini tanlash: 'registration' (yangi hisob) yoki "
+            "'password_reset' (parolni tiklash). Eski mijozlar uchun ixtiyoriy."
+        ),
+        pattern=r"^(registration|password_reset)$",
+    )
 
 
 class OTPCheckRequest(BaseModel):

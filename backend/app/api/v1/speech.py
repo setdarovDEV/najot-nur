@@ -13,7 +13,7 @@ from types import SimpleNamespace
 from fastapi import APIRouter, File, Form, UploadFile
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession, OptionalUser
+from app.api.deps import DbSession, EnrolledUser, OptionalUser
 from app.core.config import settings
 from app.core.exceptions import AppError, NotFoundError
 from app.core.logging import get_logger
@@ -91,7 +91,7 @@ async def list_references(db: DbSession) -> list[PronunciationReference]:
 # ───────────────────── Free-form speech ─────────────────────
 @router.post("/analyze", response_model=SpeechAnalysisRead)
 async def analyze_speech_endpoint(
-    payload: SpeechAnalyzeRequest, user: CurrentUser, db: DbSession
+    payload: SpeechAnalyzeRequest, user: EnrolledUser, db: DbSession
 ) -> SpeechAnalysis:
     result = await analyze_speech(payload.transcript, payload.duration_sec)
     analysis = SpeechAnalysis(
@@ -156,7 +156,7 @@ async def free_talk_audio(
 
 
 @router.get("/history", response_model=list[SpeechAnalysisRead])
-async def speech_history(user: CurrentUser, db: DbSession) -> list[SpeechAnalysis]:
+async def speech_history(user: EnrolledUser, db: DbSession) -> list[SpeechAnalysis]:
     rows = (
         await db.execute(
             select(SpeechAnalysis)
@@ -169,7 +169,7 @@ async def speech_history(user: CurrentUser, db: DbSession) -> list[SpeechAnalysi
 
 @router.get("/{analysis_id}", response_model=SpeechAnalysisRead)
 async def get_speech(
-    analysis_id: uuid.UUID, user: CurrentUser, db: DbSession
+    analysis_id: uuid.UUID, user: EnrolledUser, db: DbSession
 ) -> SpeechAnalysis:
     obj = await db.get(SpeechAnalysis, analysis_id)
     if obj is None or obj.user_id != user.id:
@@ -180,7 +180,7 @@ async def get_speech(
 # ───────────────────── Voice (read reference) ─────────────────────
 @router.post("/voice/analyze", response_model=VoiceAnalysisRead)
 async def analyze_voice_endpoint(
-    payload: VoiceAnalyzeRequest, user: CurrentUser, db: DbSession
+    payload: VoiceAnalyzeRequest, user: EnrolledUser, db: DbSession
 ) -> VoiceAnalysis:
     result = await analyze_voice(payload.reference_text, payload.transcript)
     analysis = VoiceAnalysis(
@@ -278,7 +278,7 @@ async def analyze_voice_audio(
 
 @router.get("/voice/{analysis_id}", response_model=VoiceAnalysisRead)
 async def get_voice(
-    analysis_id: uuid.UUID, user: CurrentUser, db: DbSession
+    analysis_id: uuid.UUID, user: EnrolledUser, db: DbSession
 ) -> VoiceAnalysis:
     obj = await db.get(VoiceAnalysis, analysis_id)
     if obj is None or obj.user_id != user.id:
@@ -327,7 +327,7 @@ from app.services.ai.client import structured_completion as _structured_completi
 @router.post("/practice/generate")
 async def generate_practice_text(
     difficulty: str = Form("medium"),
-    user: CurrentUser = None,
+    user: EnrolledUser = None,
     db: DbSession = None,
 ) -> dict:
     """Generate an AI practice reading text by difficulty (easy|medium|hard)."""

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/auth/auth_events.dart';
@@ -9,6 +10,7 @@ import '../data/repositories.dart';
 import '../features/audiobooks/audio_handler.dart';
 import '../features/profile/support_chat_service.dart';
 import '../models/app_language.dart';
+import '../models/app_version.dart';
 import '../models/auth_config.dart';
 import '../models/profile.dart';
 import '../models/psychology_models.dart';
@@ -95,6 +97,24 @@ final profileRepositoryProvider =
     Provider((ref) => ProfileRepository(ref.watch(apiClientProvider)));
 final supportRepositoryProvider =
     Provider((ref) => SupportRepository(ref.watch(apiClientProvider)));
+
+final versionRepositoryProvider =
+    Provider((ref) => VersionRepository(ref.watch(apiClientProvider)));
+
+/// Server-driven app version config. Fetched once at app start and
+/// compared against the installed build to decide whether to show
+/// the forced-update dialog. A network error is treated as "no
+/// update required" — see the consumer in `app.dart`.
+final appVersionProvider = FutureProvider<AppVersionConfig>(
+    (ref) => ref.watch(versionRepositoryProvider).current());
+
+/// The version string the running binary was built with, e.g.
+/// "1.0.0+5". Cached after the first read because `package_info_plus`
+/// only needs to talk to the platform channel once.
+final installedVersionProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return '${info.version}+${info.buildNumber}';
+});
 
 /// Long-lived support chat WebSocket. Auto-disposed when the app exits.
 final supportChatServiceProvider = Provider<SupportChatService>((ref) {

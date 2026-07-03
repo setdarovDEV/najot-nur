@@ -81,16 +81,36 @@ def _use_sms() -> bool:
 
 @router.post("/otp/request")
 async def otp_request(payload: PhoneRequest) -> dict:
-    """Step 1: telefon raqamga OTP kod yuboradi."""
+    """Step 1: telefon raqamga OTP kod yuboradi.
+
+    Body dagi ``purpose`` maydoni (``registration`` yoki ``password_reset``)
+    orqali SMS matni moderatsiyadan o'tgan matnga mos ravishda tanlanadi.
+    """
+    purpose = payload.purpose or "registration"
+    if purpose not in ("registration", "password_reset"):
+        purpose = "registration"
+
     if _use_sms():
-        code = await sms.send_otp(payload.phone, ttl=settings.otp_ttl_seconds)
-        body: dict = {"sent": True, "ttl": settings.otp_ttl_seconds, "provider": settings.sms_provider}
+        code = await sms.send_otp(
+            payload.phone, ttl=settings.otp_ttl_seconds, purpose=purpose
+        )
+        body: dict = {
+            "sent": True,
+            "ttl": settings.otp_ttl_seconds,
+            "provider": settings.sms_provider,
+            "purpose": purpose,
+        }
         if settings.debug:
             body["dev_code"] = code
         return body
 
     phone_code_hash, ttl = await telegram_verifier.send_code(payload.phone)
-    body = {"sent": True, "ttl": ttl, "provider": "telegram_verification_codes"}
+    body = {
+        "sent": True,
+        "ttl": ttl,
+        "provider": "telegram_verification_codes",
+        "purpose": purpose,
+    }
     if settings.debug:
         body["dev_code_hash"] = phone_code_hash
     return body

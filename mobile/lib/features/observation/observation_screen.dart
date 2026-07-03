@@ -8,10 +8,11 @@ import '../../l10n/gen/app_localizations.dart';
 import '../../models/observation_models.dart';
 import '../../providers/providers.dart';
 import '../../shared/widgets/common.dart';
+import '../../shared/widgets/enrollment_lock.dart';
 
 // ─── Screen state machine ────────────────────────────────────────────────────
 
-enum _Mode { loading, difficultyPicker, testing }
+enum _Mode { loading, locked, difficultyPicker, testing }
 
 class ObservationScreen extends ConsumerStatefulWidget {
   const ObservationScreen({super.key});
@@ -42,7 +43,18 @@ class _ObservationScreenState extends ConsumerState<ObservationScreen> {
   Future<void> _init() async {
     final isLoggedIn = ref.read(authControllerProvider).isLoggedIn;
     if (isLoggedIn) {
-      setState(() => _mode = _Mode.difficultyPicker);
+      // Enrollment holatini tekshiramiz — kuzatuvchanlik testi faqat
+      // faol kursga ega foydalanuvchilar uchun ochiq.
+      try {
+        final status = await ref.read(enrollmentStatusProvider.future);
+        if (!status.hasActiveEnrollment) {
+          if (mounted) setState(() => _mode = _Mode.locked);
+        } else {
+          if (mounted) setState(() => _mode = _Mode.difficultyPicker);
+        }
+      } catch (_) {
+        if (mounted) setState(() => _mode = _Mode.difficultyPicker);
+      }
     } else {
       await _loadDefaultTests();
     }
@@ -167,6 +179,9 @@ class _ObservationScreenState extends ConsumerState<ObservationScreen> {
       ),
       body: switch (_mode) {
         _Mode.loading => const AppLoader(),
+        _Mode.locked => const EnrollmentLock(
+            reason: EnrollmentLockReason.observation,
+          ),
         _Mode.difficultyPicker => _DifficultyPickerView(
             generating: _generating,
             error: _genError,

@@ -6,7 +6,7 @@ import uuid
 from fastapi import APIRouter, File, UploadFile
 from sqlalchemy import select
 
-from app.api.deps import AdminUser, CurrentUser, CuratorUser, DbSession
+from app.api.deps import AdminUser, CuratorUser, DbSession, EnrolledUser
 from app.core.config import settings
 from app.core.exceptions import AppError, ForbiddenError, NotFoundError
 from app.models.quiz import Quiz, QuizAttempt
@@ -40,7 +40,7 @@ def _to_read(q: Quiz) -> QuizRead:
 # ─── Public / user endpoints ───
 
 @router.get("", response_model=list[QuizRead])
-async def list_quizzes(db: DbSession, user: CurrentUser) -> list[QuizRead]:
+async def list_quizzes(db: DbSession, user: EnrolledUser) -> list[QuizRead]:
     rows = (
         await db.execute(
             select(Quiz)
@@ -52,7 +52,7 @@ async def list_quizzes(db: DbSession, user: CurrentUser) -> list[QuizRead]:
 
 
 @router.get("/{quiz_id}", response_model=QuizDetail)
-async def get_quiz(quiz_id: uuid.UUID, db: DbSession, user: CurrentUser) -> QuizDetail:
+async def get_quiz(quiz_id: uuid.UUID, db: DbSession, user: EnrolledUser) -> QuizDetail:
     q = await db.get(Quiz, quiz_id)
     if q is None or q.status != "approved":
         raise NotFoundError("Test topilmadi.")
@@ -79,7 +79,7 @@ async def submit_attempt(
     quiz_id: uuid.UUID,
     payload: QuizAttemptCreate,
     db: DbSession,
-    user: CurrentUser,
+    user: EnrolledUser,
 ) -> QuizAttempt:
     q = await db.get(Quiz, quiz_id)
     if q is None or q.status != "approved":

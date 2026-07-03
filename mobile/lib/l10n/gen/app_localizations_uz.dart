@@ -1219,4 +1219,17 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get securityCaptureSubtitle =>
       'Sizning ekraningiz yozib olinmoqda. Maxfiy kontent yashirilgan. Davom etish uchun yozishni to\'xtating.';
+
+  @override
+  String get updateRequiredTitle => 'Yangilash talab qilinadi';
+
+  @override
+  String get updateRequiredMessage =>
+      'NotiqAI ning yangi versiyasi chiqdi. Davom etish uchun ilovani yangilang.';
+
+  @override
+  String get updateNow => 'Yangilash';
+
+  @override
+  String get updateLater => 'Keyinroq';
 }

@@ -393,5 +393,9 @@
   "sending": "Sending...",
   "cancel": "Cancel",
   "securityCaptureDetected": "Screen capture detected",
-  "securityCaptureSubtitle": "Your screen is being recorded. Sensitive content is hidden. Stop the recording to continue."
+  "securityCaptureSubtitle": "Your screen is being recorded. Sensitive content is hidden. Stop the recording to continue.",
+  "updateRequiredTitle": "Update required",
+  "updateRequiredMessage": "A new version of NotiqAI is available. Please update the app to continue.",
+  "updateNow": "Update",
+  "updateLater": "Later"
 }

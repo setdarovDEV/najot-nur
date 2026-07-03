@@ -10,8 +10,6 @@ class PracticumInlineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasAudio = practicum.expertAudioUrl != null;
-
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -66,8 +64,20 @@ class PracticumInlineCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  _PriceBadge(
-                      isFree: practicum.isFree, price: practicum.price),
+                  if (practicum.expertAudioUrl != null)
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppColors.wine.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.volume_up_rounded,
+                        size: 18,
+                        color: AppColors.wine,
+                      ),
+                    ),
                 ],
               ),
               if (practicum.expertText != null &&
@@ -95,7 +105,25 @@ class PracticumInlineCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  if (hasAudio) const _AudioChip() else const SizedBox.shrink(),
+                  if (practicum.category != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        practicum.category!,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   const Spacer(),
                   const Text(
                     'Batafsil',
@@ -115,65 +143,6 @@ class PracticumInlineCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AudioChip extends StatelessWidget {
-  const _AudioChip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.wine.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.volume_up_rounded, size: 14, color: AppColors.wine),
-          const SizedBox(width: 4),
-          const Text(
-            'Ekspert ovozi',
-            style: TextStyle(
-              color: AppColors.wine,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PriceBadge extends StatelessWidget {
-  const _PriceBadge({required this.isFree, required this.price});
-  final bool isFree;
-  final double price;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: isFree
-            ? Colors.green.withValues(alpha: 0.12)
-            : Colors.purple.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        isFree
-            ? 'Bepul'
-            : '${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ')} so\'m',
-        style: TextStyle(
-          color: isFree ? Colors.green.shade700 : Colors.purple.shade700,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
         ),
       ),
     );

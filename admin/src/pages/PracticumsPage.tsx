@@ -33,17 +33,13 @@ interface Practicum {
   created_at: string;
 }
 
-type FilterKey = "all" | "draft" | "approved" | "rejected" | "free" | "paid";
+type FilterKey = "all" | "draft" | "approved" | "rejected";
 
 const STATUS_COLOR: Record<string, string> = {
   draft: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   approved: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
-
-function formatPrice(price: number) {
-  return price.toLocaleString("uz-UZ") + " so'm";
-}
 
 export function PracticumsPage() {
   const { role } = useAuth();
@@ -130,8 +126,6 @@ export function PracticumsPage() {
 
   const filtered = practicums.filter((pr) => {
     if (filter === "all") return true;
-    if (filter === "free") return pr.is_free;
-    if (filter === "paid") return !pr.is_free;
     return pr.status === filter;
   });
 
@@ -140,8 +134,6 @@ export function PracticumsPage() {
     draft: practicums.filter((p) => p.status === "draft").length,
     approved: practicums.filter((p) => p.status === "approved").length,
     rejected: practicums.filter((p) => p.status === "rejected").length,
-    free: practicums.filter((p) => p.is_free).length,
-    paid: practicums.filter((p) => !p.is_free).length,
   };
 
   const filters: { key: FilterKey; label: string }[] = [
@@ -149,8 +141,6 @@ export function PracticumsPage() {
     { key: "draft", label: `Kutilmoqda (${counts.draft})` },
     { key: "approved", label: `Tasdiqlangan (${counts.approved})` },
     { key: "rejected", label: `Rad etilgan (${counts.rejected})` },
-    { key: "free", label: `Bepul (${counts.free})` },
-    { key: "paid", label: `Pullik (${counts.paid})` },
   ];
 
   return (
@@ -177,11 +167,10 @@ export function PracticumsPage() {
 
       {/* Stats cards - admin only */}
       {isAdmin && !loading && (
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <StatCard label="Jami" value={counts.all} color="wine" />
           <StatCard label="Kutilmoqda" value={counts.draft} color="yellow" />
           <StatCard label="Tasdiqlangan" value={counts.approved} color="green" />
-          <StatCard label="Bepul" value={counts.free} color="blue" />
         </div>
       )}
 
@@ -386,12 +375,8 @@ function PracticumCard({
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_COLOR[practicum.status]}`}>
               {p[practicum.status]}
             </span>
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-              practicum.is_free
-                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-            }`}>
-              {practicum.is_free ? p.free : `${p.paid} · ${formatPrice(Number(practicum.price))}`}
+            <span className="rounded-full bg-wine/10 px-2 py-0.5 text-[11px] font-bold text-wine dark:bg-wine/20 dark:text-wine-300">
+              {p.free}
             </span>
           </div>
           {practicum.category && (
@@ -569,8 +554,6 @@ function CreatePracticumModal({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [expertText, setExpertText] = useState("");
-  const [isFree, setIsFree] = useState(true);
-  const [price, setPrice] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -591,8 +574,8 @@ function CreatePracticumModal({
         description: description || null,
         category: category || null,
         expert_text: expertText || null,
-        is_free: isFree,
-        price: isFree ? 0 : Number(price) || 0,
+        is_free: true,
+        price: 0,
       });
 
       if (audioFile) {
@@ -630,8 +613,6 @@ function CreatePracticumModal({
         description={description} setDescription={setDescription}
         category={category} setCategory={setCategory}
         expertText={expertText} setExpertText={setExpertText}
-        isFree={isFree} setIsFree={setIsFree}
-        price={price} setPrice={setPrice}
         audioFile={audioFile} setAudioFile={setAudioFile}
         error={error}
         p={p}
@@ -658,8 +639,6 @@ function EditPracticumModal({
   const [description, setDescription] = useState(practicum.description ?? "");
   const [category, setCategory] = useState(practicum.category ?? "");
   const [expertText, setExpertText] = useState(practicum.expert_text ?? "");
-  const [isFree, setIsFree] = useState(practicum.is_free);
-  const [price, setPrice] = useState(String(practicum.price || ""));
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -680,8 +659,8 @@ function EditPracticumModal({
         description: description || null,
         category: category || null,
         expert_text: expertText || null,
-        is_free: isFree,
-        price: isFree ? 0 : Number(price) || 0,
+        is_free: true,
+        price: 0,
       });
 
       let final = data;
@@ -724,8 +703,6 @@ function EditPracticumModal({
         description={description} setDescription={setDescription}
         category={category} setCategory={setCategory}
         expertText={expertText} setExpertText={setExpertText}
-        isFree={isFree} setIsFree={setIsFree}
-        price={price} setPrice={setPrice}
         audioFile={audioFile} setAudioFile={setAudioFile}
         error={error}
         p={p}
@@ -761,8 +738,6 @@ function FormBody({
   description, setDescription,
   category, setCategory,
   expertText, setExpertText,
-  isFree, setIsFree,
-  price, setPrice,
   audioFile, setAudioFile,
   error,
   p,
@@ -771,8 +746,6 @@ function FormBody({
   description: string; setDescription: (v: string) => void;
   category: string; setCategory: (v: string) => void;
   expertText: string; setExpertText: (v: string) => void;
-  isFree: boolean; setIsFree: (v: boolean) => void;
-  price: string; setPrice: (v: string) => void;
   audioFile: File | null; setAudioFile: (f: File | null) => void;
   error: string;
   p: ReturnType<typeof useLang>["t"]["practicums"];
@@ -824,48 +797,6 @@ function FormBody({
           className={`${inputCls} resize-none`}
         />
       </Field>
-
-      {/* Free/Paid toggle */}
-      <div>
-        <label className="mb-1.5 block text-sm font-bold text-ink">Narx turi</label>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => setIsFree(true)}
-            className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition ${
-              isFree
-                ? "border-green-400 bg-green-50 text-green-700"
-                : "border-line bg-surface text-muted hover:border-wine/30"
-            }`}
-          >
-            {p.isFree}
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsFree(false)}
-            className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition ${
-              !isFree
-                ? "border-purple-400 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400"
-                : "border-line bg-surface text-muted hover:border-wine/30"
-            }`}
-          >
-            {p.isPaid}
-          </button>
-        </div>
-        {!isFree && (
-          <div className="mt-3">
-            <label className="mb-1.5 block text-sm font-bold text-ink">{p.price}</label>
-            <input
-              type="number"
-              min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0"
-              className={inputCls}
-            />
-          </div>
-        )}
-      </div>
 
       {/* Audio upload */}
       <Field label={p.audioFile}>

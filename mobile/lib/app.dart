@@ -7,6 +7,7 @@ import 'l10n/gen/app_localizations.dart';
 import 'providers/providers.dart';
 import 'shared/widgets/security_capture_overlay.dart';
 import 'shared/widgets/security_watermark.dart';
+import 'shared/widgets/update_required_dialog.dart';
 
 class NotiqAiApp extends ConsumerStatefulWidget {
   const NotiqAiApp({super.key});
@@ -98,11 +99,15 @@ class _NotiqAiAppState extends ConsumerState<NotiqAiApp> {
       // Wrap every route with the security watermark + capture overlay.
       // The watermark is only rendered when the user is authenticated and
       // the server has returned a watermark text; otherwise the wrapper
-      // passes the child through unchanged.
+      // passes the child through unchanged. The update-required overlay
+      // sits on top of both so a forced update can never be bypassed by
+      // the user navigating around the app.
       builder: (context, child) {
         final body = child ?? const SizedBox.shrink();
         return SecurityWatermark(
-          child: SecurityCaptureOverlay(child: body),
+          child: SecurityCaptureOverlay(
+            child: UpdateRequiredDialog(child: body),
+          ),
         );
       },
     );

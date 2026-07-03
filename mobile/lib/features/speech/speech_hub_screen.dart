@@ -1,15 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../l10n/gen/app_localizations.dart';
+import '../../providers/providers.dart';
+import '../../shared/widgets/enrollment_lock.dart';
 
-class SpeechHubScreen extends StatelessWidget {
+class SpeechHubScreen extends ConsumerWidget {
   const SpeechHubScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final auth = ref.watch(authControllerProvider);
+    if (auth.isLoggedIn) {
+      final enrollment = ref.watch(enrollmentStatusProvider);
+      final isEnrolled = enrollment.maybeWhen(
+        data: (s) => s.hasActiveEnrollment,
+        orElse: () => null,
+      );
+      if (isEnrolled == false) {
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: AppColors.white,
+            foregroundColor: AppColors.wine,
+            elevation: 0,
+            title: Text(
+              l.speechCheck,
+              style: const TextStyle(
+                  color: AppColors.wine, fontWeight: FontWeight.w800),
+            ),
+          ),
+          body: const EnrollmentLock(reason: EnrollmentLockReason.generic),
+        );
+      }
+    }
     return Scaffold(
       appBar: AppBar(title: Text(l.speechCheck)),
       body: ListView(

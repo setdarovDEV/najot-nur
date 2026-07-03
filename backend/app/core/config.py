@@ -29,6 +29,19 @@ class Settings(BaseSettings):
     backend_port: int = 8000
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
+    # ───── Mobile app version gate (forced / optional update) ─────
+    # The mobile client hits `GET /app/version` on launch and compares its
+    # current build to these. Bump them right before/after a Play Store
+    # release; users on versions older than `min_supported_version` get a
+    # non-dismissible update dialog.
+    app_latest_version: str = "1.0.0"
+    app_min_supported_version: str = "1.0.0"
+    app_force_update: bool = False
+    app_play_store_url: str = "https://play.google.com/store/apps/details?id=uz.najotnur.notiqai"
+    app_update_message_uz: str = ""
+    app_update_message_ru: str = ""
+    app_update_message_en: str = ""
+
     # ───── PostgreSQL ─────
     postgres_user: str = "notiq"
     postgres_password: str = "notiq_dev_password"

@@ -3,6 +3,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     admin,
+    app_version,
     audiobooks,
     auth,
     certificates,
@@ -20,6 +21,8 @@ from app.api.v1 import (
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+# Public mobile-app version gate (forced update check on launch)
+api_router.include_router(app_version.router, prefix="/app", tags=["app"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(security.router, prefix="/security", tags=["security"])
 api_router.include_router(speech.router, prefix="/speech", tags=["speech"])

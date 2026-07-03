@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../core/network/api_client.dart';
+import '../models/app_version.dart';
 import '../models/auth_config.dart';
 import '../models/learning_models.dart';
 import '../models/observation_models.dart';
@@ -24,9 +25,12 @@ class AuthRepository {
   AuthRepository(this._api);
   final ApiClient _api;
 
-  Future<void> requestOtp(String phone) async {
+  Future<void> requestOtp(String phone, {String purpose = 'registration'}) async {
     try {
-      await _api.dio.post('/auth/otp/request', data: {'phone': phone});
+      await _api.dio.post('/auth/otp/request', data: {
+        'phone': phone,
+        'purpose': purpose,
+      });
     } catch (e) {
       throw _api.toApiException(e);
     }
@@ -976,5 +980,26 @@ class SecuritySessionStart {
       serverTime: DateTime.tryParse(j['server_time'] as String? ?? '') ??
           DateTime.now().toUtc(),
     );
+  }
+}
+
+// ───────────────────── App version (forced update) ─────────────────────
+class VersionRepository {
+  VersionRepository(this._api);
+  final ApiClient _api;
+
+  /// Fetches the server's idea of the current Play Store build + the
+  /// minimum supported version. Throws [ApiException] on transport
+  /// failure — callers should treat that as "no update required" so a
+  /// flaky network doesn't lock the user out of the app.
+  Future<AppVersionConfig> current() async {
+    try {
+      final r = await _api.dio.get('/app/version');
+      return AppVersionConfig.fromJson(
+        (r.data as Map).cast<String, dynamic>(),
+      );
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
   }
 }

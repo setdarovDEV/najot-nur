@@ -98,6 +98,27 @@ async def my_enrollments(user: CurrentUser, db: DbSession) -> list[Enrollment]:
     return list(rows)
 
 
+@router.get("/me/enrollment-status")
+async def my_enrollment_status(user: CurrentUser, db: DbSession) -> dict:
+    """Foydalanuvchining kursga yozilganlik holati.
+
+    Mobile ilova practicum/quiz/observation bo'limlarini ko'rsatishdan oldin
+    shu endpoint orqali foydalanuvchining kamida bitta faol kursga ega
+    ekanligini tekshiradi. Lock state shu asosida ko'rsatiladi.
+    """
+    if user.role in ("admin", "curator"):
+        return {"has_active_enrollment": True, "is_staff": True}
+    active = (
+        await db.execute(
+            select(Enrollment.id).where(
+                Enrollment.user_id == user.id,
+                Enrollment.status == EnrollmentStatus.active,
+            ).limit(1)
+        )
+    ).scalar_one_or_none()
+    return {"has_active_enrollment": active is not None, "is_staff": False}
+
+
 @router.post("/lessons/{lesson_id}/quiz", response_model=QuizResult)
 async def submit_quiz(
     lesson_id: uuid.UUID,

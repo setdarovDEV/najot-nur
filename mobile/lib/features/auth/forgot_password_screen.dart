@@ -59,7 +59,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         setState(() => _error = l.phoneNotRegistered);
         return;
       }
-      await ref.read(authRepositoryProvider).requestOtp(phone);
+      await ref
+          .read(authRepositoryProvider)
+          .requestOtp(phone, purpose: 'password_reset');
       if (!mounted) return;
       setState(() => _step = _ForgotStep.code);
     } catch (e) {
@@ -97,7 +99,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     });
     try {
       final phone = normaliseUzPhone(_phone.text);
-      await ref.read(authRepositoryProvider).requestOtp(phone);
+      await ref
+          .read(authRepositoryProvider)
+          .requestOtp(phone, purpose: 'password_reset');
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {

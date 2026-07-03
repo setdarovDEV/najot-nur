@@ -3,24 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../l10n/gen/app_localizations.dart';
-import '../../models/practicum_models.dart';
 import '../../providers/providers.dart';
+import '../../shared/widgets/enrollment_lock.dart';
 import 'practicum_card.dart';
 
-class PracticumsTab extends ConsumerStatefulWidget {
+class PracticumsTab extends ConsumerWidget {
   const PracticumsTab({super.key});
 
   @override
-  ConsumerState<PracticumsTab> createState() => _PracticumsTabState();
-}
-
-class _PracticumsTabState extends ConsumerState<PracticumsTab> {
-  String _filter = 'all';
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final practicumsAsync = ref.watch(practicumsProvider);
+    final enrollment = ref.watch(enrollmentStatusProvider);
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -29,20 +22,18 @@ class _PracticumsTabState extends ConsumerState<PracticumsTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Header(l: l),
-            _FilterBar(selected: _filter, onChanged: (v) => setState(() => _filter = v)),
             Expanded(
-              child: practicumsAsync.when(
+              child: enrollment.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => _ErrorState(message: l.errorPrefix(e.toString())),
-                data: (list) {
-                  final filtered = _applyFilter(list);
-                  if (filtered.isEmpty) return _EmptyState(l: l);
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) => PracticumInlineCard(practicum: filtered[i]),
-                  );
+                error: (_, __) =>
+                    const EnrollmentLock(reason: EnrollmentLockReason.generic),
+                data: (status) {
+                  if (!status.hasActiveEnrollment) {
+                    return const EnrollmentLock(
+                      reason: EnrollmentLockReason.practicum,
+                    );
+                  }
+                  return _PracticumList();
                 },
               ),
             ),
@@ -51,15 +42,31 @@ class _PracticumsTabState extends ConsumerState<PracticumsTab> {
       ),
     );
   }
+}
 
-  List<Practicum> _applyFilter(List<Practicum> list) {
-    // Only show approved practicums on mobile
-    final approved = list.where((p) => p.status == 'approved').toList();
-    return switch (_filter) {
-      'free' => approved.where((p) => p.isFree).toList(),
-      'paid' => approved.where((p) => !p.isFree).toList(),
-      _ => approved,
-    };
+class _PracticumList extends ConsumerWidget {
+  const _PracticumList();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final practicumsAsync = ref.watch(practicumsProvider);
+    return practicumsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => _ErrorState(message: l.errorPrefix(e.toString())),
+      data: (list) {
+        final approved =
+            list.where((p) => p.status == 'approved').toList();
+        if (approved.isEmpty) return _EmptyState(l: l);
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          itemCount: approved.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (_, i) =>
+              PracticumInlineCard(practicum: approved[i]),
+        );
+      },
+    );
   }
 }
 
@@ -97,63 +104,6 @@ class _Header extends StatelessWidget {
             style: const TextStyle(color: AppColors.muted, fontSize: 13),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _FilterBar extends StatelessWidget {
-  const _FilterBar({required this.selected, required this.onChanged});
-  final String selected;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final filters = [
-      ('all', 'Hammasi'),
-      ('free', 'Bepul'),
-      ('paid', 'Pullik'),
-    ];
-
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: filters.map((f) {
-            final isActive = selected == f.$1;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                child: FilterChip(
-                  label: Text(
-                    f.$2,
-                    style: TextStyle(
-                      color: isActive ? Colors.white : AppColors.ink,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                  selected: isActive,
-                  onSelected: (_) => onChanged(f.$1),
-                  selectedColor: AppColors.wine,
-                  backgroundColor: AppColors.surface,
-                  checkmarkColor: Colors.white,
-                  showCheckmark: false,
-                  side: BorderSide(
-                    color: isActive ? AppColors.wine : AppColors.line,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
       ),
     );
   }

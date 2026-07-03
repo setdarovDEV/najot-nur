@@ -107,8 +107,20 @@ async def _send_sms(phone: str, message: str) -> None:
     log.info("sms.sent", phone=phone)
 
 
-async def send_otp(phone: str, ttl: int = 120) -> str:
+_OTP_TEMPLATES = {
+    "registration": "NotiqAI platformasida ro'yxatdan o'tish uchun tasdiqlash kodi: {code}",
+    "password_reset": "NotiqAI platformasida parolni tiklash uchun tasdiqlash kodi: {code}",
+}
+
+
+async def send_otp(phone: str, ttl: int = 120, purpose: str = "registration") -> str:
     """6 xonali OTP kodni SMS orqali yuboradi va Redis'da saqlaydi.
+
+    Args:
+        phone: telefon raqami
+        ttl: kodning amal qilish muddati (soniyalarda)
+        purpose: "registration" yoki "password_reset" — qaysi xabar matnini
+            ishlatishni belgilaydi. Moderatsiyadan o'tgan matnlar bilan bir xil.
 
     Returns:
         code — debug rejimida ishlatish uchun (production'da logga chiqmasin).
@@ -116,11 +128,13 @@ async def send_otp(phone: str, ttl: int = 120) -> str:
     code = _generate_code(settings.otp_length)
     await cache_set(OTP_CACHE_KEY.format(phone=phone), code, ttl=ttl)
 
+    template = _OTP_TEMPLATES.get(purpose, _OTP_TEMPLATES["registration"])
+    message = template.format(code=code)
+
     if settings.sms_provider == "mock":
-        log.info("sms.mock", phone=phone, code=code)
+        log.info("sms.mock", phone=phone, purpose=purpose, code=code)
         return code
 
-    message = f"Najot Nur: tasdiqlash kodi {code}. Hech kimga bermang."
     await _send_sms(phone, message)
     return code
 

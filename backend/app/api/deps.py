@@ -7,12 +7,14 @@ from typing import Annotated
 import jwt
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.security import decode_token
-from app.models.enums import Role
+from app.models.course import Enrollment
+from app.models.enums import EnrollmentStatus, Role
 from app.models.user import User
 
 bearer = HTTPBearer(auto_error=False)
@@ -63,6 +65,36 @@ async def get_optional_user(
 
 
 OptionalUser = Annotated[User | None, Depends(get_optional_user)]
+
+
+async def get_enrolled_user(
+    user: CurrentUser, db: DbSession
+) -> User:
+    """Faqat kamida bitta faol kursga yozilgan foydalanuvchilarga ruxsat.
+
+    Adminlar va kuratorlar bundan mustasno (ular uchun kurs tekshirilmaydi).
+    """
+    if user.role in (Role.admin, Role.curator):
+        return user
+
+    has_enrollment = (
+        await db.execute(
+            select(Enrollment.id)
+            .where(
+                Enrollment.user_id == user.id,
+                Enrollment.status == EnrollmentStatus.active,
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if has_enrollment is None:
+        raise ForbiddenError(
+            "Ushbu bo'limdan foydalanish uchun avval kurs sotib oling."
+        )
+    return user
+
+
+EnrolledUser = Annotated[User, Depends(get_enrolled_user)]
 
 
 def require_roles(*roles: Role):

@@ -2325,6 +2325,30 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Sizning ekraningiz yozib olinmoqda. Maxfiy kontent yashirilgan. Davom etish uchun yozishni to\'xtating.'**
   String get securityCaptureSubtitle;
+
+  /// No description provided for @updateRequiredTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yangilash talab qilinadi'**
+  String get updateRequiredTitle;
+
+  /// No description provided for @updateRequiredMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'NotiqAI ning yangi versiyasi chiqdi. Davom etish uchun ilovani yangilang.'**
+  String get updateRequiredMessage;
+
+  /// No description provided for @updateNow.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yangilash'**
+  String get updateNow;
+
+  /// No description provided for @updateLater.
+  ///
+  /// In uz, this message translates to:
+  /// **'Keyinroq'**
+  String get updateLater;
 }
 
 class _AppLocalizationsDelegate

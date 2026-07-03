@@ -1209,4 +1209,17 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get securityCaptureSubtitle =>
       'Ваш экран записывается. Конфиденциальный контент скрыт. Остановите запись, чтобы продолжить.';
+
+  @override
+  String get updateRequiredTitle => 'Требуется обновление';
+
+  @override
+  String get updateRequiredMessage =>
+      'Доступна новая версия NotiqAI. Пожалуйста, обновите приложение, чтобы продолжить.';
+
+  @override
+  String get updateNow => 'Обновить';
+
+  @override
+  String get updateLater => 'Позже';
 }

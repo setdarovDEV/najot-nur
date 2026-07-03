@@ -1209,4 +1209,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get securityCaptureSubtitle =>
       'Your screen is being recorded. Sensitive content is hidden. Stop the recording to continue.';
+
+  @override
+  String get updateRequiredTitle => 'Update required';
+
+  @override
+  String get updateRequiredMessage =>
+      'A new version of NotiqAI is available. Please update the app to continue.';
+
+  @override
+  String get updateNow => 'Update';
+
+  @override
+  String get updateLater => 'Later';
 }

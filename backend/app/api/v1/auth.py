@@ -1,4 +1,4 @@
-"""Authentication: phone OTP, Google, Telegram, email/password, refresh."""
+"""Authentication: phone OTP, Google, email/password, refresh."""
 from __future__ import annotations
 
 import uuid
@@ -36,7 +36,7 @@ from app.schemas.auth import (
     TokenPair,
 )
 from app.schemas.user import UserPublic
-from app.services import amocrm, auth_service, sms, telegram_verifier
+from app.services import amocrm, auth_service, sms
 from app.services.oauth.google import verify_google_token
 
 PHONE_VERIFIED_KEY = "phone_verified:{phone}"
@@ -72,12 +72,6 @@ async def _maybe_push_lead(bg: BackgroundTasks, user: User, source: str) -> None
 
 
 # ───────────────────── Phone OTP ─────────────────────
-# SMS_PROVIDER=eskiz|mock  → sms.send_otp / sms.verify_otp
-# SMS_PROVIDER unset        → Telegram Verification Codes (eski yo'l)
-
-def _use_sms() -> bool:
-    return settings.sms_provider in ("eskiz", "playmobile", "mock")
-
 
 @router.post("/otp/request")
 async def otp_request(payload: PhoneRequest) -> dict:
@@ -90,45 +84,27 @@ async def otp_request(payload: PhoneRequest) -> dict:
     if purpose not in ("registration", "password_reset"):
         purpose = "registration"
 
-    if _use_sms():
-        code = await sms.send_otp(
-            payload.phone, ttl=settings.otp_ttl_seconds, purpose=purpose
-        )
-        body: dict = {
-            "sent": True,
-            "ttl": settings.otp_ttl_seconds,
-            "provider": settings.sms_provider,
-            "purpose": purpose,
-        }
-        if settings.debug:
-            body["dev_code"] = code
-        return body
-
-    phone_code_hash, ttl = await telegram_verifier.send_code(payload.phone)
-    body = {
+    code = await sms.send_otp(
+        payload.phone, ttl=settings.otp_ttl_seconds, purpose=purpose
+    )
+    body: dict = {
         "sent": True,
-        "ttl": ttl,
-        "provider": "telegram_verification_codes",
+        "ttl": settings.otp_ttl_seconds,
+        "provider": settings.sms_provider,
         "purpose": purpose,
     }
     if settings.debug:
-        body["dev_code_hash"] = phone_code_hash
+        body["dev_code"] = code
     return body
 
 
 @router.post("/otp/check", response_model=OTPCheckResponse)
 async def otp_check(payload: OTPCheckRequest) -> OTPCheckResponse:
     """Step 2: kodni tekshiradi va telefon raqamni tasdiqlanган deb belgilaydi."""
-    if _use_sms():
-        valid = await sms.verify_otp(payload.phone, payload.code)
-        if not valid:
-            if not (settings.debug and payload.code == "000000"):
-                raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
-    else:
-        valid = await telegram_verifier.check_code(payload.phone, payload.code)
-        if not valid:
-            if not (settings.debug and payload.code == "0000"):
-                raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+    valid = await sms.verify_otp(payload.phone, payload.code)
+    if not valid:
+        if not (settings.debug and payload.code == "000000"):
+            raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
 
     await cache_set(
         PHONE_VERIFIED_KEY.format(phone=payload.phone),
@@ -195,13 +171,9 @@ async def reset_password(payload: PasswordResetRequest, db: DbSession) -> TokenP
         raise UnauthorizedError("Telefon raqam yoki parol noto'g'ri.")
 
     phone_verified = await cache_get(PHONE_VERIFIED_KEY.format(phone=payload.phone))
-    if phone_verified:
-        await cache_delete(PHONE_VERIFIED_KEY.format(phone=payload.phone))
-    else:
-        valid = await telegram_verifier.check_code(payload.phone, payload.code)
-        if not valid:
-            if not (settings.debug and payload.code == "0000"):
-                raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+    if not phone_verified:
+        raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+    await cache_delete(PHONE_VERIFIED_KEY.format(phone=payload.phone))
 
     identity = (
         await db.execute(
@@ -227,21 +199,13 @@ async def reset_password(payload: PasswordResetRequest, db: DbSession) -> TokenP
 async def otp_verify(
     payload: OTPVerifyRequest, db: DbSession, bg: BackgroundTasks
 ) -> AuthResult:
-    """Final step of registration: the code was already verified in
-    `/otp/check` (step 2). Here we just confirm the phone_verified flag
-    from Redis and create the user.
-
-    If the flag is missing (e.g. the client skipped `/otp/check`), we
-    fall back to calling Telegram's `auth.signIn` as a safety net.
+    """Final step of registration: confirm the phone_verified flag from Redis
+    (set by `/otp/check`) and create the user account.
     """
     phone_verified = await cache_get(PHONE_VERIFIED_KEY.format(phone=payload.phone))
-    if phone_verified:
-        await cache_delete(PHONE_VERIFIED_KEY.format(phone=payload.phone))
-    else:
-        valid = await telegram_verifier.check_code(payload.phone, payload.code)
-        if not valid:
-            if not (settings.debug and payload.code == "0000"):
-                raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+    if not phone_verified:
+        raise UnauthorizedError("Kod noto'g'ri yoki muddati o'tgan.")
+    await cache_delete(PHONE_VERIFIED_KEY.format(phone=payload.phone))
 
     full_name = payload.full_name
     if not full_name and (payload.first_name or payload.last_name):

@@ -17,7 +17,7 @@ enum _Step { phone, code, password, info }
 /// same phone-first flow:
 ///
 ///   Login:    phone → password
-///   Register: phone → Telegram verification code → name + password
+///   Register: phone → 6-digit SMS code → name + password
 ///
 /// Successful auth stashes the JWT pair and redirects to the pending return
 /// path (if any) or `/home`.

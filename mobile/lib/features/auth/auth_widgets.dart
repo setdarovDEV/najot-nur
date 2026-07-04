@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/phone_formatter.dart';
@@ -235,8 +234,7 @@ class PhoneField extends StatelessWidget {
   }
 }
 
-/// Step 2: enter the Telegram verification code we just sent. The
-/// banner tells the user where to find it inside Telegram.
+/// Step 2: enter the 6-digit SMS verification code.
 class CodeStep extends StatelessWidget {
   const CodeStep({
     super.key,
@@ -274,8 +272,6 @@ class CodeStep extends StatelessWidget {
           l.enterCodeFor(phone),
           style: const TextStyle(color: AppColors.muted, fontSize: 14),
         ),
-        const SizedBox(height: 12),
-        const TelegramVerificationHint(),
         const SizedBox(height: 20),
         FormField<String>(
           validator: (_) {
@@ -321,78 +317,6 @@ class CodeStep extends StatelessWidget {
               : Text(l.continueAction),
         ),
       ],
-    );
-  }
-}
-
-/// Small inline hint pointing the user at Telegram's official
-/// "Verification Codes" chat. Codes are sent there automatically — no
-/// custom bot or `/start` flow needed. Tapping the hint opens the
-/// Telegram search with that chat pre-filtered.
-class TelegramVerificationHint extends StatelessWidget {
-  const TelegramVerificationHint({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => launchUrl(
-        // Telegram deep-link that opens the official "Verification Codes"
-        // chat. Works in both the standalone Telegram app and the in-app
-        // browser on iOS / Android.
-        Uri.parse('tg://resolve?domain=verify'),
-        mode: LaunchMode.externalApplication,
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8F4FD),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF29B6F6), width: 1),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: const Color(0xFF29B6F6),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.send_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Telegram → "Verification Codes"',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: Color(0xFF0277BD),
-                    ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    '6 xonali kod shu chatga yuborildi',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF455A64)),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 14,
-              color: Color(0xFF29B6F6),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

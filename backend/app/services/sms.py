@@ -98,6 +98,7 @@ async def _send_sms(phone: str, message: str) -> None:
                 headers={"Authorization": f"Bearer {token}"},
             )
         if resp.status_code not in (200, 201):
+            log.error("eskiz.send_failed", status=resp.status_code, body=resp.text)
             raise AppError(
                 f"SMS yuborishda xato: {resp.text}",
                 code="sms_send_failed",

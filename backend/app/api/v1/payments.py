@@ -44,48 +44,33 @@ async def initiate_payment(
     amount = float(payload.amount)
 
     if payload.provider == PaymentProvider.uzum:
-        payment = await payment_service.initiate_uzum(
+        payment, redirect_url = await payment_service.initiate_uzum(
             db,
             user_id=current_user.id,
             amount=amount,
             reference_id=payload.reference_id,
             purpose=payload.purpose,
             return_url=payload.return_url,
-        )
-        redirect_url = (
-            f"https://mock.uzum.uz/pay?order_id={payment.id}"
-            if not payment.external_id
-            else f"https://checkout.uzum.uz/pay?order_id={payment.external_id}"
         )
 
     elif payload.provider == PaymentProvider.uzum_nasiya:
-        payment = await payment_service.initiate_uzum_nasiya(
+        payment, redirect_url = await payment_service.initiate_uzum_nasiya(
             db,
             user_id=current_user.id,
             amount=amount,
             reference_id=payload.reference_id,
             purpose=payload.purpose,
             return_url=payload.return_url,
-        )
-        redirect_url = (
-            f"https://mock.nasiya.uzum.uz/pay?order_id={payment.id}"
-            if not payment.external_id
-            else f"https://nasiya.uzum.uz/installment?order_id={payment.external_id}"
         )
 
     elif payload.provider == PaymentProvider.atmos:
-        payment = await payment_service.initiate_atmos(
+        payment, redirect_url = await payment_service.initiate_atmos(
             db,
             user_id=current_user.id,
             amount=amount,
             reference_id=payload.reference_id,
             purpose=payload.purpose,
             return_url=payload.return_url,
-        )
-        redirect_url = (
-            f"https://mock.atmos.uz/pay?order_id={payment.id}"
-            if not payment.external_id
-            else f"https://checkout.atmos.uz/pay?transaction_id={payment.external_id}"
         )
 
     else:

@@ -45,7 +45,7 @@ export function PaymentsPage() {
   const totalPages = data ? Math.ceil(data.total / size) : 1;
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title={t.payments.title} subtitle={t.payments.subtitle} />
 
       <div className="mb-5 flex flex-wrap gap-2">

@@ -77,16 +77,16 @@ export function AdminDashboard() {
     return (Object.keys(counts) as PaymentStatus[]).map((k) => ({
       label:
         k === "paid"
-          ? "To'langan"
+          ? t.payments.paid
           : k === "pending"
-            ? "Kutilmoqda"
+            ? t.payments.pending
             : k === "failed"
-              ? "Xato"
-              : "Qaytarilgan",
+              ? t.payments.failed
+              : t.payments.refunded,
       value: counts[k],
       color: PAYMENT_COLORS[k],
     }));
-  }, [paymentsQ.data]);
+  }, [paymentsQ.data, t]);
 
   // Total paid amount.
   const totalPaid = useMemo(
@@ -117,7 +117,7 @@ export function AdminDashboard() {
     paymentsQ.isLoading;
 
   return (
-    <div className="space-y-6 p-5 md:p-8">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-5 md:p-8">
       <DashboardHero
         fullName={user?.full_name ?? null}
         role="admin"
@@ -125,39 +125,39 @@ export function AdminDashboard() {
       />
 
       {/* ── KPI row ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
-          label="Mijozlar"
+          label={t.dashboard.statClients}
           value={statsQ.data?.users}
           icon={Users}
           tone="wine"
           gradient
           loading={statsQ.isLoading}
-          hint="Barcha ro'yxatdan o'tganlar"
+          hint={t.dashboard.statClientsHint}
         />
         <StatCard
-          label="Nutq tahlillari"
+          label={t.dashboard.statAnalyses}
           value={statsQ.data?.speech_analyses}
           icon={Mic}
           tone="sky"
           loading={statsQ.isLoading}
-          hint="AI tomonidan tahlil qilingan"
+          hint={t.dashboard.statAnalysesHint}
         />
         <StatCard
-          label="Tekshirilmagan vazifalar"
+          label={t.dashboard.statPendingHW}
           value={statsQ.data?.pending_homeworks}
           icon={ClipboardList}
           tone="orange"
           loading={statsQ.isLoading}
-          hint="Kuratorlar ko'rib chiqishi kerak"
+          hint={t.dashboard.statPendingHWHint}
         />
         <StatCard
-          label="Audiokitoblar"
+          label={t.dashboard.statAudiobooks}
           value={statsQ.data?.audiobooks}
           icon={Headphones}
           tone="wine"
           loading={statsQ.isLoading}
-          hint="Platformadagi audio kontent"
+          hint={t.dashboard.statAudiobooksHint}
         />
       </div>
 
@@ -165,21 +165,21 @@ export function AdminDashboard() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <QuickLink
           to="/curators"
-          label="Kuratorlar"
+          label={t.dashboard.quickCurators}
           value={totalCurators}
           icon={GraduationCap}
           tone="bg-skyblue/10 text-skyblue dark:bg-skyblue/20 dark:text-skyblue"
         />
         <QuickLink
           to="/video-lessons"
-          label="Video kurslar"
+          label={t.dashboard.quickCourses}
           value={totalCourses}
           icon={BookOpen}
           tone="bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300"
         />
         <QuickLink
           to="/payments"
-          label="Tushum"
+          label={t.dashboard.quickRevenue}
           value={totalPaid}
           icon={CreditCard}
           tone="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
@@ -187,7 +187,7 @@ export function AdminDashboard() {
         />
         <QuickLink
           to="/notifications"
-          label="Push xabarlar"
+          label={t.dashboard.quickPush}
           value={totalPush}
           icon={Bell}
           tone="bg-orange/10 text-orange dark:bg-orange/15 dark:text-orange"
@@ -197,8 +197,8 @@ export function AdminDashboard() {
       {/* ── Charts row ────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
         <Panel
-          title="To'lov holati"
-          subtitle="So'nggi 8 ta tranzaksiya taqsimoti"
+          title={t.dashboard.paymentStatus}
+          subtitle={t.dashboard.paymentStatusSub}
           icon={<CreditCard size={17} strokeWidth={1.75} />}
           className="lg:col-span-2"
         >
@@ -208,14 +208,14 @@ export function AdminDashboard() {
             <RingChart
               slices={paymentRings}
               centerValue={`${paymentsQ.data?.total ?? 0}`}
-              centerLabel="jami to'lov"
+              centerLabel={t.dashboard.totalPayments}
             />
           )}
         </Panel>
 
         <Panel
-          title="Nutq bahosi taqsimoti"
-          subtitle="Mijozlarning so'nggi natijalari"
+          title={t.dashboard.speechDist}
+          subtitle={t.dashboard.speechDistClientsSub}
           icon={<TrendingUp size={17} strokeWidth={1.75} />}
           className="lg:col-span-3"
         >
@@ -225,7 +225,7 @@ export function AdminDashboard() {
             <BarChart
               data={scoreDist}
               unit=""
-              emptyText="Hali baholangan mijozlar yo'q"
+              emptyText={t.dashboard.noRatedClients}
             />
           )}
         </Panel>
@@ -250,8 +250,8 @@ export function AdminDashboard() {
       {/* ── Performers & curators row ─────────────────────── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Panel
-          title="Eng yaxshi natijalar"
-          subtitle="Eng yuqori nutq baliga ega mijozlar"
+          title={t.dashboard.topPerformers}
+          subtitle={t.dashboard.topClientsSub}
           icon={<TrendingUp size={17} strokeWidth={1.75} />}
           className="lg:col-span-2"
         >
@@ -259,7 +259,7 @@ export function AdminDashboard() {
             <SkeletonList rows={5} />
           ) : topPerformers.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">
-              Hali baholangan mijozlar yo'q
+              {t.dashboard.noRatedClients}
             </p>
           ) : (
             <ol className="space-y-2">
@@ -284,7 +284,7 @@ export function AdminDashboard() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-bold text-ink">
-                        {c.full_name ?? "Ismsiz mijoz"}
+                        {c.full_name ?? t.clients.unnamed}
                       </div>
                       <div className="truncate text-xs text-muted">
                         {c.phone ?? c.email ?? "—"}
@@ -299,15 +299,15 @@ export function AdminDashboard() {
         </Panel>
 
         <Panel
-          title="Kurator jamoasi"
-          subtitle={`${totalCurators} ta kurator`}
+          title={t.dashboard.curatorTeam}
+          subtitle={t.dashboard.curatorTeamSub(totalCurators)}
           icon={<GraduationCap size={17} strokeWidth={1.75} />}
           action={
             <Link
               to="/curators"
               className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
             >
-              Boshqarish <ChevronRight size={12} />
+              {t.dashboard.manageBtn} <ChevronRight size={12} />
             </Link>
           }
         >
@@ -315,7 +315,7 @@ export function AdminDashboard() {
             <SkeletonList rows={3} />
           ) : curatorsQ.data?.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">
-              Hali kuratorlar yo'q
+              {t.dashboard.noCuratorsYet}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -335,7 +335,7 @@ export function AdminDashboard() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-bold text-ink">
-                      {c.full_name ?? "Nomsiz kurator"}
+                      {c.full_name ?? t.curators.title}
                     </div>
                     <div className="truncate text-xs text-muted">
                       {c.email}
@@ -348,7 +348,7 @@ export function AdminDashboard() {
                         : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                     }`}
                   >
-                    {c.is_active ? "Faol" : "Bloklangan"}
+                    {c.is_active ? t.common.active : t.common.inactive}
                   </span>
                 </li>
               ))}
@@ -359,7 +359,7 @@ export function AdminDashboard() {
 
       {isLoading && (
         <p className="text-center text-xs text-muted">
-          Ma'lumotlar yuklanmoqda…
+          {t.dashboard.dataLoading}
         </p>
       )}
     </div>

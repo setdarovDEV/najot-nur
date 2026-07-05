@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BRAND } from "../lib/config";
+import { openDemo } from "../lib/device";
 import { track, type TrackingEventName } from "../lib/tracking";
 
 interface CTAButtonProps {
@@ -10,6 +11,8 @@ interface CTAButtonProps {
   size?: "md" | "lg";
   className?: string;
   meta?: Record<string, unknown>;
+  /** "demo" opens the pronunciation demo modal; "link" navigates to app URL */
+  action?: "demo" | "link";
 }
 
 const VARIANTS = {
@@ -25,10 +28,9 @@ const SIZES = {
   lg: "px-8 py-4 text-base",
 } as const;
 
-/**
- * Tracked CTA link. All primary flows lead to the app (or the final CTA
- * section when no app URL is configured) and fire a TZ tracking event.
- */
+const BASE =
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl font-bold transition-all duration-200 active:translate-y-0 active:scale-[0.98]";
+
 export default function CTAButton({
   id,
   event,
@@ -37,13 +39,31 @@ export default function CTAButton({
   size = "lg",
   className = "",
   meta,
+  action = "demo",
 }: CTAButtonProps) {
+  const cls = `${BASE} ${VARIANTS[variant]} ${SIZES[size]} ${className}`;
+
+  if (action === "demo") {
+    return (
+      <button
+        id={id}
+        onClick={() => {
+          track(event, { button_id: id, ...meta });
+          openDemo();
+        }}
+        className={cls}
+      >
+        {children}
+      </button>
+    );
+  }
+
   return (
     <a
       id={id}
       href={BRAND.links.app}
       onClick={() => track(event, { button_id: id, ...meta })}
-      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl font-bold transition-all duration-200 active:translate-y-0 active:scale-[0.98] ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={cls}
     >
       {children}
     </a>

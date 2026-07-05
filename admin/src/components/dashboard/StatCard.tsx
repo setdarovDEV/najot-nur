@@ -43,13 +43,13 @@ export function StatCard({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border border-line bg-card p-5 transition hover:border-wine/30 hover:shadow-lg hover:shadow-wine/5 ${
+      className={`group relative overflow-hidden rounded-2xl border border-line bg-card p-4 transition hover:border-wine/30 hover:shadow-lg hover:shadow-wine/5 sm:p-5 ${
         gradient ? `bg-gradient-to-br ${TONE_GRADIENT[tone]} text-white border-transparent` : ""
       }`}
     >
       <div className="flex items-start justify-between">
         <div
-          className={`grid h-11 w-11 place-items-center rounded-xl ${
+          className={`grid h-9 w-9 place-items-center rounded-xl sm:h-11 sm:w-11 ${
             gradient ? "bg-white/15 text-white" : TONE_BG[tone]
           }`}
         >
@@ -78,7 +78,7 @@ export function StatCard({
 
       <div className="mt-4">
         <div
-          className={`text-3xl font-extrabold tracking-tight ${gradient ? "text-white" : "text-ink"}`}
+          className={`text-2xl font-extrabold tracking-tight sm:text-3xl ${gradient ? "text-white" : "text-ink"}`}
         >
           {loading ? (
             <span className="inline-block h-8 w-16 animate-pulse rounded-md bg-line/60" />

@@ -54,7 +54,7 @@ export default function Hero() {
               meta={{ placement: "hero_primary" }}
             >
               <Mic className="h-5 w-5" />
-              Bepul tahlil olish
+              Bepul nutq tahlili olish
             </CTAButton>
             <CTAButton
               id="hero_secondary_cta"

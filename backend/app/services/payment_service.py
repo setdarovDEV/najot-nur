@@ -1,17 +1,19 @@
-"""Payment orchestration service.
+"""Payment orchestration service — Uzum Bank, Uzum Nasiya, ATMOS.
 
-All HTTP calls to actual payment providers (Uzum, Uzum Nasiya, ATMOS) are
-stubbed out for development — they log the intent and return a mock response.
-Wire up real HTTP clients (httpx) when API keys are available in production.
+Real HTTP calls are made when API keys are present in settings.
+In development (keys absent), a mock redirect URL is returned so the
+rest of the flow (DB record, callbacks) can be exercised without live keys.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,14 +39,19 @@ from app.services import fcm
 log = get_logger("payment_service")
 
 # ──────────────────────────────────────────────
-#  Internal helpers
+#  Provider base URLs  (change to sandbox for testing)
 # ──────────────────────────────────────────────
 
+_UZUM_BASE = "https://api.paymart.uz"
+_UZUM_NASIYA_BASE = "https://api.nasiya.uz"
+_ATMOS_BASE = "https://partner.atmos.uz"
 
-def _uzum_signature(merchant_id: str, secret_key: str, amount: float, reference_id: str) -> str:
-    """Compute an HMAC-SHA256 signature for Uzum requests (stub logic)."""
-    payload = f"{merchant_id}:{amount:.2f}:{reference_id}"
-    return hmac.new(secret_key.encode(), payload.encode(), hashlib.sha256).hexdigest()
+_HTTP_TIMEOUT = 20.0  # seconds
+
+
+# ──────────────────────────────────────────────
+#  Internal DB helpers
+# ──────────────────────────────────────────────
 
 
 async def _create_payment(
@@ -71,8 +78,6 @@ async def _create_payment(
 
 
 async def _get_payment_by_external_id(db: AsyncSession, external_id: str) -> Payment:
-    from sqlalchemy import select
-
     row = (
         await db.execute(
             select(Payment).where(Payment.external_id == external_id)
@@ -84,7 +89,14 @@ async def _get_payment_by_external_id(db: AsyncSession, external_id: str) -> Pay
 
 
 # ──────────────────────────────────────────────
-#  Uzum one-time payment
+#  Uzum Bank  (paymart.uz)
+# ──────────────────────────────────────────────
+#
+#  Docs: https://developer.paymart.uz
+#  Auth: Basic  (merchantId:secretKey → base64)
+#  POST /v1/payment
+#    body  → { orderId, amount (tiyin), returnUrl, failedUrl, currency }
+#    resp  → { paymentId, paymentUrl }
 # ──────────────────────────────────────────────
 
 
@@ -96,8 +108,11 @@ async def initiate_uzum(
     reference_id: uuid.UUID | None = None,
     purpose: PaymentPurpose,
     return_url: str,
-) -> Payment:
-    """Create a pending Payment record and return a Uzum redirect URL (stubbed)."""
+) -> tuple[Payment, str]:
+    """Create a pending Payment record and initiate a Uzum Bank checkout.
+
+    Returns (payment, redirect_url).
+    """
     payment = await _create_payment(
         db,
         user_id=user_id,
@@ -108,23 +123,70 @@ async def initiate_uzum(
     )
 
     if settings.uzum_merchant_id and settings.uzum_secret_key:
-        # TODO: replace with real httpx call to Uzum Payment API
-        log.info(
-            "uzum.initiate_real",
-            payment_id=str(payment.id),
-            amount=amount,
-        )
-        redirect_url = f"https://checkout.uzum.uz/pay?merchant_id={settings.uzum_merchant_id}&order_id={payment.id}&amount={int(amount * 100)}&return_url={return_url}"
+        credentials = base64.b64encode(
+            f"{settings.uzum_merchant_id}:{settings.uzum_secret_key}".encode()
+        ).decode()
+
+        try:
+            async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
+                resp = await client.post(
+                    f"{_UZUM_BASE}/v1/payment",
+                    headers={
+                        "Authorization": f"Basic {credentials}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "orderId": str(payment.id),
+                        "amount": int(amount * 100),   # tiyin
+                        "currency": "UZS",
+                        "returnUrl": return_url,
+                        "failedUrl": return_url,
+                        "merchantId": settings.uzum_merchant_id,
+                    },
+                )
+                resp.raise_for_status()
+                data: dict[str, Any] = resp.json()
+
+            external_id = str(
+                data.get("paymentId") or data.get("id") or payment.id
+            )
+            redirect_url: str = (
+                data.get("paymentUrl") or data.get("url")
+                or f"https://checkout.uzum.uz/pay/{external_id}"
+            )
+            payment.external_id = external_id
+            log.info(
+                "uzum.initiated",
+                payment_id=str(payment.id),
+                external_id=external_id,
+                amount=amount,
+            )
+
+        except httpx.HTTPStatusError as exc:
+            log.error(
+                "uzum.api_error",
+                status=exc.response.status_code,
+                body=exc.response.text,
+                payment_id=str(payment.id),
+            )
+            raise AppError(
+                f"Uzum Bank xatoligi: {exc.response.status_code} — {exc.response.text}",
+                status_code=502,
+            ) from exc
+
+        except httpx.RequestError as exc:
+            log.error("uzum.network_error", error=str(exc), payment_id=str(payment.id))
+            raise AppError("Uzum Bank bilan aloqa yo'q.", status_code=502) from exc
+
     else:
-        # Development stub
+        # Development stub — no real API call
         mock_external_id = f"uzum_mock_{payment.id.hex[:12]}"
         payment.external_id = mock_external_id
         redirect_url = f"https://mock.uzum.uz/pay?order_id={payment.id}"
-        log.info(
-            "uzum.initiate_stub",
+        log.warning(
+            "uzum.stub_mode",
+            hint="UZUM_MERCHANT_ID va UZUM_SECRET_KEY o'rnatilmagan",
             payment_id=str(payment.id),
-            amount=amount,
-            mock_external_id=mock_external_id,
         )
 
     await db.flush()
@@ -134,15 +196,19 @@ async def initiate_uzum(
         payment_id=str(payment.id),
         user_id=str(user_id),
         amount=amount,
-        redirect_url=redirect_url,
     )
-    # Store redirect_url on the model via external_id field as a temporary measure;
-    # the caller reads payment.id and constructs its own redirect_url.
-    return payment
+    return payment, redirect_url
 
 
 # ──────────────────────────────────────────────
-#  Uzum Nasiya (installment) payment
+#  Uzum Nasiya  (bo'lib-bo'lib to'lash)
+# ──────────────────────────────────────────────
+#
+#  Docs: https://api.nasiya.uz/swagger
+#  Auth: Bearer {uzum_nasiya_api_key}
+#  POST /api/v2/partner/invoice
+#    body  → { amount (tiyin), period (months), orderId, redirectUrl }
+#    resp  → { data: { id, link } }
 # ──────────────────────────────────────────────
 
 
@@ -154,8 +220,12 @@ async def initiate_uzum_nasiya(
     reference_id: uuid.UUID | None = None,
     purpose: PaymentPurpose,
     return_url: str,
-) -> Payment:
-    """Create a pending Payment record and return a Uzum Nasiya redirect URL (stubbed)."""
+    months: int = 6,
+) -> tuple[Payment, str]:
+    """Create a pending Payment record and initiate a Uzum Nasiya installment.
+
+    Returns (payment, redirect_url).
+    """
     payment = await _create_payment(
         db,
         user_id=user_id,
@@ -166,25 +236,65 @@ async def initiate_uzum_nasiya(
     )
 
     if settings.uzum_nasiya_api_key:
-        # TODO: replace with real httpx call to Uzum Nasiya API
-        log.info(
-            "uzum_nasiya.initiate_real",
-            payment_id=str(payment.id),
-            amount=amount,
-        )
-        redirect_url = (
-            f"https://nasiya.uzum.uz/installment?api_key={settings.uzum_nasiya_api_key}"
-            f"&order_id={payment.id}&amount={int(amount * 100)}&return_url={return_url}"
-        )
+        try:
+            async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
+                resp = await client.post(
+                    f"{_UZUM_NASIYA_BASE}/api/v2/partner/invoice",
+                    headers={
+                        "Authorization": f"Bearer {settings.uzum_nasiya_api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "amount": int(amount * 100),   # tiyin
+                        "period": months,
+                        "orderId": str(payment.id),
+                        "redirectUrl": return_url,
+                    },
+                )
+                resp.raise_for_status()
+                data: dict[str, Any] = resp.json()
+
+            inner = data.get("data") or data
+            external_id = str(
+                inner.get("id") or inner.get("invoiceId") or payment.id
+            )
+            redirect_url: str = (
+                inner.get("link") or inner.get("redirectUrl") or inner.get("url")
+                or f"https://nasiya.uz/invoice/{external_id}"
+            )
+            payment.external_id = external_id
+            log.info(
+                "uzum_nasiya.initiated",
+                payment_id=str(payment.id),
+                external_id=external_id,
+                amount=amount,
+                months=months,
+            )
+
+        except httpx.HTTPStatusError as exc:
+            log.error(
+                "uzum_nasiya.api_error",
+                status=exc.response.status_code,
+                body=exc.response.text,
+                payment_id=str(payment.id),
+            )
+            raise AppError(
+                f"Uzum Nasiya xatoligi: {exc.response.status_code} — {exc.response.text}",
+                status_code=502,
+            ) from exc
+
+        except httpx.RequestError as exc:
+            log.error("uzum_nasiya.network_error", error=str(exc), payment_id=str(payment.id))
+            raise AppError("Uzum Nasiya bilan aloqa yo'q.", status_code=502) from exc
+
     else:
         mock_external_id = f"nasiya_mock_{payment.id.hex[:12]}"
         payment.external_id = mock_external_id
         redirect_url = f"https://mock.nasiya.uzum.uz/pay?order_id={payment.id}"
-        log.info(
-            "uzum_nasiya.initiate_stub",
+        log.warning(
+            "uzum_nasiya.stub_mode",
+            hint="UZUM_NASIYA_API_KEY o'rnatilmagan",
             payment_id=str(payment.id),
-            amount=amount,
-            mock_external_id=mock_external_id,
         )
 
     await db.flush()
@@ -194,14 +304,41 @@ async def initiate_uzum_nasiya(
         payment_id=str(payment.id),
         user_id=str(user_id),
         amount=amount,
-        redirect_url=redirect_url,
     )
-    return payment
+    return payment, redirect_url
 
 
 # ──────────────────────────────────────────────
-#  ATMOS subscription payment
+#  ATMOS  (oylik obuna / subscription)
 # ──────────────────────────────────────────────
+#
+#  Docs: https://partner.atmos.uz/docs
+#  Auth: OAuth2 client_credentials
+#  Step 1 — GET token
+#    POST /merchant/auth/token
+#    body (form) → grant_type=client_credentials&consumer_key=…&consumer_secret=…
+#    resp → { access_token, token_type, expires_in }
+#  Step 2 — Create transaction
+#    POST /merchant/pay/create
+#    headers → Authorization: Bearer {token}
+#    body  → { amount (tiyin), account (our orderId), store_id, lang }
+#    resp  → { result: {code, description}, transaction_id, checkout_url }
+# ──────────────────────────────────────────────
+
+
+async def _atmos_get_token() -> str:
+    """Fetch a short-lived ATMOS OAuth2 Bearer token."""
+    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
+        resp = await client.post(
+            f"{_ATMOS_BASE}/merchant/auth/token",
+            data={
+                "grant_type": "client_credentials",
+                "consumer_key": settings.atmos_consumer_key,
+                "consumer_secret": settings.atmos_consumer_secret,
+            },
+        )
+        resp.raise_for_status()
+        return str(resp.json()["access_token"])
 
 
 async def initiate_atmos(
@@ -212,8 +349,11 @@ async def initiate_atmos(
     reference_id: uuid.UUID | None = None,
     purpose: PaymentPurpose,
     return_url: str,
-) -> Payment:
-    """Create a pending Payment record and return an ATMOS checkout URL (stubbed)."""
+) -> tuple[Payment, str]:
+    """Create a pending Payment record and initiate an ATMOS checkout.
+
+    Returns (payment, redirect_url).
+    """
     payment = await _create_payment(
         db,
         user_id=user_id,
@@ -224,25 +364,74 @@ async def initiate_atmos(
     )
 
     if settings.atmos_store_id and settings.atmos_consumer_key and settings.atmos_consumer_secret:
-        # TODO: replace with real httpx call to ATMOS API (OAuth2 + create transaction)
-        log.info(
-            "atmos.initiate_real",
-            payment_id=str(payment.id),
-            amount=amount,
-        )
-        redirect_url = (
-            f"https://checkout.atmos.uz/pay?store_id={settings.atmos_store_id}"
-            f"&transaction_id={payment.id}&amount={int(amount * 100)}&return_url={return_url}"
-        )
+        try:
+            token = await _atmos_get_token()
+
+            async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
+                resp = await client.post(
+                    f"{_ATMOS_BASE}/merchant/pay/create",
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "amount": int(amount * 100),         # tiyin
+                        "account": str(payment.id),          # our internal order id
+                        "store_id": int(settings.atmos_store_id),
+                        "lang": "ru",
+                        "return_url": return_url,
+                    },
+                )
+                resp.raise_for_status()
+                data: dict[str, Any] = resp.json()
+
+            result = data.get("result", {})
+            code = str(result.get("code", "")) if isinstance(result, dict) else str(result)
+            if code not in ("0", "200", "success", ""):
+                raise AppError(
+                    f"ATMOS xatoligi: {result}",
+                    status_code=502,
+                )
+
+            external_id = str(
+                data.get("transaction_id") or data.get("transactionId") or payment.id
+            )
+            redirect_url: str = (
+                data.get("checkout_url") or data.get("checkoutUrl") or data.get("url")
+                or f"{_ATMOS_BASE}/checkout/{external_id}"
+            )
+            payment.external_id = external_id
+            log.info(
+                "atmos.initiated",
+                payment_id=str(payment.id),
+                external_id=external_id,
+                amount=amount,
+            )
+
+        except httpx.HTTPStatusError as exc:
+            log.error(
+                "atmos.api_error",
+                status=exc.response.status_code,
+                body=exc.response.text,
+                payment_id=str(payment.id),
+            )
+            raise AppError(
+                f"ATMOS xatoligi: {exc.response.status_code} — {exc.response.text}",
+                status_code=502,
+            ) from exc
+
+        except httpx.RequestError as exc:
+            log.error("atmos.network_error", error=str(exc), payment_id=str(payment.id))
+            raise AppError("ATMOS bilan aloqa yo'q.", status_code=502) from exc
+
     else:
         mock_external_id = f"atmos_mock_{payment.id.hex[:12]}"
         payment.external_id = mock_external_id
         redirect_url = f"https://mock.atmos.uz/pay?order_id={payment.id}"
-        log.info(
-            "atmos.initiate_stub",
+        log.warning(
+            "atmos.stub_mode",
+            hint="ATMOS_STORE_ID, ATMOS_CONSUMER_KEY yoki ATMOS_CONSUMER_SECRET o'rnatilmagan",
             payment_id=str(payment.id),
-            amount=amount,
-            mock_external_id=mock_external_id,
         )
 
     await db.flush()
@@ -252,13 +441,12 @@ async def initiate_atmos(
         payment_id=str(payment.id),
         user_id=str(user_id),
         amount=amount,
-        redirect_url=redirect_url,
     )
-    return payment
+    return payment, redirect_url
 
 
 # ──────────────────────────────────────────────
-#  Access-grant + homework-assignment helpers
+#  Access-grant + homework helpers
 # ──────────────────────────────────────────────
 
 
@@ -268,11 +456,6 @@ async def _ensure_homework_for_enrollment(
     user_id: uuid.UUID,
     course_id: uuid.UUID,
 ) -> int:
-    """Create a placeholder Homework row for every lesson in the course that
-    the user does not yet have a submission for. Idempotent.
-
-    Returns the number of placeholder rows created.
-    """
     lesson_ids = (
         await db.execute(
             select(Lesson.id).where(Lesson.course_id == course_id)
@@ -307,13 +490,7 @@ async def _ensure_homework_for_enrollment(
     return created
 
 
-async def _grant_access_for_payment(
-    db: AsyncSession,
-    payment: Payment,
-) -> None:
-    """Idempotently grant the user access to the course/audiobook that
-    `payment` refers to and pre-create Homework placeholders.
-    """
+async def _grant_access_for_payment(db: AsyncSession, payment: Payment) -> None:
     if payment.reference_id is None or payment.purpose is None:
         log.warning(
             "payment.grant_skipped",
@@ -349,20 +526,13 @@ async def _grant_access_for_payment(
     elif payment.purpose == PaymentPurpose.audiobook:
         stmt = (
             pg_insert(AudiobookAccess)
-            .values(
-                user_id=payment.user_id,
-                audiobook_id=payment.reference_id,
-            )
+            .values(user_id=payment.user_id, audiobook_id=payment.reference_id)
             .on_conflict_do_nothing(constraint="user_audiobook_access")
         )
         await db.execute(stmt)
 
 
-async def _notify_payment_success(
-    db: AsyncSession,
-    payment: Payment,
-) -> None:
-    """Best-effort FCM + in-app push to the user announcing access granted."""
+async def _notify_payment_success(db: AsyncSession, payment: Payment) -> None:
     title = "To'lov tasdiqlandi ✅"
     if payment.purpose == PaymentPurpose.course and payment.reference_id:
         course = await db.get(Course, payment.reference_id)
@@ -402,20 +572,15 @@ async def _notify_payment_success(
             )
         )
     except Exception as exc:  # noqa: BLE001
-        log.error(
-            "payment.notify_failed",
-            payment_id=str(payment.id),
-            error=str(exc),
-        )
+        log.error("payment.notify_failed", payment_id=str(payment.id), error=str(exc))
 
 
 # ──────────────────────────────────────────────
-#  Callback handlers
+#  Webhook / callback handlers
 # ──────────────────────────────────────────────
 
 
 def _verify_uzum_signature(payload: dict[str, Any]) -> bool:
-    """Verify Uzum webhook signature. Returns True in dev when no secret is set."""
     if not settings.uzum_secret_key:
         log.warning("uzum.signature_check_skipped", reason="no secret configured")
         return True
@@ -431,73 +596,61 @@ def _verify_uzum_signature(payload: dict[str, Any]) -> bool:
 
 
 async def handle_uzum_callback(db: AsyncSession, payload: dict[str, Any]) -> Payment:
-    """Process a Uzum payment callback and update the Payment record."""
     log.info("uzum.callback_received", payload_keys=list(payload.keys()))
 
     if not _verify_uzum_signature(payload):
         raise AppError("Uzum webhook imzosi yaroqsiz.", status_code=400)
 
-    # Uzum sends either `order_id` (our payment UUID) or `transaction_id`
-    external_id = str(payload.get("transaction_id") or payload.get("order_id", ""))
+    external_id = str(payload.get("transaction_id") or payload.get("order_id") or payload.get("paymentId") or "")
     if not external_id:
         raise AppError("Uzum callback: order_id yoki transaction_id yo'q.", status_code=400)
 
     payment = await _get_payment_by_external_id(db, external_id)
 
-    uzum_status = payload.get("status", "").lower()
-    if uzum_status in ("paid", "confirmed", "success"):
+    uzum_status = str(payload.get("status", "")).lower()
+    if uzum_status in ("paid", "confirmed", "success", "succeeded"):
         payment.status = PaymentStatus.paid
         payment.paid_at = datetime.now(UTC)
         log.info("uzum.payment_paid", payment_id=str(payment.id))
         await _grant_access_for_payment(db, payment)
         await _notify_payment_success(db, payment)
-    elif uzum_status in ("failed", "cancelled", "declined"):
+    elif uzum_status in ("failed", "cancelled", "declined", "expired"):
         payment.status = PaymentStatus.failed
-        log.info("uzum.payment_failed", payment_id=str(payment.id), uzum_status=uzum_status)
+        log.info("uzum.payment_failed", payment_id=str(payment.id), status=uzum_status)
     else:
-        log.warning("uzum.unknown_status", uzum_status=uzum_status, payment_id=str(payment.id))
+        log.warning("uzum.unknown_status", status=uzum_status, payment_id=str(payment.id))
 
     await db.flush()
     return payment
 
 
 async def handle_uzum_nasiya_callback(db: AsyncSession, payload: dict[str, Any]) -> Payment:
-    """Process a Uzum Nasiya webhook and update the Payment record."""
     log.info("uzum_nasiya.callback_received", payload_keys=list(payload.keys()))
 
-    external_id = str(payload.get("order_id") or payload.get("installment_id", ""))
+    external_id = str(payload.get("order_id") or payload.get("installment_id") or payload.get("id") or "")
     if not external_id:
         raise AppError("Uzum Nasiya callback: order_id yo'q.", status_code=400)
 
     payment = await _get_payment_by_external_id(db, external_id)
 
-    nasiya_status = payload.get("status", "").lower()
-    if nasiya_status in ("approved", "paid", "active"):
+    nasiya_status = str(payload.get("status", "")).lower()
+    if nasiya_status in ("approved", "paid", "active", "success"):
         payment.status = PaymentStatus.paid
         payment.paid_at = datetime.now(UTC)
         log.info("uzum_nasiya.payment_paid", payment_id=str(payment.id))
         await _grant_access_for_payment(db, payment)
         await _notify_payment_success(db, payment)
-    elif nasiya_status in ("rejected", "cancelled", "failed"):
+    elif nasiya_status in ("rejected", "cancelled", "failed", "expired"):
         payment.status = PaymentStatus.failed
-        log.info(
-            "uzum_nasiya.payment_failed",
-            payment_id=str(payment.id),
-            nasiya_status=nasiya_status,
-        )
+        log.info("uzum_nasiya.payment_failed", payment_id=str(payment.id), status=nasiya_status)
     else:
-        log.warning(
-            "uzum_nasiya.unknown_status",
-            nasiya_status=nasiya_status,
-            payment_id=str(payment.id),
-        )
+        log.warning("uzum_nasiya.unknown_status", status=nasiya_status, payment_id=str(payment.id))
 
     await db.flush()
     return payment
 
 
 def _verify_atmos_signature(payload: dict[str, Any]) -> bool:
-    """Verify ATMOS webhook signature. Returns True in dev when no secret is set."""
     if not settings.atmos_consumer_secret:
         log.warning("atmos.signature_check_skipped", reason="no secret configured")
         return True
@@ -513,23 +666,19 @@ def _verify_atmos_signature(payload: dict[str, Any]) -> bool:
 
 
 async def handle_atmos_callback(db: AsyncSession, payload: dict[str, Any]) -> Payment:
-    """Process an ATMOS payment callback and update the Payment record."""
     log.info("atmos.callback_received", payload_keys=list(payload.keys()))
 
     if not _verify_atmos_signature(payload):
         raise AppError("ATMOS webhook imzosi yaroqsiz.", status_code=400)
 
-    external_id = str(payload.get("transaction_id") or payload.get("order_id", ""))
+    external_id = str(payload.get("transaction_id") or payload.get("transactionId") or payload.get("order_id") or "")
     if not external_id:
         raise AppError("ATMOS callback: transaction_id yo'q.", status_code=400)
 
     payment = await _get_payment_by_external_id(db, external_id)
 
-    atmos_status = payload.get("result", {})
-    if isinstance(atmos_status, dict):
-        code = str(atmos_status.get("code", ""))
-    else:
-        code = str(atmos_status)
+    atmos_result = payload.get("result", {})
+    code = str(atmos_result.get("code", "")) if isinstance(atmos_result, dict) else str(atmos_result)
 
     if code in ("0", "200", "success"):
         payment.status = PaymentStatus.paid
@@ -537,7 +686,7 @@ async def handle_atmos_callback(db: AsyncSession, payload: dict[str, Any]) -> Pa
         log.info("atmos.payment_paid", payment_id=str(payment.id))
         await _grant_access_for_payment(db, payment)
         await _notify_payment_success(db, payment)
-    elif code in ("1", "failed", "cancelled"):
+    elif code in ("1", "failed", "cancelled", "expired"):
         payment.status = PaymentStatus.failed
         log.info("atmos.payment_failed", payment_id=str(payment.id), code=code)
     else:

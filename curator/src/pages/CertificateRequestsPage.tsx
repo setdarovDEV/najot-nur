@@ -51,12 +51,12 @@ export function CertificateRequestsPage() {
   const cr = t.certificateRequests;
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title={cr.title}
         subtitle={cr.subtitle}
         actions={
-          <div className="flex gap-2">
+          <>
             {(["pending", "approved", "rejected", ""] as const).map((f) => (
               <button
                 key={f || "all"}
@@ -76,7 +76,7 @@ export function CertificateRequestsPage() {
                       : cr.all}
               </button>
             ))}
-          </div>
+          </>
         }
       />
 

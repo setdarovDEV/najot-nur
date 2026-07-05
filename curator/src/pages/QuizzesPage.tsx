@@ -145,7 +145,7 @@ export function QuizzesPage() {
   const pendingCount = quizzes.filter((q) => q.status === "draft").length;
 
   return (
-    <div className="p-6 md:p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title={t.nav.quizzes}
         subtitle={isAdmin ? `${pendingCount} ta test kutilmoqda` : "Testlar yaratish va boshqarish"}
@@ -608,11 +608,11 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10">
       <div className="w-full max-w-2xl rounded-2xl border border-line bg-card shadow-2xl">
-        <div className="flex items-center justify-between border-b border-line px-6 py-4">
+        <div className="flex items-center justify-between border-b border-line px-4 py-4 sm:px-6">
           <h2 className="text-lg font-extrabold text-ink">Yangi test yaratish</h2>
           <button onClick={onClose} className="text-muted hover:text-wine"><X size={20} /></button>
         </div>
-        <div className="space-y-5 p-6">
+        <div className="space-y-5 p-4 sm:p-6">
           {error && (
             <div className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>
           )}
@@ -627,7 +627,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-bold text-ink">Qiyinlik</label>
               <select
@@ -760,7 +760,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-line px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-line px-4 py-4 sm:px-6">
           <button
             onClick={onClose}
             className="rounded-xl border border-line px-5 py-2.5 text-sm font-semibold text-ink hover:bg-surface"

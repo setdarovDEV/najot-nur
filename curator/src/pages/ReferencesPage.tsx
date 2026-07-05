@@ -60,7 +60,7 @@ export function ReferencesPage() {
   });
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title={r.title}
         subtitle={r.subtitle}

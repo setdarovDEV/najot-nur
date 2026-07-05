@@ -62,46 +62,46 @@ export function CuratorDashboard() {
   }, [leaderboardQ.data]);
 
   return (
-    <div className="space-y-6 p-5 md:p-8">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-5 md:p-8">
       <DashboardHero
         fullName={user?.full_name ?? null}
         statusLabel={t.dashboard.statusOk}
       />
 
       {/* ── KPI row ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
-          label="Tekshirishni kutayotgan"
+          label={t.dashboard.statPendingHW}
           value={pendingCount}
           icon={ClipboardList}
           tone="orange"
           gradient
           loading={pendingQ.isLoading}
-          hint="Yangi topshiriqlar"
+          hint={t.dashboard.statPendingHWHint}
         />
         <StatCard
-          label="Tekshirilgan"
+          label={t.dashboard.statReviewed}
           value={reviewedCount}
           icon={TrendingUp}
           tone="sky"
           loading={reviewedQ.isLoading}
-          hint="Baholangan vazifalar"
+          hint={t.dashboard.statReviewedHint}
         />
         <StatCard
-          label="O'quvchilar"
+          label={t.dashboard.statStudents}
           value={statsQ.data?.users}
           icon={Users}
           tone="wine"
           loading={statsQ.isLoading}
-          hint="Platformadagi barcha mijozlar"
+          hint={t.dashboard.statStudentsHint}
         />
         <StatCard
-          label="Nutq tahlillari"
+          label={t.dashboard.statAnalyses}
           value={statsQ.data?.speech_analyses}
           icon={Mic}
           tone="wine"
           loading={statsQ.isLoading}
-          hint="AI tomonidan tahlil qilingan"
+          hint={t.dashboard.statAnalysesHint}
         />
       </div>
 
@@ -109,26 +109,26 @@ export function CuratorDashboard() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <QuickLink
           to="/homeworks"
-          label="Yangi vazifalar"
+          label={t.dashboard.quickNewTasks}
           value={pendingCount}
           tone="bg-orange/10 text-orange"
         />
         <QuickLink
           to="/audiobooks"
-          label="Audiokitoblar"
+          label={t.dashboard.quickAudiobooks}
           value={statsQ.data?.audiobooks ?? 0}
           tone="bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300"
         />
         <QuickLink
           to="/practicums"
-          label="Praktikumlar"
+          label={t.dashboard.quickPracticums}
           value="→"
           tone="bg-skyblue/10 text-skyblue"
           smallValue
         />
         <QuickLink
           to="/certificate-requests"
-          label="Sertifikat so'rovlari"
+          label={t.dashboard.quickCertificates}
           value="→"
           tone="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
           smallValue
@@ -138,8 +138,8 @@ export function CuratorDashboard() {
       {/* ── Charts + recent homeworks ─────────────────────── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
         <Panel
-          title="Nutq bahosi taqsimoti"
-          subtitle="Eng faol 20 o'quvchi"
+          title={t.dashboard.speechDist}
+          subtitle={t.dashboard.speechDistStudentsSub}
           icon={<TrendingUp size={17} strokeWidth={1.75} />}
           className="lg:col-span-3"
         >
@@ -149,7 +149,7 @@ export function CuratorDashboard() {
             <BarChart
               data={scoreDist}
               unit=""
-              emptyText="Hali baholangan o'quvchilar yo'q"
+              emptyText={t.dashboard.noRatedStudents}
             />
           )}
         </Panel>
@@ -165,8 +165,8 @@ export function CuratorDashboard() {
       {/* ── Performers + courses ──────────────────────────── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Panel
-          title="Eng yaxshi natijalar"
-          subtitle="Eng yuqori nutq baliga ega o'quvchilar"
+          title={t.dashboard.topPerformers}
+          subtitle={t.dashboard.topStudentsSub}
           icon={<TrendingUp size={17} strokeWidth={1.75} />}
           className="lg:col-span-2"
         >
@@ -178,7 +178,7 @@ export function CuratorDashboard() {
             </div>
           ) : topPerformers.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">
-              Hali baholangan o'quvchilar yo'q
+              {t.dashboard.noRatedStudents}
             </p>
           ) : (
             <ol className="space-y-2">
@@ -200,7 +200,7 @@ export function CuratorDashboard() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-bold text-ink">
-                        {c.full_name ?? "Ismsiz o'quvchi"}
+                        {c.full_name ?? t.dashboard.statStudents}
                       </div>
                       <div className="truncate text-xs text-muted">
                         {c.phone ?? c.email ?? "—"}
@@ -215,15 +215,15 @@ export function CuratorDashboard() {
         </Panel>
 
         <Panel
-          title="Mavjud kurslar"
-          subtitle={`${totalCourses} ta kurs`}
+          title={t.dashboard.courses}
+          subtitle={t.dashboard.coursesSub(totalCourses)}
           icon={<BookOpen size={17} strokeWidth={1.75} />}
           action={
             <Link
               to="/video-lessons"
               className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
             >
-              Darslar <ChevronRight size={12} />
+              {t.dashboard.coursesLink} <ChevronRight size={12} />
             </Link>
           }
         >
@@ -235,7 +235,7 @@ export function CuratorDashboard() {
             </div>
           ) : coursesQ.data?.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">
-              Hali kurslar yo'q
+              {t.dashboard.noCoursesYet}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -262,7 +262,7 @@ export function CuratorDashboard() {
                         : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                     }`}
                   >
-                    {c.is_published ? "Faol" : "Qoralama"}
+                    {c.is_published ? t.videoLessons.published : t.videoLessons.draft}
                   </span>
                 </li>
               ))}

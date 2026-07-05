@@ -27,7 +27,7 @@ export function ClientsPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / size)) : 1;
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title={t.clients.title}
         subtitle={data ? t.clients.subtitle(data.total) : t.common.loading}
@@ -39,12 +39,13 @@ export function ClientsPage() {
               setPage(1);
             }}
             placeholder={t.clients.searchPlaceholder}
-            className="w-72 rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20]"
+            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20] sm:w-72"
           />
         }
       />
 
       <div className="overflow-hidden rounded-2xl border border-line bg-card">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line bg-wine-50 text-left text-muted dark:bg-wine-900/20">
@@ -103,6 +104,7 @@ export function ClientsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="mt-4 flex items-center justify-between text-sm">

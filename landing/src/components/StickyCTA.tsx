@@ -1,9 +1,9 @@
 import { Mic } from "lucide-react";
-import { BRAND } from "../lib/config";
+import { openDemo } from "../lib/device";
 import { useScrolledPast } from "../lib/hooks";
 import { track } from "../lib/tracking";
 
-/** Mobile-only sticky CTA (TZ section 6) — appears after the hero is scrolled. */
+/** Mobile-only sticky CTA — appears after the hero is scrolled. */
 export default function StickyCTA() {
   const show = useScrolledPast(480);
 
@@ -18,15 +18,17 @@ export default function StickyCTA() {
           </span>
           <div className="text-sm font-extrabold text-ink">5 daqiqada AI tahlil</div>
         </div>
-        <a
+        <button
           id="sticky_cta"
-          href={BRAND.links.app}
-          onClick={() => track("main_cta_click", { button_id: "sticky_cta", placement: "sticky" })}
+          onClick={() => {
+            track("main_cta_click", { button_id: "sticky_cta", placement: "sticky" });
+            openDemo();
+          }}
           className="btn-shimmer flex min-h-12 items-center gap-2 rounded-2xl bg-gradient-to-br from-wine-600 to-wine-800 px-5 py-3 text-sm font-bold text-white shadow-cta active:scale-[0.98]"
         >
           <Mic className="h-4 w-4" />
           Bepul testni boshlash
-        </a>
+        </button>
       </div>
     </div>
   );

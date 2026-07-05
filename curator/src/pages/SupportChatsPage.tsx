@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { MessageCircle, Send, User } from "lucide-react";
+import { ArrowLeft, MessageCircle, Send, User } from "lucide-react";
 import { api, apiError, TOKEN_KEY, WS_URL } from "../lib/api";
 import type {
   SupportChatSummary,
@@ -226,7 +226,11 @@ export function SupportChatsPage() {
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden">
       {/* ── Chat list sidebar ── */}
-      <aside className="flex w-72 shrink-0 flex-col border-r border-line bg-card">
+      <aside className={`flex-col border-r border-line bg-card ${
+        selectedUserId
+          ? "hidden md:flex md:w-72 md:shrink-0"
+          : "flex w-full md:w-72 md:shrink-0"
+      }`}>
         <div className="border-b border-line px-4 py-3">
           <PageHeader
             title={t.supportChats.title}
@@ -303,7 +307,13 @@ export function SupportChatsPage() {
         ) : (
           <>
             {/* Header */}
-            <div className="flex items-center gap-3 border-b border-line bg-card px-6 py-3">
+            <div className="flex items-center gap-3 border-b border-line bg-card px-4 py-3 md:px-6">
+              <button
+                onClick={() => setSelectedUserId(null)}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-line text-muted hover:border-wine/30 hover:text-wine md:hidden"
+              >
+                <ArrowLeft size={16} />
+              </button>
               <div className="grid h-9 w-9 place-items-center rounded-full bg-wine/10">
                 <User size={18} className="text-wine" />
               </div>

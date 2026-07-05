@@ -3,7 +3,7 @@ import { BadgeCheck, Sparkles, Timer, UserCheck, Zap } from "lucide-react";
 const BADGES = [
   { text: "Bepul sinab ko‘rish", icon: BadgeCheck },
   { text: "5 daqiqada natija", icon: Timer },
-  { text: "Ro‘yxatdan o‘tmasdan boshlash mumkin", icon: UserCheck },
+  { text: "AI — Najot Nurning ovozi va bilimlari asosida mashq qildirilgan", icon: UserCheck },
   { text: "AI orqali avtomatik tahlil", icon: Sparkles },
   { text: "Telefoningizda — istalgan joyda", icon: Zap },
 ];

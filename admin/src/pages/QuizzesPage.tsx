@@ -145,20 +145,18 @@ export function QuizzesPage() {
   const pendingCount = quizzes.filter((q) => q.status === "draft").length;
 
   return (
-    <div className="p-6 md:p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title={t.nav.quizzes}
         subtitle={isAdmin ? `${pendingCount} ta test kutilmoqda` : "Testlar yaratish va boshqarish"}
         actions={
-          !isAdmin && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 rounded-xl bg-wine px-4 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark"
-            >
-              <Plus size={16} />
-              Yangi test
-            </button>
-          )
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 rounded-xl bg-wine px-4 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark"
+          >
+            <Plus size={16} />
+            Yangi test
+          </button>
         }
       />
 
@@ -170,14 +168,12 @@ export function QuizzesPage() {
         <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line text-muted">
           <BookOpen size={32} strokeWidth={1.5} />
           <span className="text-sm">Hozircha testlar yo'q</span>
-          {!isAdmin && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="rounded-xl bg-wine px-4 py-2 text-xs font-bold text-white"
-            >
-              Birinchi testni yarating
-            </button>
-          )}
+          <button
+            onClick={() => setShowCreate(true)}
+            className="rounded-xl bg-wine px-4 py-2 text-xs font-bold text-white"
+          >
+            Birinchi testni yarating
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -290,6 +286,7 @@ export function QuizzesPage() {
         <CreateQuizModal
           onClose={() => setShowCreate(false)}
           onCreated={() => { setShowCreate(false); fetchQuizzes(); }}
+          autoApprove={isAdmin}
         />
       )}
     </div>
@@ -505,7 +502,7 @@ function QuizMediaEditor({
   );
 }
 
-function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function CreateQuizModal({ onClose, onCreated, autoApprove }: { onClose: () => void; onCreated: () => void; autoApprove?: boolean }) {
   const { t } = useLang();
   const toast = useToast();
   const confirm = useConfirm();
@@ -596,6 +593,10 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
         await api.post(`/quizzes/${created.id}/video`, form);
       }
 
+      if (autoApprove) {
+        await api.patch(`/quizzes/admin/${created.id}/approve`);
+      }
+
       toast.success("Test yaratildi.");
       onCreated();
     } catch (e: unknown) {
@@ -608,11 +609,13 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10">
       <div className="w-full max-w-2xl rounded-2xl border border-line bg-card shadow-2xl">
-        <div className="flex items-center justify-between border-b border-line px-6 py-4">
-          <h2 className="text-lg font-extrabold text-ink">Yangi test yaratish</h2>
+        <div className="flex items-center justify-between border-b border-line px-4 py-4 sm:px-6">
+          <h2 className="text-lg font-extrabold text-ink">
+            {autoApprove ? "Yangi test yaratish (admin)" : "Yangi test yaratish"}
+          </h2>
           <button onClick={onClose} className="text-muted hover:text-wine"><X size={20} /></button>
         </div>
-        <div className="space-y-5 p-6">
+        <div className="space-y-5 p-4 sm:p-6">
           {error && (
             <div className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>
           )}
@@ -627,7 +630,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-bold text-ink">Qiyinlik</label>
               <select
@@ -760,7 +763,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-line px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-line px-4 py-4 sm:px-6">
           <button
             onClick={onClose}
             className="rounded-xl border border-line px-5 py-2.5 text-sm font-semibold text-ink hover:bg-surface"
@@ -772,7 +775,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
             disabled={saving}
             className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark disabled:opacity-60"
           >
-            {saving ? "Saqlanmoqda…" : "Testni yuborish"}
+            {saving ? "Saqlanmoqda…" : autoApprove ? "Yaratish va tasdiqlash" : "Testni yuborish"}
           </button>
         </div>
       </div>

@@ -69,7 +69,7 @@ export function VideoLessonsPage() {
   });
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title={t.videoLessons.title}
         subtitle={
@@ -168,11 +168,11 @@ export function VideoLessonsPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => setManagingCourse(c)}
-                      className="flex items-center gap-1.5 rounded-xl bg-wine px-3 py-2 text-xs font-bold text-white hover:bg-wine/90"
+                      className="flex items-center gap-1.5 rounded-xl bg-wine px-2 py-2 text-xs font-bold text-white hover:bg-wine/90 sm:px-3"
                       title="Kurs kontentini boshqarish"
                     >
                       <Settings2 size={14} />
-                      Boshqarish
+                      <span className="hidden sm:inline">Boshqarish</span>
                     </button>
                     <button
                       onClick={() => setEditingCourse(c)}

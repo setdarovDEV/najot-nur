@@ -129,7 +129,7 @@ export function NotificationsPage() {
     (audience === "all" || !!targetId);
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title={t.notifications.title} subtitle={t.notifications.subtitle} />
 
       <FcmStatusBanner status={status} onTestPush={handleTestSend} testing={sendTest.isPending} />

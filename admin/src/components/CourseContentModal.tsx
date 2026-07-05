@@ -17,6 +17,7 @@ import {
   Mic,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   Loader2,
   AlertCircle,
   BookOpen,
@@ -87,7 +88,7 @@ export function CourseContentModal({ courseId, courseTitle, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-surface/95 backdrop-blur-sm">
       {/* ── Header ── */}
-      <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line bg-card px-6 shadow-sm">
+      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-card px-4 shadow-sm sm:gap-4 sm:px-6">
         <BookOpen size={20} className="shrink-0 text-wine" />
         <h2 className="min-w-0 flex-1 truncate text-base font-extrabold text-ink">
           {courseTitle}
@@ -103,7 +104,11 @@ export function CourseContentModal({ courseId, courseTitle, onClose }: Props) {
       {/* ── Body ── */}
       <div className="flex min-h-0 flex-1">
         {/* ── Left sidebar: lesson list ── */}
-        <aside className="flex w-72 shrink-0 flex-col border-r border-line bg-card">
+        <aside className={`flex-col border-r border-line bg-card ${
+          selectedId
+            ? "hidden md:flex md:w-72 md:shrink-0"
+            : "flex w-full md:w-72 md:shrink-0"
+        }`}>
           <div className="flex items-center justify-between px-4 py-3">
             <span className="text-xs font-bold uppercase tracking-wide text-muted">
               Darslar ({lessons.length})
@@ -173,9 +178,10 @@ export function CourseContentModal({ courseId, courseTitle, onClose }: Props) {
               onRefresh={() =>
                 qc.invalidateQueries({ queryKey: ["admin", "courses", courseId] })
               }
+              onBack={() => setSelectedId(null)}
             />
           ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-muted">
+            <div className="hidden h-full flex-col items-center justify-center gap-3 text-muted md:flex">
               <BookOpen size={40} className="opacity-30" />
               <p className="text-sm">Darsni tanlang yoki yangi dars qo'shing</p>
             </div>
@@ -320,10 +326,12 @@ function LessonDetail({
   lesson,
   courseId,
   onRefresh,
+  onBack,
 }: {
   lesson: AdminLesson;
   courseId: string;
   onRefresh: () => void;
+  onBack?: () => void;
 }) {
   const toast = useToast();
 
@@ -335,7 +343,17 @@ function LessonDetail({
   });
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
+      {/* ← Back button — mobile only */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-wine md:hidden"
+        >
+          <ChevronLeft size={16} />
+          Darslar ro'yxati
+        </button>
+      )}
       {/* ── Lesson title ── */}
       <LessonTitleEditor
         lesson={lesson}
@@ -390,7 +408,7 @@ function LessonTitleEditor({
         onClick={() => setEditing(true)}
         className="group flex items-center gap-2 text-left"
       >
-        <h3 className="text-xl font-extrabold text-ink group-hover:text-wine">
+        <h3 className="text-lg font-extrabold text-ink group-hover:text-wine sm:text-xl">
           {lesson.title}
         </h3>
         <span className="rounded-md border border-line px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted opacity-0 transition group-hover:opacity-100">
@@ -401,7 +419,7 @@ function LessonTitleEditor({
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col gap-2 sm:flex-row">
       <input
         autoFocus
         value={title}
@@ -410,20 +428,22 @@ function LessonTitleEditor({
           if (e.key === "Enter" && title.trim()) handleSave();
           if (e.key === "Escape") setEditing(false);
         }}
-        className="flex-1 rounded-xl border border-wine/40 bg-card px-4 py-2 text-lg font-bold text-ink outline-none focus:ring-2 focus:ring-wine/10"
+        className="flex-1 rounded-xl border border-wine/40 bg-card px-4 py-2 text-base font-bold text-ink outline-none focus:ring-2 focus:ring-wine/10 sm:text-lg"
       />
-      <button
-        onClick={handleSave}
-        className="rounded-xl bg-wine px-4 py-2 text-sm font-bold text-white"
-      >
-        Saqlash
-      </button>
-      <button
-        onClick={() => setEditing(false)}
-        className="rounded-xl border border-line px-4 py-2 text-sm text-muted"
-      >
-        Bekor
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={handleSave}
+          className="flex-1 rounded-xl bg-wine px-4 py-2 text-sm font-bold text-white sm:flex-none"
+        >
+          Saqlash
+        </button>
+        <button
+          onClick={() => setEditing(false)}
+          className="flex-1 rounded-xl border border-line px-4 py-2 text-sm text-muted sm:flex-none"
+        >
+          Bekor
+        </button>
+      </div>
     </div>
   );
 }
@@ -514,7 +534,7 @@ function VideoSection({
             if (f) upload(f);
           }}
           onClick={() => inputRef.current?.click()}
-          className={`flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed p-10 transition ${
+          className={`flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed p-6 transition sm:p-10 ${
             dragging
               ? "border-wine bg-wine/5"
               : "border-line hover:border-wine/40 hover:bg-surface"
@@ -711,7 +731,7 @@ function AddQuestionForm({
       <p className="mb-2 mt-3 text-xs font-semibold text-muted">
         Javob variantlari (to'g'ri javobni belgilang):
       </p>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {options.map((opt, i) => (
           <label key={i} className="flex items-center gap-2">
             <input
@@ -874,7 +894,7 @@ function CollapsibleSection({
     <div className="overflow-hidden rounded-2xl border border-line bg-card">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 px-5 py-4 text-left transition hover:bg-surface"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface sm:px-5 sm:py-4"
       >
         {icon}
         <span className="flex-1 text-sm font-extrabold text-ink">{title}</span>
@@ -885,7 +905,7 @@ function CollapsibleSection({
           <ChevronDown size={16} className="shrink-0 text-muted" />
         )}
       </button>
-      {open && <div className="border-t border-line px-5 pb-5 pt-4">{children}</div>}
+      {open && <div className="border-t border-line px-4 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4">{children}</div>}
     </div>
   );
 }

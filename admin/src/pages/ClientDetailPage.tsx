@@ -30,7 +30,7 @@ export function ClientDetailPage() {
   });
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <Link to="/clients" className="text-sm font-semibold text-wine">
         {t.clients.backToList}
       </Link>
@@ -39,8 +39,8 @@ export function ClientDetailPage() {
         <p className="mt-6 text-muted">{t.common.loading}</p>
       ) : (
         <>
-          <div className="mt-4 rounded-2xl bg-gradient-to-br from-wine to-wine-deep p-6 text-white">
-            <h1 className="text-2xl font-extrabold">
+          <div className="mt-4 rounded-2xl bg-gradient-to-br from-wine to-wine-deep p-5 text-white sm:p-6">
+            <h1 className="text-xl font-extrabold sm:text-2xl">
               {data.full_name ?? t.clients.unnamed}
             </h1>
             <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-white/85">

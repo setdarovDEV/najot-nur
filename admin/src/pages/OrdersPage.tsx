@@ -99,7 +99,7 @@ export function OrdersPage() {
   const totalPages = data ? Math.ceil(data.total / size) : 1;
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title={t.orders.title} subtitle={t.orders.subtitle} />
 
       {/* Status filter */}

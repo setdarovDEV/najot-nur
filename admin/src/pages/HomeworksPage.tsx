@@ -36,12 +36,12 @@ export function HomeworksPage() {
   });
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title={t.homeworks.title}
         subtitle={t.homeworks.subtitle}
         actions={
-          <div className="flex gap-2">
+          <>
             {(["submitted", "reviewed", ""] as const).map((f) => (
               <button
                 key={f || "all"}
@@ -59,7 +59,7 @@ export function HomeworksPage() {
                     : t.homeworks.all}
               </button>
             ))}
-          </div>
+          </>
         }
       />
 

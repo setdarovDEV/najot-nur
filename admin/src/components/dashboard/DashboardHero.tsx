@@ -38,11 +38,11 @@ export function DashboardHero({
 
       <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/70">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange" />
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-white/70">
+            <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-orange" />
             {today}
           </div>
-          <h1 className="mt-2 text-2xl font-extrabold leading-tight md:text-3xl">
+          <h1 className="mt-2 text-xl font-extrabold leading-tight sm:text-2xl md:text-3xl">
             {greeting}, {firstName}! 👋
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/80">

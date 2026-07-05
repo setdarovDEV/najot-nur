@@ -21,15 +21,15 @@ export function Panel({
     <section
       className={`rounded-2xl border border-line bg-card ${padding} ${className}`}
     >
-      <header className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
+      <header className="mb-3 flex items-start justify-between gap-3 sm:mb-4">
+        <div className="flex items-start gap-2.5 sm:gap-3">
           {icon && (
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-wine/10 text-wine">
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-wine/10 text-wine sm:h-9 sm:w-9">
               {icon}
             </div>
           )}
           <div>
-            <h3 className="text-base font-extrabold text-ink">{title}</h3>
+            <h3 className="text-sm font-extrabold text-ink sm:text-base">{title}</h3>
             {subtitle && (
               <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
             )}

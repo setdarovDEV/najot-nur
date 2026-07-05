@@ -1,5 +1,5 @@
 import { Eye, MessageSquareText, Mic } from "lucide-react";
-import { BRAND } from "../lib/config";
+import { openDemo } from "../lib/device";
 import { useReveal } from "../lib/hooks";
 import { track, type TrackingEventName } from "../lib/tracking";
 
@@ -68,12 +68,14 @@ export default function Features() {
 
           <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
             {CARDS.map((card, i) => (
-              <a
+              <button
                 key={card.id}
                 id={card.id}
-                href={BRAND.links.app}
-                onClick={() => track(card.event, { button_id: card.id, placement: "features" })}
-                className="reveal-item card-premium group relative overflow-hidden p-6 shadow-card"
+                onClick={() => {
+                  track(card.event, { button_id: card.id, placement: "features" });
+                  openDemo();
+                }}
+                className="reveal-item card-premium group relative overflow-hidden p-6 shadow-card text-left"
                 style={{ "--d": `${150 + i * 150}ms` } as React.CSSProperties}
               >
                 {/* Top accent bar */}
@@ -90,7 +92,7 @@ export default function Features() {
                 <span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-wine-700 transition-transform duration-300 group-hover:translate-x-1.5">
                   {card.cta} →
                 </span>
-              </a>
+              </button>
             ))}
           </div>
         </div>

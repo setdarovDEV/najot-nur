@@ -298,11 +298,13 @@ export function SupportChatsPage() {
       </aside>
 
       {/* ── Chat area ── */}
-      <div className="flex min-w-0 flex-1 flex-col bg-surface">
+      <div className={`min-w-0 flex-col bg-surface ${
+        selectedUserId ? "flex flex-1" : "hidden md:flex md:flex-1"
+      }`}>
         {!selectedUserId ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center text-muted">
             <MessageCircle size={48} className="opacity-20" />
-            <p className="text-sm">{t.supportChats.noChats}</p>
+            <p className="text-sm">{t.supportChats.selectChat}</p>
           </div>
         ) : (
           <>

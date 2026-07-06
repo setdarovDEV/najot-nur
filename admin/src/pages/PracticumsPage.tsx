@@ -153,15 +153,13 @@ export function PracticumsPage() {
             : p.subtitle
         }
         actions={
-          !isAdmin && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 rounded-xl bg-wine px-4 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark"
-            >
-              <Plus size={16} />
-              {p.addBtn}
-            </button>
-          )
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 rounded-xl bg-wine px-4 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark"
+          >
+            <Plus size={16} />
+            {p.addBtn}
+          </button>
         }
       />
 
@@ -412,24 +410,20 @@ function PracticumCard({
             </>
           )}
 
-          {!isAdmin && (
-            <>
-              <button
-                onClick={onEdit}
-                title="Tahrirlash"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted transition hover:border-wine/30 hover:text-wine"
-              >
-                <Edit2 size={14} />
-              </button>
-              <button
-                onClick={onDelete}
-                title="O'chirish"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted transition hover:border-red-300 hover:text-red-500 dark:hover:border-red-700 dark:hover:text-red-400"
-              >
-                <Trash2 size={14} />
-              </button>
-            </>
-          )}
+          <button
+            onClick={onEdit}
+            title="Tahrirlash"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted transition hover:border-wine/30 hover:text-wine"
+          >
+            <Edit2 size={14} />
+          </button>
+          <button
+            onClick={onDelete}
+            title="O'chirish"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted transition hover:border-red-300 hover:text-red-500 dark:hover:border-red-700 dark:hover:text-red-400"
+          >
+            <Trash2 size={14} />
+          </button>
 
           <button
             onClick={onToggle}
@@ -483,46 +477,40 @@ function PracticumCard({
                   preload="none"
                   onEnded={() => setPlaying(false)}
                 />
-                {!isAdmin && (
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine disabled:opacity-50"
-                  >
-                    <Upload size={13} />
-                    {uploading ? "Yuklanmoqda…" : p.replaceAudio}
-                  </button>
-                )}
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine disabled:opacity-50"
+                >
+                  <Upload size={13} />
+                  {uploading ? "Yuklanmoqda…" : p.replaceAudio}
+                </button>
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm text-muted">{p.noAudio}</span>
-                {!isAdmin && (
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className="flex items-center gap-1.5 rounded-xl bg-wine px-3 py-2 text-xs font-bold text-white hover:bg-wine-dark disabled:opacity-50"
-                  >
-                    <Upload size={13} />
-                    {uploading ? "Yuklanmoqda…" : p.uploadAudio}
-                  </button>
-                )}
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center gap-1.5 rounded-xl bg-wine px-3 py-2 text-xs font-bold text-white hover:bg-wine-dark disabled:opacity-50"
+                >
+                  <Upload size={13} />
+                  {uploading ? "Yuklanmoqda…" : p.uploadAudio}
+                </button>
               </div>
             )}
 
-            {!isAdmin && (
-              <input
-                ref={fileRef}
-                type="file"
-                accept="audio/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleAudioUpload(file);
-                  e.target.value = "";
-                }}
-              />
-            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleAudioUpload(file);
+                e.target.value = "";
+              }}
+            />
           </div>
 
           {/* Metadata */}

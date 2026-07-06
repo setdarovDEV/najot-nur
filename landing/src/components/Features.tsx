@@ -29,7 +29,7 @@ const CARDS: FeatureCard[] = [
     id: "feature_voice_cta",
     event: "voice_test_click",
     title: "Ovozni tekshirish",
-    text: "Berilgan matnni o‘qing va AI talaffuz, ohang va aniqlik bo‘yicha baho beradi.",
+    text: "Berilgan matnni o‘qing, AI talaffuz, ohang va aniqlik bo‘yicha baho beradi.",
     cta: "Matnni o‘qish",
     icon: Mic,
     iconClass: "bg-orange-50 text-brand-orange",

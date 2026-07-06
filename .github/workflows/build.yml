@@ -111,7 +111,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.service.name }}
-          cache-to: type=gha,scope=${{ matrix.service.name }},mode=max
+          cache-to: type=gha,scope=${{ matrix.service.name }},mode=max,ignore-error=true
           build-args: ${{ matrix.service.build_args }}
           provenance: false
 

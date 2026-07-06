@@ -1232,4 +1232,83 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get updateLater => 'Keyinroq';
+
+  @override
+  String get gradeTitleExcellent => 'A\'lo darajadagi natija!';
+
+  @override
+  String get gradeTitleGood => 'Yaxshi natija!';
+
+  @override
+  String get gradeTitleAverage => 'O\'rtacha natija';
+
+  @override
+  String get gradeTitleWeak => 'Kuchsiz natija';
+
+  @override
+  String get analysisMetrics => 'Ko\'rsatkichlar';
+
+  @override
+  String get metricVoiceConfidence => 'Ovoz ishonchliligi';
+
+  @override
+  String get metricPauseBalance => 'Pauzalar balansi';
+
+  @override
+  String get metricFillerWords => 'Parazit so\'zlar';
+
+  @override
+  String get metricThoughtFlow => 'Fikr izchilligi';
+
+  @override
+  String get metricPronunciationAccuracy => 'Talaffuz aniqligi';
+
+  @override
+  String get metricWordAccuracy => 'So\'z to\'g\'riligi';
+
+  @override
+  String get metricAvgWordScore => 'O\'rtacha ball';
+
+  @override
+  String get metricPhonemeErrors => 'Fonema aniqligi';
+
+  @override
+  String get gradePronunciationPerfect =>
+      'Barcha so\'zlar to\'g\'ri talaffuz qilindi!';
+
+  @override
+  String get gradePronunciationMinor => 'Bir nechta kichik xatolik aniqlandi.';
+
+  @override
+  String gradePronunciationNeedsWork(int count) {
+    return '$count ta so\'zda xatolik topildi.';
+  }
+
+  @override
+  String get perfectPronunciation =>
+      'A\'lo! Barcha so\'zlar to\'g\'ri aytildi.';
+
+  @override
+  String get charLevelAnalysis => 'Harf darajasidagi tahlil';
+
+  @override
+  String get psychologyScoreLabel => 'Psixologik ball';
+
+  @override
+  String get quizGradeTitle => 'Test natijasi';
+
+  @override
+  String get quizGoodSubtitle => 'Ajoyib! Natijangiz yaxshi.';
+
+  @override
+  String get quizBadSubtitle => 'Qayta urinib ko\'ring, siz qila olasiz!';
+
+  @override
+  String get quizMetricScore => 'Umumiy ball';
+
+  @override
+  String get quizMetricCorrect => 'To\'g\'ri javoblar';
+
+  @override
+  String get tryAgain => 'Qayta urinish';
 }

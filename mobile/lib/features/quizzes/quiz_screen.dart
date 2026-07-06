@@ -24,7 +24,6 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
   int _currentIndex = 0;
   final List<int?> _answers = [];
-  bool _submitted = false;
   QuizAttemptResult? _result;
   bool _submitting = false;
 
@@ -407,75 +406,346 @@ class _ResultScreen extends StatelessWidget {
   final QuizDetail quiz;
   final QuizAttemptResult result;
 
+  static const _waveHeights = [
+    0.4, 0.7, 0.5, 0.9, 0.6, 1.0, 0.4, 0.8, 0.5, 0.3,
+    0.7, 0.6, 0.9, 0.4, 0.7, 0.5, 1.0, 0.6, 0.4, 0.8,
+    0.5, 0.3, 0.7, 0.9, 0.5, 0.8, 0.4, 0.6, 0.9, 0.5,
+  ];
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final isGood = result.score >= 70;
+    final topPad = MediaQuery.of(context).padding.top;
+    final correctPct = result.totalCount > 0
+        ? ((result.correctCount / result.totalCount) * 100).round()
+        : result.score;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l.quizResult),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.ink,
-        elevation: 0,
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: (isGood ? Colors.green : AppColors.orange)
-                      .withValues(alpha: 0.12),
+      backgroundColor: AppColors.bg,
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          // ── Hero card ──────────────────────────────────────────────────────
+          Container(
+            padding: EdgeInsets.fromLTRB(24, topPad + 16, 24, 30),
+            decoration: const BoxDecoration(
+              gradient: AppColors.heroGradient,
+              borderRadius:
+                  BorderRadius.vertical(bottom: Radius.circular(32)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.go('/home'),
+                      child: const Icon(Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      l.quizResult,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Icon(
-                  isGood
-                      ? Icons.emoji_events_rounded
-                      : Icons.replay_rounded,
-                  size: 50,
-                  color: isGood ? Colors.green : AppColors.orange,
+                const SizedBox(height: 28),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 100,
+                      height: 100,
+                      child: CustomPaint(
+                        painter: _QuizRingPainter(result.score / 100),
+                        child: Center(
+                          child: Text(
+                            '${result.score}%',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isGood ? l.gradeTitleExcellent : l.gradeTitleAverage,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              height: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            isGood ? l.quizGoodSubtitle : l.quizBadSubtitle,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                '${result.score}%',
-                style: const TextStyle(
-                    fontSize: 52,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.wine),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l.quizScore(result.correctCount, result.totalCount),
-                style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.muted),
-              ),
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: () => Navigator.of(context)
-                    .popUntil((r) => r.settings.name == '/home'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.wine,
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Waveform ─────────────────────────────────────────────────
+                Container(
+                  height: 72,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.line),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: _waveHeights.map((h) {
+                      return Container(
+                        width: 4,
+                        height: 40 * h,
+                        decoration: BoxDecoration(
+                          color: AppColors.wine
+                              .withValues(alpha: 0.6 + h * 0.4),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
-                child: Text(
-                  l.backToHome,
+                const SizedBox(height: 20),
+
+                // ── Metrics ───────────────────────────────────────────────────
+                Text(
+                  l.analysisMetrics,
                   style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700),
+                      fontSize: 16, fontWeight: FontWeight.w800),
                 ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.line),
+                  ),
+                  child: Column(
+                    children: [
+                      _QuizMetricBar(
+                        label: l.quizMetricScore,
+                        value: result.score,
+                        color: isGood ? AppColors.success : AppColors.wine,
+                      ),
+                      const SizedBox(height: 14),
+                      _QuizMetricBar(
+                        label: l.quizMetricCorrect,
+                        value: correctPct,
+                        color: AppColors.blue,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // ── Score detail ──────────────────────────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: (isGood ? AppColors.success : AppColors.warning)
+                        .withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: (isGood ? AppColors.success : AppColors.warning)
+                          .withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: (isGood ? AppColors.success : AppColors.warning)
+                              .withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isGood
+                              ? Icons.emoji_events_rounded
+                              : Icons.replay_rounded,
+                          color: isGood ? AppColors.success : AppColors.warning,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          l.quizScore(
+                              result.correctCount, result.totalCount),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: isGood
+                                ? AppColors.success
+                                : AppColors.warning,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ── Buttons ───────────────────────────────────────────────────
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => context.go('/home'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.wine,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text(
+                      l.backToHome,
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                if (!isGood) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        side: const BorderSide(color: AppColors.wine),
+                        foregroundColor: AppColors.wine,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: Text(l.tryAgain),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuizRingPainter extends CustomPainter {
+  _QuizRingPainter(this.progress);
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.width / 2 - 8;
+    final bg = Paint()
+      ..color = Colors.white.withValues(alpha: 0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+    final fg = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, bg);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -3.14159 / 2,
+      2 * 3.14159 * progress.clamp(0.0, 1.0),
+      false,
+      fg,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_QuizRingPainter old) => old.progress != progress;
+}
+
+class _QuizMetricBar extends StatelessWidget {
+  const _QuizMetricBar({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.inkSoft,
+                fontSize: 14,
               ),
-            ],
+            ),
+            Text(
+              '$value%',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: color,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: value / 100,
+            minHeight: 7,
+            backgroundColor: color.withValues(alpha: 0.12),
+            color: color,
           ),
         ),
-      ),
+      ],
     );
   }
 }

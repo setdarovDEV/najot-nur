@@ -566,5 +566,36 @@
   "updateRequiredTitle": "Yangilash talab qilinadi",
   "updateRequiredMessage": "NotiqAI ning yangi versiyasi chiqdi. Davom etish uchun ilovani yangilang.",
   "updateNow": "Yangilash",
-  "updateLater": "Keyinroq"
+  "updateLater": "Keyinroq",
+
+  "gradeTitleExcellent": "A'lo darajadagi natija!",
+  "gradeTitleGood": "Yaxshi natija!",
+  "gradeTitleAverage": "O'rtacha natija",
+  "gradeTitleWeak": "Kuchsiz natija",
+  "analysisMetrics": "Ko'rsatkichlar",
+  "metricVoiceConfidence": "Ovoz ishonchliligi",
+  "metricPauseBalance": "Pauzalar balansi",
+  "metricFillerWords": "Parazit so'zlar",
+  "metricThoughtFlow": "Fikr izchilligi",
+  "metricPronunciationAccuracy": "Talaffuz aniqligi",
+  "metricWordAccuracy": "So'z to'g'riligi",
+  "metricAvgWordScore": "O'rtacha ball",
+  "metricPhonemeErrors": "Fonema aniqligi",
+  "gradePronunciationPerfect": "Barcha so'zlar to'g'ri talaffuz qilindi!",
+  "gradePronunciationMinor": "Bir nechta kichik xatolik aniqlandi.",
+  "gradePronunciationNeedsWork": "{count} ta so'zda xatolik topildi.",
+  "@gradePronunciationNeedsWork": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "perfectPronunciation": "A'lo! Barcha so'zlar to'g'ri aytildi.",
+  "charLevelAnalysis": "Harf darajasidagi tahlil",
+  "psychologyScoreLabel": "Psixologik ball",
+  "quizGradeTitle": "Test natijasi",
+  "quizGoodSubtitle": "Ajoyib! Natijangiz yaxshi.",
+  "quizBadSubtitle": "Qayta urinib ko'ring, siz qila olasiz!",
+  "quizMetricScore": "Umumiy ball",
+  "quizMetricCorrect": "To'g'ri javoblar",
+  "tryAgain": "Qayta urinish"
 }

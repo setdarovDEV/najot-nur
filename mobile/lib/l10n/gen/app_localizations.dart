@@ -2349,6 +2349,156 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Keyinroq'**
   String get updateLater;
+
+  /// No description provided for @gradeTitleExcellent.
+  ///
+  /// In uz, this message translates to:
+  /// **'A\'lo darajadagi natija!'**
+  String get gradeTitleExcellent;
+
+  /// No description provided for @gradeTitleGood.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yaxshi natija!'**
+  String get gradeTitleGood;
+
+  /// No description provided for @gradeTitleAverage.
+  ///
+  /// In uz, this message translates to:
+  /// **'O\'rtacha natija'**
+  String get gradeTitleAverage;
+
+  /// No description provided for @gradeTitleWeak.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kuchsiz natija'**
+  String get gradeTitleWeak;
+
+  /// No description provided for @analysisMetrics.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ko\'rsatkichlar'**
+  String get analysisMetrics;
+
+  /// No description provided for @metricVoiceConfidence.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ovoz ishonchliligi'**
+  String get metricVoiceConfidence;
+
+  /// No description provided for @metricPauseBalance.
+  ///
+  /// In uz, this message translates to:
+  /// **'Pauzalar balansi'**
+  String get metricPauseBalance;
+
+  /// No description provided for @metricFillerWords.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parazit so\'zlar'**
+  String get metricFillerWords;
+
+  /// No description provided for @metricThoughtFlow.
+  ///
+  /// In uz, this message translates to:
+  /// **'Fikr izchilligi'**
+  String get metricThoughtFlow;
+
+  /// No description provided for @metricPronunciationAccuracy.
+  ///
+  /// In uz, this message translates to:
+  /// **'Talaffuz aniqligi'**
+  String get metricPronunciationAccuracy;
+
+  /// No description provided for @metricWordAccuracy.
+  ///
+  /// In uz, this message translates to:
+  /// **'So\'z to\'g\'riligi'**
+  String get metricWordAccuracy;
+
+  /// No description provided for @metricAvgWordScore.
+  ///
+  /// In uz, this message translates to:
+  /// **'O\'rtacha ball'**
+  String get metricAvgWordScore;
+
+  /// No description provided for @metricPhonemeErrors.
+  ///
+  /// In uz, this message translates to:
+  /// **'Fonema aniqligi'**
+  String get metricPhonemeErrors;
+
+  /// No description provided for @gradePronunciationPerfect.
+  ///
+  /// In uz, this message translates to:
+  /// **'Barcha so\'zlar to\'g\'ri talaffuz qilindi!'**
+  String get gradePronunciationPerfect;
+
+  /// No description provided for @gradePronunciationMinor.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bir nechta kichik xatolik aniqlandi.'**
+  String get gradePronunciationMinor;
+
+  /// No description provided for @gradePronunciationNeedsWork.
+  ///
+  /// In uz, this message translates to:
+  /// **'{count} ta so\'zda xatolik topildi.'**
+  String gradePronunciationNeedsWork(int count);
+
+  /// No description provided for @perfectPronunciation.
+  ///
+  /// In uz, this message translates to:
+  /// **'A\'lo! Barcha so\'zlar to\'g\'ri aytildi.'**
+  String get perfectPronunciation;
+
+  /// No description provided for @charLevelAnalysis.
+  ///
+  /// In uz, this message translates to:
+  /// **'Harf darajasidagi tahlil'**
+  String get charLevelAnalysis;
+
+  /// No description provided for @psychologyScoreLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Psixologik ball'**
+  String get psychologyScoreLabel;
+
+  /// No description provided for @quizGradeTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Test natijasi'**
+  String get quizGradeTitle;
+
+  /// No description provided for @quizGoodSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ajoyib! Natijangiz yaxshi.'**
+  String get quizGoodSubtitle;
+
+  /// No description provided for @quizBadSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Qayta urinib ko\'ring, siz qila olasiz!'**
+  String get quizBadSubtitle;
+
+  /// No description provided for @quizMetricScore.
+  ///
+  /// In uz, this message translates to:
+  /// **'Umumiy ball'**
+  String get quizMetricScore;
+
+  /// No description provided for @quizMetricCorrect.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'g\'ri javoblar'**
+  String get quizMetricCorrect;
+
+  /// No description provided for @tryAgain.
+  ///
+  /// In uz, this message translates to:
+  /// **'Qayta urinish'**
+  String get tryAgain;
 }
 
 class _AppLocalizationsDelegate

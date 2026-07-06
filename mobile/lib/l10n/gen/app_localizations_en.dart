@@ -1222,4 +1222,81 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateLater => 'Later';
+
+  @override
+  String get gradeTitleExcellent => 'Excellent result!';
+
+  @override
+  String get gradeTitleGood => 'Good result!';
+
+  @override
+  String get gradeTitleAverage => 'Average result';
+
+  @override
+  String get gradeTitleWeak => 'Needs improvement';
+
+  @override
+  String get analysisMetrics => 'Metrics';
+
+  @override
+  String get metricVoiceConfidence => 'Voice confidence';
+
+  @override
+  String get metricPauseBalance => 'Pause balance';
+
+  @override
+  String get metricFillerWords => 'Filler words';
+
+  @override
+  String get metricThoughtFlow => 'Thought coherence';
+
+  @override
+  String get metricPronunciationAccuracy => 'Pronunciation accuracy';
+
+  @override
+  String get metricWordAccuracy => 'Word accuracy';
+
+  @override
+  String get metricAvgWordScore => 'Average word score';
+
+  @override
+  String get metricPhonemeErrors => 'Phoneme accuracy';
+
+  @override
+  String get gradePronunciationPerfect => 'All words pronounced correctly!';
+
+  @override
+  String get gradePronunciationMinor => 'A few minor errors detected.';
+
+  @override
+  String gradePronunciationNeedsWork(int count) {
+    return '$count word(s) had errors.';
+  }
+
+  @override
+  String get perfectPronunciation => 'Perfect! All words pronounced correctly.';
+
+  @override
+  String get charLevelAnalysis => 'Letter-level analysis';
+
+  @override
+  String get psychologyScoreLabel => 'Psychology score';
+
+  @override
+  String get quizGradeTitle => 'Quiz result';
+
+  @override
+  String get quizGoodSubtitle => 'Great job! You did well.';
+
+  @override
+  String get quizBadSubtitle => 'Keep trying, you can do it!';
+
+  @override
+  String get quizMetricScore => 'Overall score';
+
+  @override
+  String get quizMetricCorrect => 'Correct answers';
+
+  @override
+  String get tryAgain => 'Try again';
 }

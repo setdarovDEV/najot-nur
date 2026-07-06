@@ -1222,4 +1222,82 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get updateLater => 'Позже';
+
+  @override
+  String get gradeTitleExcellent => 'Отличный результат!';
+
+  @override
+  String get gradeTitleGood => 'Хороший результат!';
+
+  @override
+  String get gradeTitleAverage => 'Средний результат';
+
+  @override
+  String get gradeTitleWeak => 'Требует улучшения';
+
+  @override
+  String get analysisMetrics => 'Показатели';
+
+  @override
+  String get metricVoiceConfidence => 'Уверенность голоса';
+
+  @override
+  String get metricPauseBalance => 'Баланс пауз';
+
+  @override
+  String get metricFillerWords => 'Слова-паразиты';
+
+  @override
+  String get metricThoughtFlow => 'Связность мыслей';
+
+  @override
+  String get metricPronunciationAccuracy => 'Точность произношения';
+
+  @override
+  String get metricWordAccuracy => 'Точность слов';
+
+  @override
+  String get metricAvgWordScore => 'Средний балл';
+
+  @override
+  String get metricPhonemeErrors => 'Точность фонем';
+
+  @override
+  String get gradePronunciationPerfect => 'Все слова произнесены правильно!';
+
+  @override
+  String get gradePronunciationMinor => 'Обнаружено несколько мелких ошибок.';
+
+  @override
+  String gradePronunciationNeedsWork(int count) {
+    return 'В $count словах найдены ошибки.';
+  }
+
+  @override
+  String get perfectPronunciation =>
+      'Отлично! Все слова произнесены правильно.';
+
+  @override
+  String get charLevelAnalysis => 'Анализ по буквам';
+
+  @override
+  String get psychologyScoreLabel => 'Психологический балл';
+
+  @override
+  String get quizGradeTitle => 'Результат теста';
+
+  @override
+  String get quizGoodSubtitle => 'Отлично! Вы справились.';
+
+  @override
+  String get quizBadSubtitle => 'Продолжайте стараться!';
+
+  @override
+  String get quizMetricScore => 'Общий балл';
+
+  @override
+  String get quizMetricCorrect => 'Правильные ответы';
+
+  @override
+  String get tryAgain => 'Попробовать снова';
 }

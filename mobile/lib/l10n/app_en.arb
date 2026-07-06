@@ -397,5 +397,36 @@
   "updateRequiredTitle": "Update required",
   "updateRequiredMessage": "A new version of NotiqAI is available. Please update the app to continue.",
   "updateNow": "Update",
-  "updateLater": "Later"
+  "updateLater": "Later",
+
+  "gradeTitleExcellent": "Excellent result!",
+  "gradeTitleGood": "Good result!",
+  "gradeTitleAverage": "Average result",
+  "gradeTitleWeak": "Needs improvement",
+  "analysisMetrics": "Metrics",
+  "metricVoiceConfidence": "Voice confidence",
+  "metricPauseBalance": "Pause balance",
+  "metricFillerWords": "Filler words",
+  "metricThoughtFlow": "Thought coherence",
+  "metricPronunciationAccuracy": "Pronunciation accuracy",
+  "metricWordAccuracy": "Word accuracy",
+  "metricAvgWordScore": "Average word score",
+  "metricPhonemeErrors": "Phoneme accuracy",
+  "gradePronunciationPerfect": "All words pronounced correctly!",
+  "gradePronunciationMinor": "A few minor errors detected.",
+  "gradePronunciationNeedsWork": "{count} word(s) had errors.",
+  "@gradePronunciationNeedsWork": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "perfectPronunciation": "Perfect! All words pronounced correctly.",
+  "charLevelAnalysis": "Letter-level analysis",
+  "psychologyScoreLabel": "Psychology score",
+  "quizGradeTitle": "Quiz result",
+  "quizGoodSubtitle": "Great job! You did well.",
+  "quizBadSubtitle": "Keep trying, you can do it!",
+  "quizMetricScore": "Overall score",
+  "quizMetricCorrect": "Correct answers",
+  "tryAgain": "Try again"
 }

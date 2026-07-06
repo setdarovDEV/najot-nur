@@ -80,11 +80,6 @@ export function CourseContentModal({ courseId, courseTitle, onClose }: Props) {
   const lessons = course?.lessons ?? [];
   const selected = lessons.find((l) => l.id === selectedId) ?? null;
 
-  // Auto-select first lesson once data arrives
-  if (course && lessons.length > 0 && selectedId === null) {
-    setSelectedId(lessons[0].id);
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-surface/95 backdrop-blur-sm">
       {/* ── Header ── */}

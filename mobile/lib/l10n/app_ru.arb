@@ -397,5 +397,36 @@
   "updateRequiredTitle": "Требуется обновление",
   "updateRequiredMessage": "Доступна новая версия NotiqAI. Пожалуйста, обновите приложение, чтобы продолжить.",
   "updateNow": "Обновить",
-  "updateLater": "Позже"
+  "updateLater": "Позже",
+
+  "gradeTitleExcellent": "Отличный результат!",
+  "gradeTitleGood": "Хороший результат!",
+  "gradeTitleAverage": "Средний результат",
+  "gradeTitleWeak": "Требует улучшения",
+  "analysisMetrics": "Показатели",
+  "metricVoiceConfidence": "Уверенность голоса",
+  "metricPauseBalance": "Баланс пауз",
+  "metricFillerWords": "Слова-паразиты",
+  "metricThoughtFlow": "Связность мыслей",
+  "metricPronunciationAccuracy": "Точность произношения",
+  "metricWordAccuracy": "Точность слов",
+  "metricAvgWordScore": "Средний балл",
+  "metricPhonemeErrors": "Точность фонем",
+  "gradePronunciationPerfect": "Все слова произнесены правильно!",
+  "gradePronunciationMinor": "Обнаружено несколько мелких ошибок.",
+  "gradePronunciationNeedsWork": "В {count} словах найдены ошибки.",
+  "@gradePronunciationNeedsWork": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "perfectPronunciation": "Отлично! Все слова произнесены правильно.",
+  "charLevelAnalysis": "Анализ по буквам",
+  "psychologyScoreLabel": "Психологический балл",
+  "quizGradeTitle": "Результат теста",
+  "quizGoodSubtitle": "Отлично! Вы справились.",
+  "quizBadSubtitle": "Продолжайте стараться!",
+  "quizMetricScore": "Общий балл",
+  "quizMetricCorrect": "Правильные ответы",
+  "tryAgain": "Попробовать снова"
 }

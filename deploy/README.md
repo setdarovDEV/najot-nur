@@ -153,7 +153,7 @@ Caddy will auto-issue a Let's Encrypt cert for the new domain within seconds.
 
 ## Backup policy
 
-`deploy/backup.sh` (`0 3 * * *` cron orqali):
+`deploy/backup.sh` (`0 */6 * * *` cron orqali):
 - `pg_dump` → `/var/backups/notiqai/db-YYYYMMDDTHHMMSS.sql.gz`
 - `.env` nusxasi (chmod 600)
 - `media` volume tar

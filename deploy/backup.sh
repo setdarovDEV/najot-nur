@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # NotiqAI — back up Postgres database and critical files.
-# Run via cron: 0 3 * * * /opt/notiqai/deploy/backup.sh
+# Run via cron: 0 */6 * * * /opt/notiqai/deploy/backup.sh
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

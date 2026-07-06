@@ -114,8 +114,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/psychology/result',
-        builder: (_, state) =>
-            PsychologyResultScreen(attempt: state.extra as PsychologyAttempt),
+        builder: (context, state) {
+          final attempt = state.extra as PsychologyAttempt? ??
+              ProviderScope.containerOf(context)
+                  .read(pendingPsychologyAttemptProvider);
+          if (attempt == null) {
+            return Scaffold(
+              appBar: AppBar(),
+              body: const Center(child: Text("Ma'lumot topilmadi")),
+            );
+          }
+          return PsychologyResultScreen(attempt: attempt);
+        },
       ),
 
       // ───── Practicums ─────

@@ -42,6 +42,15 @@ final localeProvider =
 /// original page instead of `/home`.
 final pendingReturnPathProvider = StateProvider<String?>((ref) => null);
 
+/// Psychology attempt saved before redirecting to auth, so it can be restored
+/// on the result screen after the user logs in.
+final pendingPsychologyAttemptProvider =
+    StateProvider<PsychologyAttempt?>((ref) => null);
+
+/// When true, the result screen auto-submits the local attempt to the server
+/// and requests AI analysis immediately after returning from auth.
+final autoRequestAiAfterAuthProvider = StateProvider<bool>((ref) => false);
+
 class LocaleController extends StateNotifier<Locale> {
   LocaleController(this._ref) : super(_initial(_ref));
 

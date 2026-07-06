@@ -8,7 +8,6 @@ import '../../l10n/gen/app_localizations.dart';
 import '../../models/psychology_models.dart';
 import '../../providers/providers.dart';
 import '../../shared/widgets/common.dart';
-import '../../shared/widgets/enrollment_lock.dart';
 
 class PsychologyScreen extends ConsumerStatefulWidget {
   const PsychologyScreen({super.key});
@@ -83,29 +82,6 @@ class _PsychologyScreenState extends ConsumerState<PsychologyScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final auth = ref.watch(authControllerProvider);
-    if (auth.isLoggedIn) {
-      final enrollment = ref.watch(enrollmentStatusProvider);
-      final isEnrolled = enrollment.maybeWhen(
-        data: (s) => s.hasActiveEnrollment,
-        orElse: () => null,
-      );
-      if (isEnrolled == false) {
-        return Scaffold(
-          appBar: AppBar(
-            backgroundColor: AppColors.white,
-            foregroundColor: AppColors.wine,
-            elevation: 0,
-            title: Text(
-              l.psychologyTest,
-              style: const TextStyle(
-                  color: AppColors.wine, fontWeight: FontWeight.w800),
-            ),
-          ),
-          body: const EnrollmentLock(reason: EnrollmentLockReason.quiz),
-        );
-      }
-    }
     final tests = _staticTests ?? const <PsychologyTest>[];
     if (tests.isEmpty) {
       return Scaffold(

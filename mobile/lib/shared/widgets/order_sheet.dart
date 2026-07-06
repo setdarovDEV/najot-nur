@@ -559,9 +559,10 @@ class _MethodPicker extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (!isAvailable) ...[
-                        const SizedBox(height: 3),
-                        Text(
+                      const SizedBox(height: 3),
+                      Opacity(
+                        opacity: isAvailable ? 0 : 1,
+                        child: Text(
                           'Tez kunda',
                           style: TextStyle(
                             color: accent,
@@ -569,7 +570,7 @@ class _MethodPicker extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),

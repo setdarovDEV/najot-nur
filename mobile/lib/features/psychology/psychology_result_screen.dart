@@ -27,6 +27,43 @@ class _PsychologyResultScreenState
   void initState() {
     super.initState();
     _attempt = widget.attempt;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(autoRequestAiAfterAuthProvider)) {
+        ref.read(autoRequestAiAfterAuthProvider.notifier).state = false;
+        _submitAndRequestAi();
+      }
+    });
+  }
+
+  /// Re-submits a local attempt to the server then requests AI analysis.
+  /// Used when the user logs in after completing the test without an account.
+  Future<void> _submitAndRequestAi() async {
+    final l = AppLocalizations.of(context);
+    setState(() => _requesting = true);
+    try {
+      PsychologyAttempt serverAttempt;
+      if (_attempt!.id.startsWith('local-')) {
+        serverAttempt = await ref
+            .read(psychologyRepositoryProvider)
+            .submit(_attempt!.answers);
+      } else {
+        serverAttempt = _attempt!;
+      }
+      final withAi = await ref
+          .read(psychologyRepositoryProvider)
+          .requestAi(serverAttempt.id);
+      if (!mounted) return;
+      setState(() => _attempt = withAi);
+      ref.read(pendingPsychologyAttemptProvider.notifier).state = null;
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.errorPrefix(e.toString()))),
+      );
+    } finally {
+      if (mounted) setState(() => _requesting = false);
+    }
   }
 
   Future<void> _requestAi() async {
@@ -52,6 +89,8 @@ class _PsychologyResultScreenState
   }
 
   void _goToAuth() {
+    ref.read(pendingPsychologyAttemptProvider.notifier).state = _attempt;
+    ref.read(autoRequestAiAfterAuthProvider.notifier).state = true;
     ref.read(pendingReturnPathProvider.notifier).state = '/psychology/result';
     context.push('/auth');
   }

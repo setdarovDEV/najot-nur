@@ -349,7 +349,7 @@ export default function PronunciationDemo({ initialExercise, onClose }: Props) {
                         store: "play",
                       })
                     }
-                    className="flex w-full items-center gap-3.5 rounded-2xl bg-[#1a1a1a] px-5 py-3.5 text-white transition hover:bg-neutral-800 active:scale-[0.98]"
+                    className="flex w-full items-center gap-3.5 rounded-2xl bg-gradient-to-br from-wine-600 to-wine-800 px-5 py-3.5 text-white transition hover:from-wine-500 hover:to-wine-700 active:scale-[0.98]"
                   >
                     {/* Google Play icon */}
                     <svg className="h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="none">
@@ -359,14 +359,14 @@ export default function PronunciationDemo({ initialExercise, onClose }: Props) {
                       <path d="m3.61 22.19 10.83-9.27-2.6-2.22L3.61 22.19Z" fill="#34A853"/>
                     </svg>
                     <div className="text-left">
-                      <div className="text-[10px] text-neutral-400 leading-none mb-0.5">
+                      <div className="text-[10px] text-white/70 leading-none mb-0.5">
                         Google Play
                       </div>
                       <div className="text-sm font-extrabold leading-none">
                         Google Play'dan yuklab olish
                       </div>
                     </div>
-                    <ChevronRight className="ml-auto h-4 w-4 text-neutral-500" />
+                    <ChevronRight className="ml-auto h-4 w-4 text-white/60" />
                   </a>
                 )}
 
@@ -381,21 +381,21 @@ export default function PronunciationDemo({ initialExercise, onClose }: Props) {
                         store: "apple",
                       })
                     }
-                    className="flex w-full items-center gap-3.5 rounded-2xl bg-[#1a1a1a] px-5 py-3.5 text-white transition hover:bg-neutral-800 active:scale-[0.98]"
+                    className="flex w-full items-center gap-3.5 rounded-2xl bg-gradient-to-br from-wine-600 to-wine-800 px-5 py-3.5 text-white transition hover:from-wine-500 hover:to-wine-700 active:scale-[0.98]"
                   >
                     {/* Apple icon */}
                     <svg className="h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
                     </svg>
                     <div className="text-left">
-                      <div className="text-[10px] text-neutral-400 leading-none mb-0.5">
+                      <div className="text-[10px] text-white/70 leading-none mb-0.5">
                         App Store
                       </div>
                       <div className="text-sm font-extrabold leading-none">
                         App Store'dan yuklab olish
                       </div>
                     </div>
-                    <ChevronRight className="ml-auto h-4 w-4 text-neutral-500" />
+                    <ChevronRight className="ml-auto h-4 w-4 text-white/60" />
                   </a>
                 )}
               </div>

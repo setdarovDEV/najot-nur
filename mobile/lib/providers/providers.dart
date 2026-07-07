@@ -15,6 +15,7 @@ import '../models/auth_config.dart';
 import '../models/profile.dart';
 import '../models/psychology_models.dart';
 import '../models/user.dart';
+import '../services/location_service.dart';
 import '../services/push_service.dart';
 import '../services/security_service.dart';
 
@@ -167,6 +168,9 @@ class AuthController extends StateNotifier<AuthState> {
       // blocks login.
       // ignore: discarded_futures
       _ref.read(securityServiceProvider).onLogin(user);
+      // Best-effort city detection — never blocks login.
+      // ignore: discarded_futures
+      _ref.read(locationServiceProvider).captureCity();
     }
   }
 
@@ -188,6 +192,8 @@ class AuthController extends StateNotifier<AuthState> {
       // Re-open the security session after we have the user object.
       // ignore: discarded_futures
       _ref.read(securityServiceProvider).onLogin(user);
+      // ignore: discarded_futures
+      _ref.read(locationServiceProvider).captureCity();
     } catch (_) {
       // Token expired or invalid — force re-login.
       await logout();

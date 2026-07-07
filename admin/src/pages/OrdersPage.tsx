@@ -14,12 +14,14 @@ const METHOD_LABELS: Record<Order["payment_method"], string> = {
   uzum: "Uzum",
   uzum_nasiya: "Uzum Nasiya",
   cash: "Naqd pul",
+  gift: "🎁 Sovg'a",
 };
 
 const METHOD_STYLES: Record<Order["payment_method"], string> = {
   uzum: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
   uzum_nasiya: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
   cash: "bg-green-100 text-green-700 font-extrabold dark:bg-green-900/30 dark:text-green-400",
+  gift: "bg-wine/10 text-wine font-extrabold dark:bg-wine/20 dark:text-wine-300",
 };
 
 const STATUS_STYLES: Record<

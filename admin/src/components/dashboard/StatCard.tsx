@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 export type StatTone = "wine" | "orange" | "sky" | "ink";
 
@@ -28,6 +29,7 @@ export function StatCard({
   gradient = false,
   loading = false,
   footer,
+  to,
 }: {
   label: string;
   value: number | string | undefined;
@@ -38,12 +40,18 @@ export function StatCard({
   gradient?: boolean;
   loading?: boolean;
   footer?: ReactNode;
+  to?: string;
 }) {
   const positive = delta && delta.value >= 0;
+  const Wrapper = to ? Link : "div";
+  const wrapperProps = to ? { to } : {};
 
   return (
-    <div
+    <Wrapper
+      {...(wrapperProps as { to: string })}
       className={`group relative overflow-hidden rounded-2xl border border-line bg-card p-4 transition hover:border-wine/30 hover:shadow-lg hover:shadow-wine/5 sm:p-5 ${
+        to ? "cursor-pointer" : ""
+      } ${
         gradient ? `bg-gradient-to-br ${TONE_GRADIENT[tone]} text-white border-transparent` : ""
       }`}
     >
@@ -113,6 +121,6 @@ export function StatCard({
           {footer}
         </div>
       )}
-    </div>
+    </Wrapper>
   );
 }

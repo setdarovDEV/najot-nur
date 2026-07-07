@@ -63,6 +63,7 @@ class OrderPaymentMethod(str, enum.Enum):
     uzum = "uzum"
     uzum_nasiya = "uzum_nasiya"
     cash = "cash"
+    gift = "gift"
 
 
 class OrderStatus(str, enum.Enum):

@@ -21,6 +21,9 @@ class UserRead(BaseModel):
     is_verified: bool
     avatar_url: str | None
     locale: str
+    city: str | None = None
+    region: str | None = None
+    country: str | None = None
     created_at: datetime
 
 
@@ -41,3 +44,8 @@ class UserUpdate(BaseModel):
     email: EmailStr | None = None
     avatar_url: str | None = None
     locale: str | None = Field(None, max_length=5)
+    city: str | None = Field(None, max_length=120)
+    region: str | None = Field(None, max_length=120)
+    country: str | None = Field(None, max_length=120)
+    latitude: float | None = Field(None, ge=-90, le=90)
+    longitude: float | None = Field(None, ge=-180, le=180)

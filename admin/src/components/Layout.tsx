@@ -26,6 +26,7 @@ import {
   BookOpen,
   Menu,
   X,
+  MapPin,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
@@ -44,6 +45,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: "/", labelKey: "dashboard", icon: LayoutDashboard, end: true },
   { to: "/curators", labelKey: "curators", icon: UserCog },
   { to: "/clients", labelKey: "clients", icon: Users },
+  { to: "/clients/map", labelKey: "clientsMap", icon: MapPin },
   { to: "/payments", labelKey: "payments", icon: CreditCard },
   { to: "/orders", labelKey: "orders", icon: ShoppingCart },
   { to: "/audiobooks", labelKey: "audiobooks", icon: Headphones, readOnly: true },

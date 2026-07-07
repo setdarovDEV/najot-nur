@@ -144,12 +144,22 @@ class AuthRepository {
     String? fullName,
     String? email,
     String? locale,
+    String? city,
+    String? region,
+    String? country,
+    double? latitude,
+    double? longitude,
   }) async {
     try {
       final r = await _api.dio.patch('/users/me', data: {
         if (fullName != null) 'full_name': fullName,
         if (email != null && email.isNotEmpty) 'email': email,
         if (locale != null) 'locale': locale,
+        if (city != null) 'city': city,
+        if (region != null) 'region': region,
+        if (country != null) 'country': country,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
       });
       return AppUser.fromJson(r.data as Map<String, dynamic>);
     } catch (e) {

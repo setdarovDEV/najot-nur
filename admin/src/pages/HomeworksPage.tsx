@@ -102,12 +102,39 @@ function HomeworkCard({
 
   return (
     <div className="rounded-2xl border border-line bg-card p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs text-muted">
-          {new Date(hw.created_at).toLocaleString()}
-        </span>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="font-bold text-ink">
+              {hw.user_full_name ?? t.clients.unnamed}
+            </span>
+            {hw.user_phone && (
+              <span className="text-xs text-muted">{hw.user_phone}</span>
+            )}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted">
+            {hw.course_title && (
+              <span className="font-semibold text-wine">{hw.course_title}</span>
+            )}
+            {hw.course_title && hw.lesson_title && <span>›</span>}
+            {hw.lesson_title && <span>{hw.lesson_title}</span>}
+            {hw.lesson_video_url && (
+              <a
+                href={hw.lesson_video_url}
+                target="_blank"
+                rel="noreferrer"
+                className="ml-1 font-semibold text-skyblue underline"
+              >
+                {t.homeworks.watchVideo}
+              </a>
+            )}
+          </div>
+          <span className="mt-1 block text-xs text-muted">
+            {new Date(hw.created_at).toLocaleString()}
+          </span>
+        </div>
         <span
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
             hw.status === "reviewed"
               ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
               : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
@@ -116,8 +143,8 @@ function HomeworkCard({
           {hw.status === "reviewed" ? t.homeworks.reviewed : t.homeworks.new_}
         </span>
       </div>
-      <p className="mb-4 text-sm text-ink">
-        {hw.submission_text ?? hw.submission_url ?? "—"}
+      <p className="mb-4 rounded-xl bg-surface/60 p-3 text-sm text-ink">
+        {t.homeworks.answer}: {hw.submission_text ?? hw.submission_url ?? "—"}
       </p>
 
       <div className="flex flex-wrap items-end gap-3">

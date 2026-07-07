@@ -20,9 +20,25 @@ class ClientRow(BaseModel):
     email: str | None
     is_verified: bool
     created_at: datetime
+    city: str | None = None
     # latest speech analysis summary/score (joined)
     last_speech_score: int | None = None
     last_speech_summary: str | None = None
+
+
+class ClientMapPoint(BaseModel):
+    """A client's device location, for the admin map view."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    full_name: str | None
+    phone: str | None
+    city: str | None = None
+    region: str | None = None
+    country: str | None = None
+    latitude: float
+    longitude: float
 
 
 class HomeworkRow(BaseModel):
@@ -42,11 +58,18 @@ class HomeworkRow(BaseModel):
     user_full_name: str | None = None
     user_phone: str | None = None
     lesson_title: str | None = None
+    course_title: str | None = None
+    lesson_video_url: str | None = None
 
 
 class GradeRequest(BaseModel):
     score: int = Field(..., ge=0, le=100)
     feedback: str | None = None
+
+
+class GiftCourseRequest(BaseModel):
+    course_id: uuid.UUID
+    admin_note: str | None = None
 
 
 class PushCreate(BaseModel):

@@ -38,16 +38,26 @@ class PushService {
 
   bool get isSupported => !kIsWeb;
 
-  /// Call once at app start. Idempotent.
+  /// Call once at app start, and again after login. Idempotent for the
+  /// Firebase/listener setup, but always re-registers the current token —
+  /// the first call often happens before the user is authenticated, so the
+  /// backend registration (which requires auth) fails silently and must be
+  /// retried once a session exists.
   Future<void> init() async {
-    if (!isSupported || _initialised) return;
-    _initialised = true;
+    if (!isSupported) return;
+    if (_initialised) {
+      await _refreshToken();
+      return;
+    }
     try {
       await Firebase.initializeApp();
     } catch (e, st) {
       debugPrint('PushService: Firebase init failed ($e) — push disabled. '
           'Check google-services.json (Android) / GoogleService-Info.plist (iOS).');
       debugPrintStack(stackTrace: st);
+      // Do NOT latch _initialised — leave it false so the next init() call
+      // (e.g. the post-login retry in app.dart) retries from scratch instead
+      // of silently short-circuiting into a no-op forever.
       return;
     }
     try {
@@ -58,6 +68,12 @@ class PushService {
       FirebaseMessaging.onBackgroundMessage(_onBackground);
       FirebaseMessaging.onMessage.listen(_onForeground);
       FirebaseMessaging.onMessageOpenedApp.listen(_onOpenedFromBackground);
+      messaging.onTokenRefresh.listen((t) => _register(t));
+
+      // Mark as fully initialised now that listeners are wired — this is
+      // what makes subsequent init() calls skip straight to a lightweight
+      // token refresh instead of redoing setup (and re-registering listeners).
+      _initialised = true;
 
       // Cold-start: app was closed and user tapped the notification.
       final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
@@ -65,9 +81,8 @@ class PushService {
         _handleOrderMessage(initialMessage, navigate: true);
       }
 
-      // Initial token + listen for rotation.
+      // Initial token.
       await _refreshToken();
-      messaging.onTokenRefresh.listen((t) => _register(t));
     } catch (e, st) {
       debugPrint('PushService: setup failed ($e)');
       debugPrintStack(stackTrace: st);

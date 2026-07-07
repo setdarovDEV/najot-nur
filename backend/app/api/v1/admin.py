@@ -29,10 +29,12 @@ from app.models.grading import Homework
 from app.models.notification import PushNotification, PushToken
 from app.models.user import AuthIdentity, User
 from app.schemas.admin import (
+    ClientMapPoint,
     ClientRow,
     CuratorCreate,
     CuratorRead,
     CuratorUpdate,
+    GiftCourseRequest,
     GradeRequest,
     HomeworkRow,
     PushCreate,
@@ -46,7 +48,7 @@ from app.schemas.audiobook import (
     AudiobookUpdate,
 )
 from app.schemas.common import Message, Page
-from app.services import storage
+from app.services import order_service, storage
 
 router = APIRouter()
 log = get_logger("admin")
@@ -130,12 +132,36 @@ async def clients(
             email=u.email,
             is_verified=u.is_verified,
             created_at=u.created_at,
+            city=u.city,
             last_speech_score=latest[u.id].overall_score if u.id in latest else None,
             last_speech_summary=latest[u.id].summary if u.id in latest else None,
         )
         for u in users
     ]
     return Page[ClientRow](items=items, total=total, page=page, size=size)
+
+
+@router.get("/clients/map", response_model=list[ClientMapPoint])
+async def clients_map(db: DbSession, _: AdminUser) -> list[ClientMapPoint]:
+    """All clients with a known device location, for the admin map view."""
+    users = (
+        await db.execute(
+            select(User).where(User.latitude.is_not(None), User.longitude.is_not(None))
+        )
+    ).scalars().all()
+    return [
+        ClientMapPoint(
+            id=u.id,
+            full_name=u.full_name,
+            phone=u.phone,
+            city=u.city,
+            region=u.region,
+            country=u.country,
+            latitude=u.latitude,
+            longitude=u.longitude,
+        )
+        for u in users
+    ]
 
 
 @router.get("/clients/{user_id}")
@@ -151,6 +177,27 @@ async def client_detail(user_id: uuid.UUID, _: AdminUser, db: DbSession) -> dict
             .limit(10)
         )
     ).scalars().all()
+
+    enrollment_rows = (
+        await db.execute(
+            select(Enrollment, Course)
+            .join(Course, Course.id == Enrollment.course_id)
+            .where(Enrollment.user_id == user_id)
+            .order_by(Enrollment.created_at.desc())
+        )
+    ).all()
+
+    homework_rows = (
+        await db.execute(
+            select(Homework, Lesson, Course)
+            .join(Lesson, Lesson.id == Homework.lesson_id)
+            .join(Course, Course.id == Lesson.course_id)
+            .where(Homework.user_id == user_id)
+            .order_by(Homework.created_at.desc())
+            .limit(50)
+        )
+    ).all()
+
     return {
         "id": str(user.id),
         "full_name": user.full_name,
@@ -158,6 +205,11 @@ async def client_detail(user_id: uuid.UUID, _: AdminUser, db: DbSession) -> dict
         "email": user.email,
         "is_verified": user.is_verified,
         "created_at": user.created_at.isoformat(),
+        "city": user.city,
+        "region": user.region,
+        "country": user.country,
+        "latitude": user.latitude,
+        "longitude": user.longitude,
         "speech_analyses": [
             {
                 "id": str(a.id),
@@ -167,7 +219,54 @@ async def client_detail(user_id: uuid.UUID, _: AdminUser, db: DbSession) -> dict
             }
             for a in analyses
         ],
+        "enrollments": [
+            {
+                "id": str(e.id),
+                "course_id": str(c.id),
+                "course_title": c.title,
+                "status": e.status.value,
+                "progress_pct": e.progress_pct,
+                "created_at": e.created_at.isoformat(),
+            }
+            for e, c in enrollment_rows
+        ],
+        "homeworks": [
+            {
+                "id": str(hw.id),
+                "lesson_id": str(lesson.id),
+                "lesson_title": lesson.title,
+                "course_title": course.title,
+                "status": hw.status.value,
+                "curator_score": hw.curator_score,
+                "curator_feedback": hw.curator_feedback,
+                "reviewed_at": hw.reviewed_at.isoformat() if hw.reviewed_at else None,
+                "created_at": hw.created_at.isoformat(),
+            }
+            for hw, lesson, course in homework_rows
+        ],
     }
+
+
+@router.post("/clients/{user_id}/gift-course")
+async def gift_course(
+    user_id: uuid.UUID,
+    payload: GiftCourseRequest,
+    admin: AdminUser,
+    db: DbSession,
+) -> dict:
+    """Grant a client free access to a course (admin-only, no payment)."""
+    user = await db.get(User, user_id)
+    if user is None:
+        raise NotFoundError("Mijoz topilmadi.")
+
+    order = await order_service.gift_course(
+        db,
+        admin_id=admin.id,
+        user_id=user_id,
+        course_id=payload.course_id,
+        admin_note=payload.admin_note,
+    )
+    return {"id": str(order.id), "status": order.status.value}
 
 
 # ───────────────────── Homework grading (curators) ─────────────────────
@@ -177,12 +276,14 @@ async def list_homeworks(
     _: CuratorUser,
     status: HomeworkStatus | None = None,
 ) -> list[Homework]:
-    """List homework submissions with the student and lesson joined in so the
-    curator can see who submitted what without an extra round-trip."""
+    """List homework submissions with the student, lesson and course joined
+    in so the curator can see who submitted what, for which lesson/course,
+    without an extra round-trip."""
     stmt = (
-        select(Homework, User, Lesson)
+        select(Homework, User, Lesson, Course)
         .join(User, User.id == Homework.user_id)
         .join(Lesson, Lesson.id == Homework.lesson_id)
+        .join(Course, Course.id == Lesson.course_id)
         .order_by(Homework.created_at.desc())
     )
     if status:
@@ -191,7 +292,7 @@ async def list_homeworks(
 
     rows = (await db.execute(stmt)).all()
     out: list[HomeworkRow] = []
-    for hw, user, lesson in rows:
+    for hw, user, lesson, course in rows:
         out.append(
             HomeworkRow(
                 id=hw.id,
@@ -207,6 +308,8 @@ async def list_homeworks(
                 user_full_name=user.full_name,
                 user_phone=user.phone,
                 lesson_title=lesson.title,
+                course_title=course.title,
+                lesson_video_url=lesson.video_url,
             )
         )
     return out

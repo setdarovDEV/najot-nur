@@ -555,12 +555,18 @@ async def _notify_payment_success(db: AsyncSession, payment: Payment) -> None:
                 select(PushToken.token).where(PushToken.user_id == payment.user_id)
             )
         ).scalars().all()
+        delivered_count = 0
         if tokens:
-            await fcm.send_to_tokens(
+            fcm_result = await fcm.send_to_tokens(
                 tokens,
                 title=title,
                 body=body,
                 data={"kind": "order_status", "payment_id": str(payment.id)},
+            )
+            delivered_count = (
+                fcm_result["success"]
+                if (fcm_result["success"] or fcm_result["failure"])
+                else len(tokens)
             )
         db.add(
             PushNotification(
@@ -569,6 +575,7 @@ async def _notify_payment_success(db: AsyncSession, payment: Payment) -> None:
                 audience=PushAudience.user,
                 target_id=payment.user_id,
                 sent_at=datetime.now(UTC),
+                delivered_count=delivered_count,
             )
         )
     except Exception as exc:  # noqa: BLE001

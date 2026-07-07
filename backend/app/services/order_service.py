@@ -150,30 +150,8 @@ async def approve_order(
     order.reviewed_by = admin_id
 
     if order.purpose == OrderPurpose.course:
-        # Create or reactivate enrollment
-        existing = (
-            await db.execute(
-                select(Enrollment).where(
-                    Enrollment.user_id == order.user_id,
-                    Enrollment.course_id == order.course_id,
-                )
-            )
-        ).scalar_one_or_none()
-        if existing:
-            existing.status = EnrollmentStatus.active
-        else:
-            db.add(
-                Enrollment(
-                    user_id=order.user_id,
-                    course_id=order.course_id,  # type: ignore[arg-type]
-                    status=EnrollmentStatus.active,
-                )
-            )
-        # Auto-assign homework for every lesson in the course (idempotent)
-        await _ensure_homework_for_enrollment(
-            db,
-            user_id=order.user_id,
-            course_id=order.course_id,  # type: ignore[arg-type]
+        await grant_course_access(
+            db, user_id=order.user_id, course_id=order.course_id  # type: ignore[arg-type]
         )
     else:
         # Idempotent: insert audiobook_access (unique on user+audiobook)
@@ -284,6 +262,95 @@ async def reject_order(
     return order
 
 
+async def gift_course(
+    db: AsyncSession,
+    *,
+    admin_id: uuid.UUID,
+    user_id: uuid.UUID,
+    course_id: uuid.UUID,
+    admin_note: str | None,
+) -> Order:
+    """Grant a client free access to a course, bypassing payment.
+
+    Recorded as an approved Order with payment_method=gift so the action
+    stays visible/auditable in the same Orders history as paid purchases.
+    """
+    course = await db.get(Course, course_id)
+    if course is None:
+        raise NotFoundError("Kurs topilmadi.")
+
+    order = Order(
+        user_id=user_id,
+        purpose=OrderPurpose.course,
+        course_id=course_id,
+        amount=0,
+        currency="UZS",
+        payment_method=OrderPaymentMethod.gift,
+        status=OrderStatus.approved,
+        admin_note=admin_note,
+        reviewed_at=datetime.now(UTC),
+        reviewed_by=admin_id,
+    )
+    db.add(order)
+    await db.flush()
+
+    await grant_course_access(db, user_id=user_id, course_id=course_id)
+    await db.flush()
+
+    try:
+        await _notify_user(
+            db,
+            user_id=user_id,
+            title="Sizga kurs sovg'a qilindi 🎁",
+            body=f'"{course.title}" kursi sizga sovg\'a qilindi. O\'rganishni boshlashingiz mumkin!',
+            sent_by=admin_id,
+            extra_data={"order_status": "approved", "course_id": str(course_id)},
+        )
+    except Exception as exc:  # noqa: BLE001
+        log.error("order.gift_notify_failed", course_id=str(course_id), error=str(exc))
+
+    log.info(
+        "order.gifted",
+        order_id=str(order.id),
+        admin_id=str(admin_id),
+        user_id=str(user_id),
+        course_id=str(course_id),
+    )
+    return order
+
+
+async def grant_course_access(
+    db: AsyncSession,
+    *,
+    user_id: uuid.UUID,
+    course_id: uuid.UUID,
+) -> Enrollment:
+    """Create/reactivate an Enrollment and auto-assign homework for every
+    lesson in the course. Idempotent — safe to call more than once.
+    """
+    existing = (
+        await db.execute(
+            select(Enrollment).where(
+                Enrollment.user_id == user_id,
+                Enrollment.course_id == course_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing:
+        existing.status = EnrollmentStatus.active
+        enrollment = existing
+    else:
+        enrollment = Enrollment(
+            user_id=user_id,
+            course_id=course_id,
+            status=EnrollmentStatus.active,
+        )
+        db.add(enrollment)
+
+    await _ensure_homework_for_enrollment(db, user_id=user_id, course_id=course_id)
+    return enrollment
+
+
 # ──────────────────────────────────────────────
 #  Helpers
 # ──────────────────────────────────────────────
@@ -362,12 +429,18 @@ async def _notify_user(
             select(PushToken.token).where(PushToken.user_id == user_id)
         )
     ).scalars().all()
+    delivered_count = 0
     if tokens:
-        await fcm.send_to_tokens(
+        fcm_result = await fcm.send_to_tokens(
             tokens,
             title=title,
             body=body,
             data={"kind": "order_status", **(extra_data or {})},
+        )
+        delivered_count = (
+            fcm_result["success"]
+            if (fcm_result["success"] or fcm_result["failure"])
+            else len(tokens)
         )
     notif = PushNotification(
         title=title,
@@ -376,6 +449,7 @@ async def _notify_user(
         target_id=user_id,
         sent_by=sent_by,
         sent_at=datetime.now(UTC),
+        delivered_count=delivered_count,
     )
     db.add(notif)
     await db.flush()

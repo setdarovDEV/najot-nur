@@ -37,8 +37,20 @@ export interface ClientRow {
   email: string | null;
   is_verified: boolean;
   created_at: string;
+  city: string | null;
   last_speech_score: number | null;
   last_speech_summary: string | null;
+}
+
+export interface ClientMapPoint {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  latitude: number;
+  longitude: number;
 }
 
 export interface Page<T> {
@@ -66,6 +78,11 @@ export interface Homework {
   curator_feedback: string | null;
   reviewed_at: string | null;
   created_at: string;
+  user_full_name: string | null;
+  user_phone: string | null;
+  lesson_title: string | null;
+  course_title: string | null;
+  lesson_video_url: string | null;
 }
 
 export interface Audiobook {
@@ -185,10 +202,31 @@ export interface Order {
   target_title: string | null;
   amount: string;
   currency: string;
-  payment_method: "uzum" | "uzum_nasiya" | "cash";
+  payment_method: "uzum" | "uzum_nasiya" | "cash" | "gift";
   status: "pending" | "approved" | "rejected";
   payment_proof_url: string | null;
   admin_note: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+export interface ClientEnrollment {
+  id: string;
+  course_id: string;
+  course_title: string;
+  status: "active" | "completed" | "cancelled";
+  progress_pct: number;
+  created_at: string;
+}
+
+export interface ClientHomework {
+  id: string;
+  lesson_id: string;
+  lesson_title: string;
+  course_title: string;
+  status: "submitted" | "reviewed" | "returned";
+  curator_score: number | null;
+  curator_feedback: string | null;
   reviewed_at: string | null;
   created_at: string;
 }

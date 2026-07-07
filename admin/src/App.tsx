@@ -5,6 +5,7 @@ import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ClientsPage } from "./pages/ClientsPage";
+import { ClientsMapPage } from "./pages/ClientsMapPage";
 import { ClientDetailPage } from "./pages/ClientDetailPage";
 import { HomeworksPage } from "./pages/HomeworksPage";
 import { AudiobooksPage } from "./pages/AudiobooksPage";
@@ -40,6 +41,7 @@ export default function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<DashboardPage />} />
         <Route path="clients" element={<ClientsPage />} />
+        <Route path="clients/map" element={<ClientsMapPage />} />
         <Route path="clients/:id" element={<ClientDetailPage />} />
         <Route path="curators" element={<CuratorsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />

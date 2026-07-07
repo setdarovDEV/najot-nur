@@ -134,6 +134,7 @@ export function AdminDashboard() {
           gradient
           loading={statsQ.isLoading}
           hint={t.dashboard.statClientsHint}
+          to="/clients"
         />
         <StatCard
           label={t.dashboard.statAnalyses}

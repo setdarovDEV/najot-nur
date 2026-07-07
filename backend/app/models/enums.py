@@ -51,6 +51,7 @@ class PushAudience(str, enum.Enum):
     all = "all"
     course = "course"
     user = "user"
+    city = "city"
 
 
 class PaymentProvider(str, enum.Enum):

@@ -77,6 +77,7 @@ class PushCreate(BaseModel):
     body: str
     audience: PushAudience = PushAudience.all
     target_id: uuid.UUID | None = None
+    target_city: str | None = Field(None, max_length=120)
 
 
 class PushRead(BaseModel):
@@ -87,6 +88,7 @@ class PushRead(BaseModel):
     body: str
     audience: PushAudience
     target_id: uuid.UUID | None
+    target_city: str | None = None
     sent_at: datetime | None
     delivered_count: int | None
     created_at: datetime

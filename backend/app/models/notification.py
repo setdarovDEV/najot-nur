@@ -32,6 +32,8 @@ class PushNotification(UUIDMixin, TimestampMixin, Base):
     )
     # course id or user id depending on audience
     target_id: Mapped[uuid.UUID | None] = mapped_column()
+    # city name, only set when audience == city
+    target_city: Mapped[str | None] = mapped_column(String(120))
     sent_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )

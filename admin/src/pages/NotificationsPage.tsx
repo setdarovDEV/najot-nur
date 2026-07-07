@@ -8,7 +8,7 @@ import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
 
-type Audience = "all" | "course" | "user";
+type Audience = "all" | "course" | "user" | "city";
 
 interface AdminUserRow {
   id: string;
@@ -35,6 +35,7 @@ export function NotificationsPage() {
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState<Audience>("all");
   const [targetId, setTargetId] = useState("");
+  const [targetCity, setTargetCity] = useState("");
   const [userQuery, setUserQuery] = useState("");
 
   const { data } = useQuery({
@@ -59,18 +60,26 @@ export function NotificationsPage() {
     enabled: audience === "user",
   });
 
+  const { data: cities = [] } = useQuery({
+    queryKey: ["admin", "clients", "cities"],
+    queryFn: async () => (await api.get<string[]>("/admin/clients/cities")).data,
+    enabled: audience === "city",
+  });
+
   const send = useMutation({
     mutationFn: () =>
       api.post("/admin/push", {
         title,
         body,
         audience,
-        target_id: audience === "all" ? null : targetId,
+        target_id: audience === "user" || audience === "course" ? targetId : null,
+        target_city: audience === "city" ? targetCity : null,
       }),
     onSuccess: () => {
       setTitle("");
       setBody("");
       setTargetId("");
+      setTargetCity("");
       toast.success(t.notifications.sent);
       qc.invalidateQueries({ queryKey: ["push"] });
       qc.invalidateQueries({ queryKey: ["push", "status"] });
@@ -99,7 +108,9 @@ export function NotificationsPage() {
         ? "Barcha foydalanuvchilarga xabar yuborishni tasdiqlaysizmi?"
         : audience === "course"
           ? "Tanlangan kursga xabar yuborishni tasdiqlaysizmi?"
-          : "Tanlangan foydalanuvchiga xabar yuborishni tasdiqlaysizmi?",
+          : audience === "city"
+            ? `"${targetCity}" shahridagi foydalanuvchilarga xabar yuborishni tasdiqlaysizmi?`
+            : "Tanlangan foydalanuvchiga xabar yuborishni tasdiqlaysizmi?",
       description: title,
       variant: "primary",
       confirmText: t.modal.send,
@@ -119,6 +130,7 @@ export function NotificationsPage() {
   const audienceLabel = (a: PushNotification["audience"]) => {
     if (a === "course") return "Kursga";
     if (a === "user") return "Bitta foydalanuvchiga";
+    if (a === "city") return "Shaharga";
     return "Hammaga";
   };
 
@@ -126,7 +138,9 @@ export function NotificationsPage() {
     !!title &&
     !!body &&
     !send.isPending &&
-    (audience === "all" || !!targetId);
+    (audience === "all" ||
+      ((audience === "user" || audience === "course") && !!targetId) ||
+      (audience === "city" && !!targetCity));
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
@@ -139,13 +153,14 @@ export function NotificationsPage() {
           <h2 className="mb-4 font-bold">Yangi xabar</h2>
 
           <div className="mb-3 flex gap-2">
-            {(["all", "course", "user"] as Audience[]).map((a) => (
+            {(["all", "course", "user", "city"] as Audience[]).map((a) => (
               <button
                 key={a}
                 type="button"
                 onClick={() => {
                   setAudience(a);
                   setTargetId("");
+                  setTargetCity("");
                 }}
                 className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                   audience === a
@@ -157,7 +172,9 @@ export function NotificationsPage() {
                   ? "Hammaga"
                   : a === "course"
                     ? "Kursga"
-                    : "Foydalanuvchiga"}
+                    : a === "city"
+                      ? "Shaharga"
+                      : "Foydalanuvchiga"}
               </button>
             ))}
           </div>
@@ -172,6 +189,21 @@ export function NotificationsPage() {
               {courses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.title}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {audience === "city" && (
+            <select
+              value={targetCity}
+              onChange={(e) => setTargetCity(e.target.value)}
+              className="mb-3 w-full rounded-lg border border-line px-4 py-2.5 outline-none focus:border-wine"
+            >
+              <option value="">— Shaharni tanlang —</option>
+              {cities.map((city) => (
+                <option key={city} value={city}>
+                  {city}
                 </option>
               ))}
             </select>

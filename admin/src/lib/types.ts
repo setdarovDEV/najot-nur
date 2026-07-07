@@ -169,8 +169,9 @@ export interface PushNotification {
   id: string;
   title: string;
   body: string;
-  audience: "all" | "course" | "user";
+  audience: "all" | "course" | "user" | "city";
   target_id: string | null;
+  target_city: string | null;
   sent_at: string | null;
   delivered_count: number | null;
   created_at: string;

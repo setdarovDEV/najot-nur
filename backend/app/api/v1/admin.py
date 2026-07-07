@@ -141,6 +141,20 @@ async def clients(
     return Page[ClientRow](items=items, total=total, page=page, size=size)
 
 
+@router.get("/clients/cities", response_model=list[str])
+async def client_cities(db: DbSession, _: AdminUser) -> list[str]:
+    """Distinct client cities, for the push-notification city picker."""
+    rows = (
+        await db.execute(
+            select(User.city)
+            .where(User.city.is_not(None))
+            .distinct()
+            .order_by(User.city)
+        )
+    ).scalars().all()
+    return list(rows)
+
+
 @router.get("/clients/map", response_model=list[ClientMapPoint])
 async def clients_map(db: DbSession, _: AdminUser) -> list[ClientMapPoint]:
     """All clients with a known device location, for the admin map view."""
@@ -730,6 +744,12 @@ async def send_push(
             code="push.target_required",
             message="Kurs yoki foydalanuvchi tanlang.",
         )
+    if payload.audience == PushAudience.city and not payload.target_city:
+        raise AppError(
+            status_code=422,
+            code="push.target_required",
+            message="Shaharni tanlang.",
+        )
 
     token_select_stmt = select(PushToken)
     if payload.audience == PushAudience.user and payload.target_id:
@@ -743,6 +763,11 @@ async def send_push(
         token_select_stmt = token_select_stmt.where(
             PushToken.user_id.in_(enrolled)
         )
+    elif payload.audience == PushAudience.city and payload.target_city:
+        in_city = select(User.id).where(User.city == payload.target_city)
+        token_select_stmt = token_select_stmt.where(
+            PushToken.user_id.in_(in_city)
+        )
     rows = (await db.execute(token_select_stmt)).scalars().all()
     target_tokens = [t.token for t in rows]
 
@@ -751,6 +776,7 @@ async def send_push(
         body=payload.body,
         audience=payload.audience,
         target_id=payload.target_id,
+        target_city=payload.target_city,
         sent_by=admin.id,
         sent_at=datetime.now(UTC),
         delivered_count=0,

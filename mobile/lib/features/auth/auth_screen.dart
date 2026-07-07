@@ -111,14 +111,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         setState(() => _step = _Step.code);
       } else {
         if (!exists.exists) {
-          // No account for this number — send the user straight to the
-          // register tab instead of letting them hit a confusing password
-          // prompt for an account that doesn't exist.
+          // No account for this number — skip the confusing password
+          // prompt entirely and drop the user straight into the register
+          // flow's OTP step, with the code already on its way.
+          await ref.read(authRepositoryProvider).requestOtp(phone);
+          if (!mounted) return;
           setState(() {
             _mode = _AuthMode.register;
-            _error = l.phoneNotRegistered;
+            _step = _Step.code;
           });
           _tabController.index = 1;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l.phoneNotRegistered)),
+          );
           return;
         }
         setState(() => _step = _Step.password);

@@ -54,6 +54,40 @@ class ApiClient {
         },
       ),
     );
+    // Added after a deploy-time incident: right as the backend container
+    // restarts, nginx can hold a stale upstream IP for a couple seconds and
+    // return 502/503/504 (or a bare connection error) to whoever calls in
+    // that window — most visibly on login. One transparent retry papers
+    // over that gap without the user ever seeing an error. Interceptors'
+    // onError runs in reverse-add order, so this retry fires before the
+    // session-expired check above.
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onError: (err, handler) async {
+          final alreadyRetried = err.requestOptions.extra['_retried'] == true;
+          if (!alreadyRetried && _isTransient(err)) {
+            err.requestOptions.extra['_retried'] = true;
+            await Future.delayed(const Duration(milliseconds: 800));
+            try {
+              final response = await dio.fetch(err.requestOptions);
+              return handler.resolve(response);
+            } catch (_) {
+              // Fall through to the normal error path below.
+            }
+          }
+          handler.next(err);
+        },
+      ),
+    );
+  }
+
+  static bool _isTransient(DioException err) {
+    if (err.type == DioExceptionType.connectionError ||
+        err.type == DioExceptionType.connectionTimeout) {
+      return true;
+    }
+    final status = err.response?.statusCode;
+    return status == 502 || status == 503 || status == 504;
   }
 
   final TokenStore _tokens;

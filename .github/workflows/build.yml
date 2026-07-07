@@ -176,7 +176,9 @@ jobs:
             cd /opt/notiqai
 
             echo "▶ Git pull (config/Caddyfile changes)..."
+            before_rev="$(git rev-parse HEAD)"
             git pull --ff-only origin main
+            changed_files="$(git diff --name-only "$before_rev" HEAD)"
 
             # Image'larni oldindan tortamiz. ghcr.io ba'zan TLS handshake
             # timeout beradi (server↔ghcr tarmog'i flaky) — shuning uchun
@@ -216,11 +218,27 @@ jobs:
               exit 1
             fi
 
-            echo "▶ Nginx reload (config o'zgargan bo'lsa)..."
-            docker compose exec -T nginx nginx -s reload 2>/dev/null || true
+            # nginx.conf/Caddyfile bind-mount qilingan ALOHIDA FAYLLAR
+            # (butun katalog emas) — `git pull` faylni yangi inode bilan
+            # almashtirgani uchun konteyner ichidagi eski (hali ochiq)
+            # inode o'zgarmaydi. Shu sabab oddiy `reload` YANGI kontentni
+            # ko'RMAYDI (eski config bilan davom etadi) — konteyner
+            # to'liq qayta yaratilishi shart.
+            if echo "$changed_files" | grep -q '^deploy/nginx/'; then
+              echo "▶ nginx config o'zgargan — konteyner qayta yaratilmoqda..."
+              docker compose up -d --force-recreate nginx
+            else
+              echo "▶ Nginx reload (config o'zgarmagan, oddiy reload yetarli)..."
+              docker compose exec -T nginx nginx -s reload 2>/dev/null || true
+            fi
 
-            echo "▶ Caddy reload (config o'zgargan bo'lsa)..."
-            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true
+            if echo "$changed_files" | grep -q '^deploy/Caddyfile'; then
+              echo "▶ Caddyfile o'zgargan — konteyner qayta yaratilmoqda..."
+              docker compose up -d --force-recreate caddy
+            else
+              echo "▶ Caddy reload (config o'zgarmagan, oddiy reload yetarli)..."
+              docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true
+            fi
 
             echo "▶ Domenlar tekshirilmoqda..."
             for domain in admin.notiqlik.uz curator.notiqlik.uz notiqlik.uz api.notiqlik.uz; do

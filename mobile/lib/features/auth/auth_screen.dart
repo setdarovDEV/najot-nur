@@ -99,9 +99,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     });
     try {
       final phone = normaliseUzPhone(_phone.text);
+      final exists = await ref.read(authRepositoryProvider).phoneExists(phone);
+      if (!mounted) return;
       if (_mode == _AuthMode.register) {
-        final exists = await ref.read(authRepositoryProvider).phoneExists(phone);
-        if (!mounted) return;
         if (exists.exists) {
           setState(() => _error = l.phoneAlreadyRegistered);
           return;
@@ -110,6 +110,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         if (!mounted) return;
         setState(() => _step = _Step.code);
       } else {
+        if (!exists.exists) {
+          // No account for this number — send the user straight to the
+          // register tab instead of letting them hit a confusing password
+          // prompt for an account that doesn't exist.
+          setState(() {
+            _mode = _AuthMode.register;
+            _error = l.phoneNotRegistered;
+          });
+          _tabController.index = 1;
+          return;
+        }
         setState(() => _step = _Step.password);
       }
     } catch (e) {

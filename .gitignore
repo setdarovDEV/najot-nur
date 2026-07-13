@@ -22,6 +22,9 @@ backend/secrets/
 backend/secrets/firebase-service-account.json
 mobile/android/app/google-services.json
 mobile/ios/Runner/GoogleService-Info.plist
+*.keystore
+*.jks
+key.properties
 
 # ───────────── Python / Backend ─────────────
 __pycache__/

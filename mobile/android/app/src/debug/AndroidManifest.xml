@@ -4,4 +4,9 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Only debug builds allow cleartext (http://) traffic, e.g. the
+         Android emulator loopback (10.0.2.2) or a LAN IP during local
+         development against a backend without HTTPS. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

@@ -19,7 +19,6 @@
     <application
         android:label="Najot Nur - NotiqAI"
         android:name="${applicationName}"
-        android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round">
         <activity

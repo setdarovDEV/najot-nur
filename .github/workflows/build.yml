@@ -184,11 +184,17 @@ jobs:
             # timeout beradi (server↔ghcr tarmog'i flaky) — shuning uchun
             # retry bilan o'raymiz. Tortilgan image'lar cache'da qoladi, shu
             # bois qayta urinish faqat uzilgan image'ni tortadi (tez).
+            #
+            # --ignore-pull-failures: Docker Hub'dagi bazaviy image'lar
+            # (caddy/nginx/postgres/redis) versiyasi pinned va serverda
+            # allaqachon cache'da bor — ular tortilmay qolsa ham shu cache
+            # bilan davom etaveradi. Faqat haqiqatan o'zgargan (GHCR)
+            # image'lar tortilishi shart.
             echo "▶ Image lar GHCR dan tortilmoqda (retry bilan)..."
             pull_ok=0
             for attempt in 1 2 3 4; do
               echo "  ▶ pull urinish ${attempt}/4..."
-              if timeout 6m docker compose pull; then
+              if timeout 6m docker compose pull --ignore-pull-failures; then
                 pull_ok=1
                 break
               fi

@@ -433,8 +433,8 @@ class NasiyaTariff {
 
   factory NasiyaTariff.fromCalculate(Map<String, dynamic> j) => NasiyaTariff(
         period: (j['tariff'] ?? '').toString(),
-        titleUz: (j['tariff_name'] ?? j['tariff'] ?? '').toString(),
-        titleRu: (j['tariff_name'] ?? j['tariff'] ?? '').toString(),
+        titleUz: (j['title_uz'] ?? j['tariff_name'] ?? j['tariff'] ?? '').toString(),
+        titleRu: (j['title_ru'] ?? j['tariff_name'] ?? j['tariff'] ?? '').toString(),
         monthlyPayment: num.tryParse(j['month']?.toString() ?? ''),
         total: num.tryParse(j['total']?.toString() ?? ''),
       );

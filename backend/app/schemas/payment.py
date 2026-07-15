@@ -108,6 +108,8 @@ class NasiyaCalculateRequest(BaseModel):
 class NasiyaCalculatedTariff(BaseModel):
     tariff: str
     tariff_name: str | None = None
+    title_uz: str | None = None
+    title_ru: str | None = None
     period_months: int
     total: float
     origin: float

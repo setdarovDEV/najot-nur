@@ -259,14 +259,29 @@ async def _nasiya_post(path: str, json_body: dict[str, Any]) -> dict[str, Any]:
             resp.raise_for_status()
             return resp.json()  # type: ignore[no-any-return]
     except httpx.HTTPStatusError as exc:
+        # Uzum's sandbox sometimes returns a full HTML debug page (Laravel
+        # Ignition, can be several hundred KB) instead of JSON on a 5xx.
+        # Never forward that raw body to the client or dump it whole into
+        # logs — extract a JSON error message when there is one, otherwise
+        # log/report a short, fixed-size summary.
+        content_type = exc.response.headers.get("content-type", "")
+        detail: str
+        if "json" in content_type:
+            try:
+                error_body = exc.response.json()
+                detail = str(error_body.get("error") or error_body.get("message") or error_body)
+            except ValueError:
+                detail = exc.response.text[:500]
+        else:
+            detail = f"non-JSON response ({content_type or 'unknown content-type'})"
         log.error(
             "uzum_nasiya.api_error",
             status=exc.response.status_code,
-            body=exc.response.text,
+            body=exc.response.text[:2000],
             path=path,
         )
         raise AppError(
-            f"Uzum Nasiya xatoligi: {exc.response.status_code} — {exc.response.text}",
+            f"Uzum Nasiya xatoligi: {exc.response.status_code} — {detail}",
             status_code=502,
         ) from exc
     except httpx.RequestError as exc:

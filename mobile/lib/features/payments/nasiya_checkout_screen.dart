@@ -62,12 +62,22 @@ class _NasiyaCheckoutScreenState extends ConsumerState<NasiyaCheckoutScreen> {
   List<NasiyaTariff> _tariffs = [];
   NasiyaTariff? _selectedTariff;
   PaymentRedirect? _payment;
+  final _pinflController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadStatusAndTariffs();
   }
+
+  @override
+  void dispose() {
+    _pinflController.dispose();
+    super.dispose();
+  }
+
+  bool get _pinflValid =>
+      RegExp(r'^\d{14}$').hasMatch(_pinflController.text.trim());
 
   Future<void> _loadStatusAndTariffs() async {
     setState(() {
@@ -130,7 +140,7 @@ class _NasiyaCheckoutScreenState extends ConsumerState<NasiyaCheckoutScreen> {
 
   Future<void> _createContractAndOpenOtp() async {
     final tariff = _selectedTariff;
-    if (tariff == null) return;
+    if (tariff == null || !_pinflValid) return;
     setState(() {
       _step = _Step.creating;
       _errorMsg = null;
@@ -147,6 +157,7 @@ class _NasiyaCheckoutScreenState extends ConsumerState<NasiyaCheckoutScreen> {
         returnUrl: AppConstants.nasiyaReturnUrl,
         period: tariff.period,
         productName: widget.targetTitle,
+        pinfl: _pinflController.text.trim(),
       );
       if (!mounted) return;
       _payment = redirect;
@@ -228,8 +239,13 @@ class _NasiyaCheckoutScreenState extends ConsumerState<NasiyaCheckoutScreen> {
           tariffs: _tariffs,
           selected: _selectedTariff,
           errorMsg: _errorMsg,
+          pinflController: _pinflController,
+          pinflValid: _pinflValid,
           onSelect: (t) => setState(() => _selectedTariff = t),
-          onConfirm: _selectedTariff == null ? null : _createContractAndOpenOtp,
+          onPinflChanged: (_) => setState(() {}),
+          onConfirm: (_selectedTariff == null || !_pinflValid)
+              ? null
+              : _createContractAndOpenOtp,
         );
 
       case _Step.success:
@@ -300,7 +316,10 @@ class _TariffPickerView extends StatelessWidget {
     required this.tariffs,
     required this.selected,
     required this.errorMsg,
+    required this.pinflController,
+    required this.pinflValid,
     required this.onSelect,
+    required this.onPinflChanged,
     required this.onConfirm,
   });
 
@@ -309,7 +328,10 @@ class _TariffPickerView extends StatelessWidget {
   final List<NasiyaTariff> tariffs;
   final NasiyaTariff? selected;
   final String? errorMsg;
+  final TextEditingController pinflController;
+  final bool pinflValid;
   final ValueChanged<NasiyaTariff> onSelect;
+  final ValueChanged<String> onPinflChanged;
   final VoidCallback? onConfirm;
 
   @override
@@ -349,6 +371,28 @@ class _TariffPickerView extends StatelessWidget {
                     active: t.period == selected?.period,
                     onTap: () => onSelect(t),
                   )),
+              const SizedBox(height: 18),
+              const Text("JSHSHIR (PINFL) raqamingiz",
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.muted)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: pinflController,
+                onChanged: onPinflChanged,
+                keyboardType: TextInputType.number,
+                maxLength: 14,
+                decoration: InputDecoration(
+                  hintText: '14 ta raqam',
+                  counterText: '',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
               if (errorMsg != null) ...[
                 const SizedBox(height: 12),
                 Text(errorMsg!,

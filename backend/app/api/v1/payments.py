@@ -75,6 +75,7 @@ async def initiate_payment(
             return_url=payload.return_url,
             period=payload.period,
             product_name=payload.product_name or "Kurs",
+            pinfl=payload.pinfl,
         )
 
     elif payload.provider == PaymentProvider.atmos:

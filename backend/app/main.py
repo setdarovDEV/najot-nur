@@ -73,7 +73,7 @@ register_exception_handlers(app)
 
 # ───── Prometheus metrics ─────
 Instrumentator(
-    should_group_status_codes_by_classes=True,
+    should_group_status_codes=True,
     should_ignore_untemplated=True,
     should_respect_env_var=False,
     env_var_name="ENABLE_METRICS",

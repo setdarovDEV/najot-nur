@@ -5,6 +5,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'providers/providers.dart';
+import 'shared/widgets/permission_gate_dialog.dart';
 import 'shared/widgets/security_capture_overlay.dart';
 import 'shared/widgets/security_watermark.dart';
 import 'shared/widgets/update_required_dialog.dart';
@@ -106,7 +107,9 @@ class _NotiqAiAppState extends ConsumerState<NotiqAiApp> {
         final body = child ?? const SizedBox.shrink();
         return SecurityWatermark(
           child: SecurityCaptureOverlay(
-            child: UpdateRequiredDialog(child: body),
+            child: UpdateRequiredDialog(
+              child: PermissionGateDialog(child: body),
+            ),
           ),
         );
       },

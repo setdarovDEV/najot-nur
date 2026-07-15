@@ -1224,6 +1224,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateLater => 'Later';
 
   @override
+  String get permissionGateTitle => 'Permissions needed';
+
+  @override
+  String get permissionGateMessage =>
+      'Grant the permissions below so the app can work fully:';
+
+  @override
+  String get permissionMicrophone => 'Microphone';
+
+  @override
+  String get permissionLocation => 'Location';
+
+  @override
+  String get permissionNotification => 'Notifications';
+
+  @override
+  String get permissionGrant => 'Grant access';
+
+  @override
+  String get permissionOpenSettings => 'Open settings';
+
+  @override
+  String get permissionLater => 'Later';
+
+  @override
   String get gradeTitleExcellent => 'Excellent result!';
 
   @override

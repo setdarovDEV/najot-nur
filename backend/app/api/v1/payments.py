@@ -13,6 +13,12 @@ from app.models.enums import PaymentProvider, PaymentStatus
 from app.models.payment import Payment
 from app.schemas.common import Message, Page
 from app.schemas.payment import (
+    NasiyaCalculateRequest,
+    NasiyaCalculateResponse,
+    NasiyaCalculatedTariff,
+    NasiyaCheckStatusRequest,
+    NasiyaCheckStatusResponse,
+    NasiyaPaymentActionRequest,
     PaymentInitiate,
     PaymentInitiateResponse,
     PaymentListItem,
@@ -54,6 +60,12 @@ async def initiate_payment(
         )
 
     elif payload.provider == PaymentProvider.uzum_nasiya:
+        if not payload.period:
+            raise AppError(
+                "Uzum Nasiya uchun 'period' talab qilinadi "
+                "(POST /payments/uzum-nasiya/calculate orqali tanlang).",
+                status_code=400,
+            )
         payment, redirect_url = await payment_service.initiate_uzum_nasiya(
             db,
             user_id=current_user.id,
@@ -61,6 +73,8 @@ async def initiate_payment(
             reference_id=payload.reference_id,
             purpose=payload.purpose,
             return_url=payload.return_url,
+            period=payload.period,
+            product_name=payload.product_name or "Kurs",
         )
 
     elif payload.provider == PaymentProvider.atmos:
@@ -90,6 +104,83 @@ async def initiate_payment(
 
 
 # ──────────────────────────────────────────────
+#  Uzum Nasiya — buyer status, tariff calc, and contract confirm/cancel.
+#  (This API has no server-to-server webhook; the mobile app drives
+#  confirm/cancel itself after the WebView OTP step completes.)
+# ──────────────────────────────────────────────
+
+
+@router.post("/uzum-nasiya/check-status", response_model=NasiyaCheckStatusResponse)
+async def uzum_nasiya_check_status(
+    payload: NasiyaCheckStatusRequest,
+    current_user: CurrentUser,
+) -> NasiyaCheckStatusResponse:
+    """Check whether the buyer is registered/verified with Uzum Nasiya.
+
+    If not, `webview` is a URL the app should open so the buyer can finish
+    Uzum's own registration before a contract can be created.
+    """
+    phone = payload.phone or current_user.phone
+    if not phone:
+        raise AppError("Telefon raqami topilmadi.", status_code=400)
+    data = await payment_service.uzum_nasiya_check_status(phone)
+    return NasiyaCheckStatusResponse(**data)
+
+
+@router.post("/uzum-nasiya/calculate", response_model=NasiyaCalculateResponse)
+async def uzum_nasiya_calculate(
+    payload: NasiyaCalculateRequest,
+    current_user: CurrentUser,
+) -> NasiyaCalculateResponse:
+    """Return available installment tariffs (period/monthly payment) for an item."""
+    if not current_user.phone:
+        raise AppError("Telefon raqami topilmadi.", status_code=400)
+    status_data = await payment_service.uzum_nasiya_check_status(current_user.phone)
+    buyer_id = status_data.get("buyer_id")
+    if status_data.get("status") != 4 or not buyer_id:
+        raise AppError(
+            "Uzum Nasiya: avval ro'yxatdan o'ting (check-status javobidagi webview).",
+            status_code=400,
+        )
+    tariffs = await payment_service.uzum_nasiya_calculate(
+        buyer_id=buyer_id, amount=float(payload.amount), reference_id=payload.reference_id
+    )
+    return NasiyaCalculateResponse(
+        tariffs=[NasiyaCalculatedTariff(**t) for t in tariffs]
+    )
+
+
+@router.post("/uzum-nasiya/confirm", response_model=PaymentRead)
+async def uzum_nasiya_confirm(
+    payload: NasiyaPaymentActionRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> Payment:
+    """Activate the contract after the buyer confirms OTP in the WebView.
+
+    Called by the mobile app once it sees the WebView navigate back to the
+    `return_url` it was given at /payments/initiate.
+    """
+    payment = await db.get(Payment, payload.payment_id)
+    if payment is None or payment.user_id != current_user.id:
+        raise NotFoundError("To'lov topilmadi.")
+    return await payment_service.uzum_nasiya_confirm(db, payment_id=payload.payment_id)
+
+
+@router.post("/uzum-nasiya/cancel", response_model=PaymentRead)
+async def uzum_nasiya_cancel(
+    payload: NasiyaPaymentActionRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> Payment:
+    """Cancel a not-yet-activated Uzum Nasiya contract."""
+    payment = await db.get(Payment, payload.payment_id)
+    if payment is None or payment.user_id != current_user.id:
+        raise NotFoundError("To'lov topilmadi.")
+    return await payment_service.uzum_nasiya_cancel(db, payment_id=payload.payment_id)
+
+
+# ──────────────────────────────────────────────
 #  Provider callbacks (no auth — public webhooks)
 # ──────────────────────────────────────────────
 
@@ -100,15 +191,6 @@ async def uzum_callback(request: Request, db: DbSession) -> Message:
     payload: dict = await request.json()
     log.info("uzum.callback", payload_keys=list(payload.keys()))
     payment = await payment_service.handle_uzum_callback(db, payload)
-    return Message(message=f"OK: {payment.status}")
-
-
-@router.post("/uzum-nasiya/callback", response_model=Message)
-async def uzum_nasiya_callback(request: Request, db: DbSession) -> Message:
-    """Uzum Nasiya installment webhook endpoint."""
-    payload: dict = await request.json()
-    log.info("uzum_nasiya.callback", payload_keys=list(payload.keys()))
-    payment = await payment_service.handle_uzum_nasiya_callback(db, payload)
     return Message(message=f"OK: {payment.status}")
 
 

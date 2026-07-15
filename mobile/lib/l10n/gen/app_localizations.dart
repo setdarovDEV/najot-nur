@@ -2350,6 +2350,54 @@ abstract class AppLocalizations {
   /// **'Keyinroq'**
   String get updateLater;
 
+  /// No description provided for @permissionGateTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ruxsatlar kerak'**
+  String get permissionGateTitle;
+
+  /// No description provided for @permissionGateMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ilova to\'liq ishlashi uchun quyidagi ruxsatlarni bering:'**
+  String get permissionGateMessage;
+
+  /// No description provided for @permissionMicrophone.
+  ///
+  /// In uz, this message translates to:
+  /// **'Mikrofon'**
+  String get permissionMicrophone;
+
+  /// No description provided for @permissionLocation.
+  ///
+  /// In uz, this message translates to:
+  /// **'Joylashuv'**
+  String get permissionLocation;
+
+  /// No description provided for @permissionNotification.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bildirishnomalar'**
+  String get permissionNotification;
+
+  /// No description provided for @permissionGrant.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ruxsat berish'**
+  String get permissionGrant;
+
+  /// No description provided for @permissionOpenSettings.
+  ///
+  /// In uz, this message translates to:
+  /// **'Sozlamalarga o\'tish'**
+  String get permissionOpenSettings;
+
+  /// No description provided for @permissionLater.
+  ///
+  /// In uz, this message translates to:
+  /// **'Keyinroq'**
+  String get permissionLater;
+
   /// No description provided for @gradeTitleExcellent.
   ///
   /// In uz, this message translates to:

@@ -8,8 +8,10 @@ from fastapi import APIRouter, BackgroundTasks, Request
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
+from app.core.audit import audit_auth
 from app.core.config import settings
 from app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.core.metrics import auth_failures_total
 from app.core.redis_client import cache_delete, cache_get, cache_set
 from app.core.security import (
     decode_token,
@@ -17,6 +19,7 @@ from app.core.security import (
     issue_token_pair,
     verify_password_async,
 )
+from app.core.token_blacklist import blacklist_token
 
 from app.models.enums import AuthProvider, Role
 from app.models.user import AuthIdentity, User
@@ -136,11 +139,24 @@ async def phone_exists(payload: PhoneRequest, db: DbSession) -> PhoneExistsRespo
 
 
 @router.post("/phone/login", response_model=TokenPair)
-async def phone_login(payload: PhoneLoginRequest, db: DbSession) -> TokenPair:
+async def phone_login(
+    payload: PhoneLoginRequest, request: Request, db: DbSession
+) -> TokenPair:
+    client_ip = (
+        request.headers.get("X-Real-IP")
+        or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+    )
+    user_agent = request.headers.get("user-agent")
+
     user = (
         await db.execute(select(User).where(User.phone == payload.phone))
     ).scalar_one_or_none()
     if user is None or not user.is_active:
+        auth_failures_total.labels(reason="invalid_credentials").inc()
+        audit_auth(
+            "login_failed", ip=client_ip, user_agent=user_agent,
+            status="failed", reason="user_not_found",
+        )
         raise UnauthorizedError("Telefon raqam yoki parol noto'g'ri.")
 
     identity = (
@@ -152,9 +168,21 @@ async def phone_login(payload: PhoneLoginRequest, db: DbSession) -> TokenPair:
         )
     ).scalar_one_or_none()
     if identity is None or not identity.password_hash:
+        auth_failures_total.labels(reason="no_password").inc()
+        audit_auth(
+            "login_failed", user_id=user.id, ip=client_ip, user_agent=user_agent,
+            status="failed", reason="no_password_set",
+        )
         raise UnauthorizedError("Bu hisob uchun parol o'rnatilmagan.")
     if not await verify_password_async(payload.password, identity.password_hash):
+        auth_failures_total.labels(reason="wrong_password").inc()
+        audit_auth(
+            "login_failed", user_id=user.id, ip=client_ip, user_agent=user_agent,
+            status="failed", reason="wrong_password",
+        )
         raise UnauthorizedError("Telefon raqam yoki parol noto'g'ri.")
+
+    audit_auth("login", user_id=user.id, ip=client_ip, user_agent=user_agent)
     return _tokens_for(user)
 
 
@@ -295,6 +323,11 @@ async def email_login(
 ) -> TokenPair:
     email = payload.email.lower()
     origin = request.headers.get("origin", "")
+    client_ip = (
+        request.headers.get("X-Real-IP")
+        or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+    )
+    user_agent = request.headers.get("user-agent")
     _check_email_format(email, origin)
 
     identity = (
@@ -306,15 +339,31 @@ async def email_login(
         )
     ).scalar_one_or_none()
     if identity is None or not identity.password_hash:
+        auth_failures_total.labels(reason="invalid_credentials").inc()
+        audit_auth(
+            "login_failed", ip=client_ip, user_agent=user_agent,
+            status="failed", reason="identity_not_found",
+        )
         raise UnauthorizedError("Email yoki parol noto'g'ri.")
     if not await verify_password_async(payload.password, identity.password_hash):
+        auth_failures_total.labels(reason="wrong_password").inc()
+        audit_auth(
+            "login_failed", user_id=identity.user_id, ip=client_ip,
+            user_agent=user_agent, status="failed", reason="wrong_password",
+        )
         raise UnauthorizedError("Email yoki parol noto'g'ri.")
 
     user = await db.get(User, identity.user_id)
     if user is None or not user.is_active:
+        auth_failures_total.labels(reason="user_inactive").inc()
+        audit_auth(
+            "login_failed", ip=client_ip, user_agent=user_agent,
+            status="failed", reason="user_inactive",
+        )
         raise UnauthorizedError("Hisob faol emas.")
 
     _check_panel_role(user, origin)
+    audit_auth("login", user_id=user.id, ip=client_ip, user_agent=user_agent)
     return _tokens_for(user)
 
 
@@ -330,11 +379,43 @@ async def refresh(payload: RefreshRequest, db: DbSession) -> TokenPair:
     try:
         data = decode_token(payload.refresh_token)
     except jwt.PyJWTError as exc:
+        auth_failures_total.labels(reason="invalid_refresh").inc()
         raise UnauthorizedError("Refresh token yaroqsiz.") from exc
     if data.get("type") != "refresh":
+        auth_failures_total.labels(reason="wrong_token_type").inc()
         raise UnauthorizedError("Noto'g'ri token turi.")
 
     user = await db.get(User, uuid.UUID(data["sub"]))
     if user is None or not user.is_active:
+        auth_failures_total.labels(reason="user_inactive").inc()
         raise UnauthorizedError("Foydalanuvchi topilmadi.")
     return _tokens_for(user)
+
+
+# ───────────────────── Logout ─────────────────────
+@router.post("/logout")
+async def logout(request: Request, user: CurrentUser) -> dict:
+    """Blacklist the current access token so it cannot be reused."""
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[7:].strip()
+        try:
+            payload = decode_token(token)
+            jti = payload.get("jti")
+            exp = payload.get("exp")
+            if jti and exp:
+                await blacklist_token(jti, exp)
+        except jwt.PyJWTError:
+            pass
+
+    client_ip = (
+        request.headers.get("X-Real-IP")
+        or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+    )
+    audit_auth(
+        "logout",
+        user_id=user.id,
+        ip=client_ip,
+        user_agent=request.headers.get("user-agent"),
+    )
+    return {"ok": True}

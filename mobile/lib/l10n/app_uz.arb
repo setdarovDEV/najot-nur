@@ -568,6 +568,15 @@
   "updateNow": "Yangilash",
   "updateLater": "Keyinroq",
 
+  "permissionGateTitle": "Ruxsatlar kerak",
+  "permissionGateMessage": "Ilova to'liq ishlashi uchun quyidagi ruxsatlarni bering:",
+  "permissionMicrophone": "Mikrofon",
+  "permissionLocation": "Joylashuv",
+  "permissionNotification": "Bildirishnomalar",
+  "permissionGrant": "Ruxsat berish",
+  "permissionOpenSettings": "Sozlamalarga o'tish",
+  "permissionLater": "Keyinroq",
+
   "gradeTitleExcellent": "A'lo darajadagi natija!",
   "gradeTitleGood": "Yaxshi natija!",
   "gradeTitleAverage": "O'rtacha natija",

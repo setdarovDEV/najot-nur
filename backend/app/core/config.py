@@ -134,16 +134,29 @@ class Settings(BaseSettings):
     s3_secret_key: str = ""
     local_media_dir: str = "./media"
 
-    # ───── Payments (later) ─────
+    # ───── Payments ─────
     uzum_merchant_id: str = ""
     uzum_secret_key: str = ""
+    # Uzum Nasiya Partner API — Bearer token issued by the Uzum Nasiya manager
+    # when the partner is onboarded. Base URL switches between the sandbox
+    # (https://dev-merchants-api.uzumnasiya.uz) and production
+    # (https://merchants-api.uzumnasiya.uz).
     uzum_nasiya_api_key: str = ""
+    uzum_nasiya_base_url: str = "https://merchants-api.uzumnasiya.uz"
     atmos_store_id: str = ""
     atmos_consumer_key: str = ""
     atmos_consumer_secret: str = ""
 
     # ───── Monitoring ─────
     sentry_dsn: str = ""
+    metrics_enabled: bool = True
+
+    # ───── Security ─────
+    rate_limit_default: int = 240
+    rate_limit_window: int = 60
+    brute_force_max_attempts: int = 15
+    brute_force_window: int = 300
+    cors_allow_private_network: bool = False
 
     # ───── Push notifications (FCM) ─────
     # Set FCM_ENABLED=true and point FCM_SERVICE_ACCOUNT_PATH to a Firebase

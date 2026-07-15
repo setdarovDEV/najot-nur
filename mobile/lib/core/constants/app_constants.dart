@@ -16,6 +16,12 @@ abstract class AppConstants {
     defaultValue: '',
   );
 
+  /// Sentinel URL passed as `return_url`/`callback` when creating an Uzum
+  /// Nasiya installment contract. It never needs to actually load — the
+  /// in-app WebView intercepts navigation the moment the URL starts with
+  /// this prefix (see NasiyaWebViewScreen) and treats it as "OTP done".
+  static const nasiyaReturnUrl = 'https://notiqlik.uz/nasiya-return';
+
   // SharedPreferences keys
   static const kAccessToken = 'access_token';
   static const kRefreshToken = 'refresh_token';

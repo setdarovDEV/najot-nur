@@ -34,6 +34,7 @@ from app.models.enums import (
 from app.models.grading import Homework
 from app.models.notification import PushNotification, PushToken
 from app.models.payment import Payment
+from app.models.user import User
 from app.services import fcm
 
 log = get_logger("payment_service")
@@ -43,8 +44,9 @@ log = get_logger("payment_service")
 # ──────────────────────────────────────────────
 
 _UZUM_BASE = "https://api.paymart.uz"
-_UZUM_NASIYA_BASE = "https://api.nasiya.uz"
 _ATMOS_BASE = "https://partner.atmos.uz"
+# Uzum Nasiya base URL is configurable (sandbox vs production) —
+# see settings.uzum_nasiya_base_url.
 
 _HTTP_TIMEOUT = 20.0  # seconds
 
@@ -204,12 +206,149 @@ async def initiate_uzum(
 #  Uzum Nasiya  (bo'lib-bo'lib to'lash)
 # ──────────────────────────────────────────────
 #
-#  Docs: https://api.nasiya.uz/swagger
+#  Docs: https://developer.uzumbank.uz/nasiya  (OpenAPI: "Uzum Nasiya Partner API")
 #  Auth: Bearer {uzum_nasiya_api_key}
-#  POST /api/v2/partner/invoice
-#    body  → { amount (tiyin), period (months), orderId, redirectUrl }
-#    resp  → { data: { id, link } }
+#  Base: settings.uzum_nasiya_base_url
+#    sandbox → https://dev-merchants-api.uzumnasiya.uz
+#    prod    → https://merchants-api.uzumnasiya.uz
+#
+#  Flow (see docs "Процесс оформления договора"):
+#   1. POST /api/v1/buyers/check-status  {phone}
+#        → {status, buyer_id, webview, available_periods, ...}
+#        status == 4 means the buyer is verified and can take a contract;
+#        any other status means the app must send the user to `webview`
+#        to finish Uzum's own registration first.
+#   2. (optional) POST /api/v1/orders/calculate {user_id, products[]}
+#        → list of tariffs (period id, monthly payment, markup %)
+#   3. POST /api/v1/orders {user_id, period, products[], callback, ext_order_id}
+#        → {paymart_client: {order, contract_id, ...}, webview_path}
+#        `webview_path` is opened in a WebView for the buyer to confirm the
+#        SMS/OTP code (in sandbox: static code 111111).
+#   4. The mobile app detects the WebView navigating back to the `callback`
+#      URL it was given, closes the WebView, then calls our own
+#      confirm/cancel endpoint (there is no server-to-server webhook in this
+#      API — activation is driven by the partner app, not a callback).
+#   5. POST /api/v1/contracts/confirm      {contract_id: <contract_id>} → activates.
+#      POST /api/v1/contracts/check-status {contract_id: <contract_id>} → polls status.
+#      POST /api/v1/contracts/cancel       {contract_id: <order>}       → cancels.
+#      NOTE: despite the shared field name `contract_id` in all three request
+#      bodies, confirm/check-status expect `paymart_client.contract_id` while
+#      cancel expects `paymart_client.order` — verified empirically against
+#      the sandbox (dev-merchants-api.uzumnasiya.uz), since the published
+#      OpenAPI spec doesn't make this distinction. We store both, packed as
+#      "<order>:<contract_id>" in Payment.external_id.
 # ──────────────────────────────────────────────
+
+_NASIYA_PENDING_PREFIX = "nasiya_pending_"
+_NASIYA_MOCK_PREFIX = "nasiya_mock_"
+
+
+def _nasiya_headers() -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {settings.uzum_nasiya_api_key}",
+        "Content-Type": "application/json",
+    }
+
+
+async def _nasiya_post(path: str, json_body: dict[str, Any]) -> dict[str, Any]:
+    """POST to the Uzum Nasiya Partner API and return the parsed JSON body."""
+    url = f"{settings.uzum_nasiya_base_url}{path}"
+    try:
+        async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
+            resp = await client.post(url, headers=_nasiya_headers(), json=json_body)
+            resp.raise_for_status()
+            return resp.json()  # type: ignore[no-any-return]
+    except httpx.HTTPStatusError as exc:
+        log.error(
+            "uzum_nasiya.api_error",
+            status=exc.response.status_code,
+            body=exc.response.text,
+            path=path,
+        )
+        raise AppError(
+            f"Uzum Nasiya xatoligi: {exc.response.status_code} — {exc.response.text}",
+            status_code=502,
+        ) from exc
+    except httpx.RequestError as exc:
+        log.error("uzum_nasiya.network_error", error=str(exc), path=path)
+        raise AppError("Uzum Nasiya bilan aloqa yo'q.", status_code=502) from exc
+
+
+def _nasiya_normalize_phone(phone: str) -> str:
+    """Uzum Nasiya expects a 12-digit phone: 998XXXXXXXXX (digits only)."""
+    digits = "".join(ch for ch in phone if ch.isdigit())
+    if len(digits) == 9:
+        return f"998{digits}"
+    return digits
+
+
+def _nasiya_numeric_id(value: uuid.UUID | None) -> int:
+    """Uzum Nasiya wants small integer ids (product_id, ext_order_id);
+    derive one deterministically from a UUID."""
+    return int(value.int % 2_147_483_647) if value else 1
+
+
+def _nasiya_pack_ids(*, order: int, contract_id: int) -> str:
+    return f"{order}:{contract_id}"
+
+
+def _nasiya_unpack_ids(external_id: str) -> tuple[int, int]:
+    """Returns (order, contract_id) — see module docstring above for why both are kept."""
+    order_str, contract_str = external_id.split(":", 1)
+    return int(order_str), int(contract_str)
+
+
+async def uzum_nasiya_check_status(phone: str) -> dict[str, Any]:
+    """Check a buyer's Uzum Nasiya registration status by phone.
+
+    In stub mode (no API key configured) returns a synthetic "verified"
+    buyer so the rest of the flow can be exercised without live credentials.
+    """
+    normalized = _nasiya_normalize_phone(phone)
+
+    if not settings.uzum_nasiya_api_key:
+        log.warning("uzum_nasiya.stub_mode", hint="UZUM_NASIYA_API_KEY o'rnatilmagan", phone=normalized)
+        return {
+            "status": 4,
+            "buyer_id": 0,
+            "has_limit": True,
+            "is_in_black_list": False,
+            "webview": "",
+            "available_periods": [],
+            "balance": "0.00",
+        }
+
+    data = await _nasiya_post("/api/v1/buyers/check-status", {"phone": int(normalized)})
+    if data.get("status") != "success":
+        raise AppError(
+            f"Uzum Nasiya: foydalanuvchi holatini tekshirib bo'lmadi — {data.get('error')}",
+            status_code=502,
+        )
+    return data["data"]  # type: ignore[no-any-return]
+
+
+async def uzum_nasiya_calculate(
+    *, buyer_id: int, amount: float, reference_id: uuid.UUID | None
+) -> list[dict[str, Any]]:
+    """Return available installment tariffs for a single-item cart of `amount` UZS."""
+    if not settings.uzum_nasiya_api_key:
+        return []
+
+    data = await _nasiya_post(
+        "/api/v1/orders/calculate",
+        {
+            "user_id": buyer_id,
+            "products": [
+                {"product_id": _nasiya_numeric_id(reference_id), "price": amount, "amount": 1}
+            ],
+        },
+    )
+    if data.get("status") != "success":
+        raise AppError(
+            f"Uzum Nasiya: tariflarni hisoblab bo'lmadi — {data.get('error')}",
+            status_code=502,
+        )
+    return data["data"]  # type: ignore[no-any-return]
 
 
 async def initiate_uzum_nasiya(
@@ -220,11 +359,15 @@ async def initiate_uzum_nasiya(
     reference_id: uuid.UUID | None = None,
     purpose: PaymentPurpose,
     return_url: str,
-    months: int = 6,
+    period: str = "6 Default",
+    product_name: str = "Kurs",
 ) -> tuple[Payment, str]:
-    """Create a pending Payment record and initiate a Uzum Nasiya installment.
+    """Create a pending Payment record and an Uzum Nasiya installment contract.
 
-    Returns (payment, redirect_url).
+    `period` must be a tariff id the buyer already picked from
+    `uzum_nasiya_check_status` / `uzum_nasiya_calculate` (e.g. "6 Default").
+    Returns (payment, webview_url); the caller (mobile app) opens
+    `webview_url` in a WebView for the buyer to confirm the SMS/OTP step.
     """
     payment = await _create_payment(
         db,
@@ -236,59 +379,70 @@ async def initiate_uzum_nasiya(
     )
 
     if settings.uzum_nasiya_api_key:
-        try:
-            async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
-                resp = await client.post(
-                    f"{_UZUM_NASIYA_BASE}/api/v2/partner/invoice",
-                    headers={
-                        "Authorization": f"Bearer {settings.uzum_nasiya_api_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "amount": int(amount * 100),   # tiyin
-                        "period": months,
-                        "orderId": str(payment.id),
-                        "redirectUrl": return_url,
-                    },
-                )
-                resp.raise_for_status()
-                data: dict[str, Any] = resp.json()
+        user = await db.get(User, user_id)
+        if user is None or not user.phone:
+            raise AppError("Uzum Nasiya uchun telefon raqami talab qilinadi.", status_code=400)
 
-            inner = data.get("data") or data
-            external_id = str(
-                inner.get("id") or inner.get("invoiceId") or payment.id
-            )
-            redirect_url: str = (
-                inner.get("link") or inner.get("redirectUrl") or inner.get("url")
-                or f"https://nasiya.uz/invoice/{external_id}"
-            )
-            payment.external_id = external_id
+        status_data = await uzum_nasiya_check_status(user.phone)
+        buyer_id = status_data.get("buyer_id")
+        if status_data.get("status") != 4 or not buyer_id:
+            # Buyer hasn't finished Uzum's own registration yet — hand the
+            # webview URL back so the app can send them there first, then
+            # retry /payments/initiate once registration completes.
+            payment.external_id = f"{_NASIYA_PENDING_PREFIX}{payment.id.hex[:12]}"
+            await db.flush()
+            webview = status_data.get("webview") or ""
             log.info(
-                "uzum_nasiya.initiated",
+                "uzum_nasiya.registration_required",
                 payment_id=str(payment.id),
-                external_id=external_id,
-                amount=amount,
-                months=months,
+                status=status_data.get("status"),
             )
+            if not webview:
+                raise AppError(
+                    "Uzum Nasiya: foydalanuvchi hozircha rasmiylashtirish uchun mos emas.",
+                    status_code=400,
+                )
+            return payment, webview
 
-        except httpx.HTTPStatusError as exc:
-            log.error(
-                "uzum_nasiya.api_error",
-                status=exc.response.status_code,
-                body=exc.response.text,
-                payment_id=str(payment.id),
-            )
-            raise AppError(
-                f"Uzum Nasiya xatoligi: {exc.response.status_code} — {exc.response.text}",
-                status_code=502,
-            ) from exc
+        callback_url = f"{return_url}{'&' if '?' in return_url else '?'}payment_id={payment.id}"
+        data = await _nasiya_post(
+            "/api/v1/orders",
+            {
+                "user_id": buyer_id,
+                "period": period,
+                "callback": callback_url,
+                "ext_order_id": _nasiya_numeric_id(payment.id),
+                "products": [
+                    {
+                        "product_id": _nasiya_numeric_id(reference_id),
+                        "name": product_name,
+                        "price": amount,
+                        "category": 1,
+                        "unit_id": 1,
+                        "amount": 1,
+                    }
+                ],
+            },
+        )
+        if data.get("status") != "success":
+            raise AppError(f"Uzum Nasiya: shartnoma yaratilmadi — {data.get('error')}", status_code=502)
 
-        except httpx.RequestError as exc:
-            log.error("uzum_nasiya.network_error", error=str(exc), payment_id=str(payment.id))
-            raise AppError("Uzum Nasiya bilan aloqa yo'q.", status_code=502) from exc
+        inner = data["data"]
+        contract = inner["paymart_client"]
+        payment.external_id = _nasiya_pack_ids(
+            order=int(contract["order"]), contract_id=int(contract["contract_id"])
+        )
+        redirect_url: str = inner["webview_path"]
+        log.info(
+            "uzum_nasiya.initiated",
+            payment_id=str(payment.id),
+            external_id=payment.external_id,
+            amount=amount,
+            period=period,
+        )
 
     else:
-        mock_external_id = f"nasiya_mock_{payment.id.hex[:12]}"
+        mock_external_id = f"{_NASIYA_MOCK_PREFIX}{payment.id.hex[:12]}"
         payment.external_id = mock_external_id
         redirect_url = f"https://mock.nasiya.uzum.uz/pay?order_id={payment.id}"
         log.warning(
@@ -306,6 +460,102 @@ async def initiate_uzum_nasiya(
         amount=amount,
     )
     return payment, redirect_url
+
+
+async def uzum_nasiya_confirm(db: AsyncSession, *, payment_id: uuid.UUID) -> Payment:
+    """Activate an Uzum Nasiya contract after the buyer confirms OTP in the WebView.
+
+    Called by the mobile client once it detects the WebView navigating back
+    to the `return_url`/`callback` it was given at initiate time — this API
+    has no server-to-server webhook, activation is partner-driven.
+    """
+    payment = await db.get(Payment, payment_id)
+    if payment is None:
+        raise NotFoundError("To'lov topilmadi.")
+    if payment.provider != PaymentProvider.uzum_nasiya:
+        raise AppError("Bu to'lov Uzum Nasiya orqali amalga oshirilmagan.", status_code=400)
+    if payment.status == PaymentStatus.paid:
+        return payment
+    if not payment.external_id or payment.external_id.startswith(_NASIYA_PENDING_PREFIX):
+        raise AppError("Shartnoma hali yaratilmagan.", status_code=400)
+
+    if not settings.uzum_nasiya_api_key:
+        payment.status = PaymentStatus.paid
+        payment.paid_at = datetime.now(UTC)
+        await _grant_access_for_payment(db, payment)
+        await _notify_payment_success(db, payment)
+        await db.flush()
+        return payment
+
+    _order_id, contract_id = _nasiya_unpack_ids(payment.external_id)
+    data = await _nasiya_post("/api/v1/contracts/confirm", {"contract_id": contract_id})
+    response_code = data.get("response_code")
+    if response_code in (0, 4010):  # 0 = success, 4010 = already activated
+        payment.status = PaymentStatus.paid
+        payment.paid_at = payment.paid_at or datetime.now(UTC)
+        log.info("uzum_nasiya.confirmed", payment_id=str(payment.id), response_code=response_code)
+        await _grant_access_for_payment(db, payment)
+        await _notify_payment_success(db, payment)
+    else:
+        log.warning(
+            "uzum_nasiya.confirm_failed",
+            payment_id=str(payment.id),
+            response_code=response_code,
+            errors=data.get("error"),
+        )
+        raise AppError(
+            f"Uzum Nasiya: shartnomani tasdiqlab bo'lmadi (code={response_code}).",
+            status_code=400,
+        )
+
+    await db.flush()
+    return payment
+
+
+async def uzum_nasiya_cancel(db: AsyncSession, *, payment_id: uuid.UUID) -> Payment:
+    """Cancel a not-yet-activated Uzum Nasiya contract."""
+    payment = await db.get(Payment, payment_id)
+    if payment is None:
+        raise NotFoundError("To'lov topilmadi.")
+    if payment.provider != PaymentProvider.uzum_nasiya:
+        raise AppError("Bu to'lov Uzum Nasiya orqali amalga oshirilmagan.", status_code=400)
+
+    has_real_contract = payment.external_id and not payment.external_id.startswith(
+        (_NASIYA_PENDING_PREFIX, _NASIYA_MOCK_PREFIX)
+    )
+    if settings.uzum_nasiya_api_key and has_real_contract:
+        order_id, _contract_id = _nasiya_unpack_ids(payment.external_id)  # type: ignore[arg-type]
+        data = await _nasiya_post("/api/v1/contracts/cancel", {"contract_id": order_id})
+        response_code = data.get("response_code")
+        if response_code not in (0, 4004, 4009):  # already-not-found / wrong-status are fine to ignore
+            log.warning("uzum_nasiya.cancel_failed", payment_id=str(payment.id), response_code=response_code)
+            raise AppError(
+                f"Uzum Nasiya: shartnomani bekor qilib bo'lmadi (code={response_code}).",
+                status_code=400,
+            )
+
+    payment.status = PaymentStatus.failed
+    log.info("uzum_nasiya.cancelled", payment_id=str(payment.id))
+    await db.flush()
+    return payment
+
+
+async def uzum_nasiya_contract_status(payment: Payment) -> dict[str, Any]:
+    """Look up the live contract status from Uzum Nasiya for polling/reconciliation."""
+    has_real_contract = payment.external_id and not payment.external_id.startswith(
+        (_NASIYA_PENDING_PREFIX, _NASIYA_MOCK_PREFIX)
+    )
+    if not settings.uzum_nasiya_api_key or not has_real_contract:
+        return {"contract_status": 1 if payment.status == PaymentStatus.paid else 0}
+
+    _order_id, contract_id = _nasiya_unpack_ids(payment.external_id)  # type: ignore[arg-type]
+    data = await _nasiya_post("/api/v1/contracts/check-status", {"contract_id": contract_id})
+    if data.get("status") != "success":
+        raise AppError(
+            f"Uzum Nasiya: shartnoma holatini olib bo'lmadi — {data.get('error')}",
+            status_code=502,
+        )
+    return data["data"]  # type: ignore[no-any-return]
 
 
 # ──────────────────────────────────────────────
@@ -626,32 +876,6 @@ async def handle_uzum_callback(db: AsyncSession, payload: dict[str, Any]) -> Pay
         log.info("uzum.payment_failed", payment_id=str(payment.id), status=uzum_status)
     else:
         log.warning("uzum.unknown_status", status=uzum_status, payment_id=str(payment.id))
-
-    await db.flush()
-    return payment
-
-
-async def handle_uzum_nasiya_callback(db: AsyncSession, payload: dict[str, Any]) -> Payment:
-    log.info("uzum_nasiya.callback_received", payload_keys=list(payload.keys()))
-
-    external_id = str(payload.get("order_id") or payload.get("installment_id") or payload.get("id") or "")
-    if not external_id:
-        raise AppError("Uzum Nasiya callback: order_id yo'q.", status_code=400)
-
-    payment = await _get_payment_by_external_id(db, external_id)
-
-    nasiya_status = str(payload.get("status", "")).lower()
-    if nasiya_status in ("approved", "paid", "active", "success"):
-        payment.status = PaymentStatus.paid
-        payment.paid_at = datetime.now(UTC)
-        log.info("uzum_nasiya.payment_paid", payment_id=str(payment.id))
-        await _grant_access_for_payment(db, payment)
-        await _notify_payment_success(db, payment)
-    elif nasiya_status in ("rejected", "cancelled", "failed", "expired"):
-        payment.status = PaymentStatus.failed
-        log.info("uzum_nasiya.payment_failed", payment_id=str(payment.id), status=nasiya_status)
-    else:
-        log.warning("uzum_nasiya.unknown_status", status=nasiya_status, payment_id=str(payment.id))
 
     await db.flush()
     return payment

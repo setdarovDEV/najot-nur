@@ -406,6 +406,70 @@ class PaymentRedirect {
       );
 }
 
+/// One installment tariff the buyer can pick (from /uzum-nasiya/check-status
+/// or /uzum-nasiya/calculate).
+class NasiyaTariff {
+  NasiyaTariff({
+    required this.period,
+    required this.titleUz,
+    required this.titleRu,
+    this.monthlyPayment,
+    this.total,
+  });
+
+  /// Tariff id to send back as `period` when creating the order.
+  final String period;
+  final String titleUz;
+  final String titleRu;
+  /// Present only when returned from /calculate (exact sums for this price).
+  final num? monthlyPayment;
+  final num? total;
+
+  factory NasiyaTariff.fromCheckStatus(Map<String, dynamic> j) => NasiyaTariff(
+        period: (j['period'] ?? '').toString(),
+        titleUz: (j['title_uz'] ?? '') as String,
+        titleRu: (j['title_ru'] ?? '') as String,
+      );
+
+  factory NasiyaTariff.fromCalculate(Map<String, dynamic> j) => NasiyaTariff(
+        period: (j['tariff'] ?? '').toString(),
+        titleUz: (j['tariff_name'] ?? j['tariff'] ?? '').toString(),
+        titleRu: (j['tariff_name'] ?? j['tariff'] ?? '').toString(),
+        monthlyPayment: num.tryParse(j['month']?.toString() ?? ''),
+        total: num.tryParse(j['total']?.toString() ?? ''),
+      );
+}
+
+/// Uzum Nasiya buyer registration status (POST /payments/uzum-nasiya/check-status).
+class NasiyaStatus {
+  NasiyaStatus({
+    required this.status,
+    required this.isVerified,
+    required this.webview,
+    required this.availablePeriods,
+  });
+
+  final int status;
+  /// status == 4 means the buyer can take a contract right away.
+  final bool isVerified;
+  /// Open in a WebView when [isVerified] is false so the buyer can finish
+  /// Uzum's own registration.
+  final String webview;
+  final List<NasiyaTariff> availablePeriods;
+
+  factory NasiyaStatus.fromJson(Map<String, dynamic> j) {
+    final status = j['status'] as int? ?? 0;
+    return NasiyaStatus(
+      status: status,
+      isVerified: status == 4,
+      webview: (j['webview'] ?? '') as String,
+      availablePeriods: ((j['available_periods'] as List?) ?? [])
+          .map((e) => NasiyaTariff.fromCheckStatus(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
 class AudiobookAccessStatus {
   AudiobookAccessStatus({
     required this.state,

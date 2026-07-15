@@ -77,7 +77,19 @@ services:
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
   nginx:
-    profiles: ["never"]   # disable in dev — use direct host ports
+    profiles: ["never"]
+
+  grafana:
+    ports:
+      - "3001:3000"
+
+  prometheus:
+    ports:
+      - "9090:9090"
+
+  loki:
+    ports:
+      - "3100:3100"
 
 volumes:
   postgres-dev:

@@ -1234,6 +1234,31 @@ class AppLocalizationsUz extends AppLocalizations {
   String get updateLater => 'Keyinroq';
 
   @override
+  String get permissionGateTitle => 'Ruxsatlar kerak';
+
+  @override
+  String get permissionGateMessage =>
+      'Ilova to\'liq ishlashi uchun quyidagi ruxsatlarni bering:';
+
+  @override
+  String get permissionMicrophone => 'Mikrofon';
+
+  @override
+  String get permissionLocation => 'Joylashuv';
+
+  @override
+  String get permissionNotification => 'Bildirishnomalar';
+
+  @override
+  String get permissionGrant => 'Ruxsat berish';
+
+  @override
+  String get permissionOpenSettings => 'Sozlamalarga o\'tish';
+
+  @override
+  String get permissionLater => 'Keyinroq';
+
+  @override
   String get gradeTitleExcellent => 'A\'lo darajadagi natija!';
 
   @override

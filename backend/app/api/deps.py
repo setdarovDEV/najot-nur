@@ -12,7 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.core.metrics import auth_failures_total
 from app.core.security import decode_token
+from app.core.token_blacklist import is_token_blacklisted
 from app.models.course import Enrollment
 from app.models.enums import EnrollmentStatus, Role
 from app.models.user import User
@@ -31,15 +33,24 @@ async def get_current_user(
     try:
         payload = decode_token(creds.credentials)
     except jwt.ExpiredSignatureError as exc:
+        auth_failures_total.labels(reason="token_expired").inc()
         raise UnauthorizedError("Token muddati tugagan.") from exc
     except jwt.PyJWTError as exc:
+        auth_failures_total.labels(reason="invalid_token").inc()
         raise UnauthorizedError("Token yaroqsiz.") from exc
 
     if payload.get("type") != "access":
+        auth_failures_total.labels(reason="wrong_token_type").inc()
         raise UnauthorizedError("Noto'g'ri token turi.")
+
+    jti = payload.get("jti")
+    if jti and await is_token_blacklisted(jti):
+        auth_failures_total.labels(reason="token_blacklisted").inc()
+        raise UnauthorizedError("Token bekor qilingan. Qayta login qiling.")
 
     user = await db.get(User, uuid.UUID(payload["sub"]))
     if user is None or not user.is_active:
+        auth_failures_total.labels(reason="user_not_found").inc()
         raise UnauthorizedError("Foydalanuvchi topilmadi yoki bloklangan.")
     return user
 
@@ -58,6 +69,9 @@ async def get_optional_user(
     try:
         payload = decode_token(creds.credentials)
         if payload.get("type") != "access":
+            return None
+        jti = payload.get("jti")
+        if jti and await is_token_blacklisted(jti):
             return None
         return await db.get(User, uuid.UUID(payload["sub"]))
     except Exception:

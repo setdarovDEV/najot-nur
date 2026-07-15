@@ -1224,6 +1224,31 @@ class AppLocalizationsRu extends AppLocalizations {
   String get updateLater => 'Позже';
 
   @override
+  String get permissionGateTitle => 'Нужны разрешения';
+
+  @override
+  String get permissionGateMessage =>
+      'Предоставьте разрешения ниже, чтобы приложение работало полноценно:';
+
+  @override
+  String get permissionMicrophone => 'Микрофон';
+
+  @override
+  String get permissionLocation => 'Местоположение';
+
+  @override
+  String get permissionNotification => 'Уведомления';
+
+  @override
+  String get permissionGrant => 'Предоставить доступ';
+
+  @override
+  String get permissionOpenSettings => 'Открыть настройки';
+
+  @override
+  String get permissionLater => 'Позже';
+
+  @override
   String get gradeTitleExcellent => 'Отличный результат!';
 
   @override

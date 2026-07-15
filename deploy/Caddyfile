@@ -3,9 +3,9 @@
 #  Auto-issues Let's Encrypt certs for ALL listed domains on first
 #  start. Certs auto-renew before expiry.
 #
-#  All 4 hostnames route to the same internal nginx (port 8080 on
+#  All hostnames route to the same internal nginx (port 8080 on
 #  the host, mapped from the docker network). Nginx then does
-#  Host-based routing to backend/admin/curator/landing.
+#  Host-based routing to backend/admin/curator/landing/grafana.
 #
 #  Add/remove domains here and run `caddy reload` (or just
 #  recreate the caddy container: `docker compose restart caddy`).
@@ -15,12 +15,10 @@ notiqlik.uz,
 www.notiqlik.uz,
 admin.notiqlik.uz,
 curator.notiqlik.uz,
-api.notiqlik.uz {
+api.notiqlik.uz,
+grafana.notiqlik.uz {
     encode zstd gzip
 
-    # Caddy terminates HTTPS, then talks plain HTTP to our nginx
-    # via the internal Docker network. They share the same compose
-    # project, so `nginx:80` resolves automatically.
     reverse_proxy nginx:80 {
         header_up X-Forwarded-Proto https
         header_up X-Real-IP        {remote_host}

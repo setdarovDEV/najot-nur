@@ -399,6 +399,15 @@
   "updateNow": "Обновить",
   "updateLater": "Позже",
 
+  "permissionGateTitle": "Нужны разрешения",
+  "permissionGateMessage": "Предоставьте разрешения ниже, чтобы приложение работало полноценно:",
+  "permissionMicrophone": "Микрофон",
+  "permissionLocation": "Местоположение",
+  "permissionNotification": "Уведомления",
+  "permissionGrant": "Предоставить доступ",
+  "permissionOpenSettings": "Открыть настройки",
+  "permissionLater": "Позже",
+
   "gradeTitleExcellent": "Отличный результат!",
   "gradeTitleGood": "Хороший результат!",
   "gradeTitleAverage": "Средний результат",

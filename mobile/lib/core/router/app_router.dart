@@ -13,6 +13,7 @@ import '../../features/home/home_shell.dart';
 import '../../features/observation/observation_result_screen.dart';
 import '../../features/observation/observation_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
+import '../../features/payments/nasiya_checkout_screen.dart';
 import '../../features/profile/analysis_history_screen.dart';
 import '../../features/profile/certificates_screen.dart';
 import '../../features/profile/faq_screen.dart';
@@ -154,6 +155,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // ───── Learning ─────
+      GoRoute(
+        path: '/payments/nasiya',
+        builder: (_, state) {
+          final args = state.extra as NasiyaCheckoutArgs;
+          return NasiyaCheckoutScreen(
+            purpose: args.purpose,
+            targetId: args.targetId,
+            targetTitle: args.targetTitle,
+            amount: args.amount,
+          );
+        },
+      ),
       GoRoute(
         path: '/courses/:id',
         builder: (_, state) =>

@@ -38,8 +38,14 @@ firebase-admin>=6.5
 # ─── AI ───
 anthropic>=0.40
 
-# ─── Monitoring (optional) ───
+# ─── Monitoring / observability ───
 sentry-sdk[fastapi]>=2.0
+prometheus-fastapi-instrumentator>=7.0
+prometheus-client>=0.21
+
+# ─── Security ───
+slowapi>=0.1.9
+bleach>=6.1
 
 # ─── PDF certificates ───
 reportlab>=4.1

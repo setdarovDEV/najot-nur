@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../features/payments/nasiya_checkout_screen.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/learning_models.dart';
 import '../../providers/providers.dart';
@@ -70,13 +71,29 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
       _error = null;
     });
     try {
-      if (_method == OrderPaymentMethod.uzum ||
-          _method == OrderPaymentMethod.uzumNasiya) {
-        final provider = _method == OrderPaymentMethod.uzum
-            ? 'uzum'
-            : 'uzum_nasiya';
+      if (_method == OrderPaymentMethod.uzumNasiya) {
+        // Uzum Nasiya has its own multi-step flow (buyer check → tariff
+        // pick → WebView OTP confirm) — hand off to a dedicated screen
+        // instead of a single initiate+redirect call.
+        Navigator.of(context).pop();
+        final purchased = await context.push<bool>(
+          '/payments/nasiya',
+          extra: NasiyaCheckoutArgs(
+            purpose: widget.purpose,
+            targetId: widget.targetId,
+            targetTitle: widget.targetTitle,
+            amount: widget.amount,
+          ),
+        );
+        if (purchased == true) {
+          ref.invalidate(myOrdersProvider);
+        }
+        return;
+      }
+
+      if (_method == OrderPaymentMethod.uzum) {
         final redirect = await ref.read(learningRepositoryProvider).initiatePayment(
-              provider: provider,
+              provider: 'uzum',
               purpose: widget.purpose.apiValue,
               amount: widget.amount,
               courseId: widget.purpose == OrderPurpose.course
@@ -97,11 +114,7 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              _method == OrderPaymentMethod.uzum
-                  ? l.uzumRedirectHint
-                  : l.uzumNasiyaRedirectHint,
-            ),
+            content: Text(l.uzumRedirectHint),
             backgroundColor: AppColors.wine,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 4),
@@ -232,8 +245,10 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
           else
             _RedirectHintCard(
               icon: Icons.credit_card_rounded,
-              title: 'Uzum Nasiya orqali to\'lash',
-              body: l.uzumNasiyaRedirectHint,
+              title: 'Uzum Nasiya orqali bo\'lib to\'lash',
+              body: 'Davom etsangiz, ro\'yxatdan o\'tish (agar kerak bo\'lsa), '
+                  'to\'lov muddatini tanlash va SMS kod bilan tasdiqlash '
+                  'bosqichlariga o\'tasiz.',
               color: const Color(0xFFFF6B35),
             ),
           if (_error != null) ...[
@@ -267,9 +282,11 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2.5, color: Colors.white))
                   : Text(
-                      _method == OrderPaymentMethod.cash
-                          ? "So'rov yuborish"
-                          : l.orderSubmit,
+                      switch (_method) {
+                        OrderPaymentMethod.cash => "So'rov yuborish",
+                        OrderPaymentMethod.uzumNasiya => 'Davom etish',
+                        OrderPaymentMethod.uzum => l.orderSubmit,
+                      },
                     ),
             ),
           ),
@@ -507,7 +524,7 @@ class _MethodPicker extends StatelessWidget {
         l.methodUzumNasiya,
         Icons.credit_card_rounded,
         const Color(0xFFFF6B35),
-        false,
+        true,
       ),
     ];
     return Row(

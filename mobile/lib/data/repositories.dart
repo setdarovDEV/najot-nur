@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../core/constants/app_constants.dart';
 import '../core/network/api_client.dart';
 import '../models/app_version.dart';
 import '../models/auth_config.dart';
@@ -519,6 +520,8 @@ class LearningRepository {
     String? courseId,
     String? audiobookId,
     String? returnUrl,
+    String? period,
+    String? productName,
   }) async {
     try {
       final r = await _api.dio.post('/payments/initiate', data: {
@@ -527,9 +530,62 @@ class LearningRepository {
         'amount': amount,
         if (courseId != null) 'reference_id': courseId,
         if (audiobookId != null) 'reference_id': audiobookId,
-        if (returnUrl != null) 'return_url': returnUrl,
+        'return_url': returnUrl ?? AppConstants.nasiyaReturnUrl,
+        if (period != null) 'period': period,
+        if (productName != null) 'product_name': productName,
       });
       return PaymentRedirect.fromJson(r.data as Map<String, dynamic>);
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  /// Uzum Nasiya — check whether the current user is registered/verified.
+  Future<NasiyaStatus> checkNasiyaStatus() async {
+    try {
+      final r = await _api.dio.post('/payments/uzum-nasiya/check-status', data: {});
+      return NasiyaStatus.fromJson(r.data as Map<String, dynamic>);
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  /// Uzum Nasiya — available tariffs (exact monthly payment) for [amount].
+  Future<List<NasiyaTariff>> calculateNasiya({
+    required num amount,
+    String? referenceId,
+  }) async {
+    try {
+      final r = await _api.dio.post('/payments/uzum-nasiya/calculate', data: {
+        'amount': amount,
+        if (referenceId != null) 'reference_id': referenceId,
+      });
+      final tariffs = (r.data['tariffs'] as List? ?? [])
+          .map((e) => NasiyaTariff.fromCalculate(e as Map<String, dynamic>))
+          .toList();
+      return tariffs;
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  /// Uzum Nasiya — activate the contract after the buyer confirms OTP.
+  Future<void> confirmNasiya(String paymentId) async {
+    try {
+      await _api.dio.post('/payments/uzum-nasiya/confirm', data: {
+        'payment_id': paymentId,
+      });
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
+  /// Uzum Nasiya — cancel a not-yet-activated contract.
+  Future<void> cancelNasiya(String paymentId) async {
+    try {
+      await _api.dio.post('/payments/uzum-nasiya/cancel', data: {
+        'payment_id': paymentId,
+      });
     } catch (e) {
       throw _api.toApiException(e);
     }

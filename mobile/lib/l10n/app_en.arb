@@ -399,6 +399,15 @@
   "updateNow": "Update",
   "updateLater": "Later",
 
+  "permissionGateTitle": "Permissions needed",
+  "permissionGateMessage": "Grant the permissions below so the app can work fully:",
+  "permissionMicrophone": "Microphone",
+  "permissionLocation": "Location",
+  "permissionNotification": "Notifications",
+  "permissionGrant": "Grant access",
+  "permissionOpenSettings": "Open settings",
+  "permissionLater": "Later",
+
   "gradeTitleExcellent": "Excellent result!",
   "gradeTitleGood": "Good result!",
   "gradeTitleAverage": "Average result",

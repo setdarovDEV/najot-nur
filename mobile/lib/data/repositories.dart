@@ -522,7 +522,6 @@ class LearningRepository {
     String? returnUrl,
     String? period,
     String? productName,
-    String? pinfl,
   }) async {
     try {
       final r = await _api.dio.post('/payments/initiate', data: {
@@ -534,7 +533,6 @@ class LearningRepository {
         'return_url': returnUrl ?? AppConstants.nasiyaReturnUrl,
         if (period != null) 'period': period,
         if (productName != null) 'product_name': productName,
-        if (pinfl != null) 'pinfl': pinfl,
       });
       return PaymentRedirect.fromJson(r.data as Map<String, dynamic>);
     } catch (e) {

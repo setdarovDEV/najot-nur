@@ -24,7 +24,6 @@ class UserRead(BaseModel):
     city: str | None = None
     region: str | None = None
     country: str | None = None
-    pinfl: str | None = None
     created_at: datetime
 
 

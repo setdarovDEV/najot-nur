@@ -376,7 +376,6 @@ async def initiate_uzum_nasiya(
     return_url: str,
     period: str = "6 Default",
     product_name: str = "Kurs",
-    pinfl: str | None = None,
 ) -> tuple[Payment, str]:
     """Create a pending Payment record and an Uzum Nasiya installment contract.
 
@@ -398,11 +397,6 @@ async def initiate_uzum_nasiya(
         user = await db.get(User, user_id)
         if user is None or not user.phone:
             raise AppError("Uzum Nasiya uchun telefon raqami talab qilinadi.", status_code=400)
-
-        if pinfl and pinfl != user.pinfl:
-            user.pinfl = pinfl
-            await db.flush()
-        effective_pinfl = pinfl or user.pinfl
 
         status_data = await uzum_nasiya_check_status(user.phone)
         buyer_id = status_data.get("buyer_id")
@@ -426,30 +420,25 @@ async def initiate_uzum_nasiya(
             return payment, webview
 
         callback_url = f"{return_url}{'&' if '?' in return_url else '?'}payment_id={payment.id}"
-        order_body: dict[str, Any] = {
-            "user_id": buyer_id,
-            "period": period,
-            "callback": callback_url,
-            "ext_order_id": _nasiya_numeric_id(payment.id),
-            "products": [
-                {
-                    "product_id": _nasiya_numeric_id(reference_id),
-                    "name": product_name,
-                    "price": amount,
-                    "category": 1,
-                    "unit_id": 1,
-                    "amount": 1,
-                }
-            ],
-        }
-        if effective_pinfl:
-            # Not part of Uzum's published order-creation schema, but sent
-            # opportunistically: their sandbox has crashed with a null-pinfl
-            # TypeError inside ScoringService.getFreezeStatus when creating
-            # an order, and there is no dedicated endpoint to submit PINFL —
-            # this is a best-effort workaround, harmless if Uzum ignores it.
-            order_body["pinfl"] = effective_pinfl
-        data = await _nasiya_post("/api/v1/orders", order_body)
+        data = await _nasiya_post(
+            "/api/v1/orders",
+            {
+                "user_id": buyer_id,
+                "period": period,
+                "callback": callback_url,
+                "ext_order_id": _nasiya_numeric_id(payment.id),
+                "products": [
+                    {
+                        "product_id": _nasiya_numeric_id(reference_id),
+                        "name": product_name,
+                        "price": amount,
+                        "category": 1,
+                        "unit_id": 1,
+                        "amount": 1,
+                    }
+                ],
+            },
+        )
         if data.get("status") != "success":
             raise AppError(f"Uzum Nasiya: shartnoma yaratilmadi — {data.get('error')}", status_code=502)
 

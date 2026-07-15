@@ -28,17 +28,6 @@ class PaymentInitiate(BaseModel):
     product_name: str | None = Field(
         None, description="Uzum Nasiya only: item name shown in the contract."
     )
-    pinfl: str | None = Field(
-        None,
-        min_length=14,
-        max_length=14,
-        description=(
-            "Uzum Nasiya only: buyer's PINFL/JSHSHIR (14 digits). Not part of "
-            "Uzum's documented order-creation request, but sent opportunistically "
-            "as a workaround for a null-pinfl crash observed in their scoring "
-            "service; also saved on the user's profile for next time."
-        ),
-    )
 
 
 class PaymentRead(BaseModel):

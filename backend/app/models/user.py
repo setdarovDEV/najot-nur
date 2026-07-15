@@ -32,12 +32,6 @@ class User(UUIDMixin, TimestampMixin, Base):
     latitude: Mapped[float | None] = mapped_column(Float)
     longitude: Mapped[float | None] = mapped_column(Float)
 
-    # PINFL (JSHSHIR) — 14-digit personal ID. Collected once, at Uzum Nasiya
-    # checkout, and sent along with contract creation as a best-effort fix
-    # for a null-pinfl crash observed in Uzum's own scoring service; not
-    # part of Uzum's documented request schema, so it's sent opportunistically.
-    pinfl: Mapped[str | None] = mapped_column(String(14))
-
     identities: Mapped[list["AuthIdentity"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )

@@ -6,7 +6,6 @@ class AppUser {
     this.email,
     required this.role,
     this.avatarUrl,
-    this.pinfl,
   });
 
   final String id;
@@ -15,7 +14,6 @@ class AppUser {
   final String? email;
   final String role;
   final String? avatarUrl;
-  final String? pinfl;
 
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
         id: j['id'] as String,
@@ -24,7 +22,6 @@ class AppUser {
         email: j['email'] as String?,
         role: j['role'] as String? ?? 'user',
         avatarUrl: j['avatar_url'] as String?,
-        pinfl: j['pinfl'] as String?,
       );
 
   String get displayName =>

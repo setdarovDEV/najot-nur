@@ -67,6 +67,11 @@ class _NasiyaCheckoutScreenState extends ConsumerState<NasiyaCheckoutScreen> {
   @override
   void initState() {
     super.initState();
+    final knownPinfl =
+        ref.read(authControllerProvider.select((s) => s.user?.pinfl));
+    if (knownPinfl != null && knownPinfl.isNotEmpty) {
+      _pinflController.text = knownPinfl;
+    }
     _loadStatusAndTariffs();
   }
 

@@ -66,11 +66,20 @@ class PaymentInitiateResponse(BaseModel):
     payment_id: uuid.UUID
     redirect_url: str
     status: PaymentStatus
+    # Uzum Nasiya only: the buyer must finish Uzum's registration/
+    # identification first — redirect_url is their registration webview,
+    # not an OTP page, and no contract has been created yet.
+    requires_registration: bool = False
 
 
 # ──────────────────────────────────────────────
 #  Uzum Nasiya (installment) — extra flow endpoints
 # ──────────────────────────────────────────────
+
+
+class NasiyaAvailabilityResponse(BaseModel):
+    available: bool
+    message: str = ""
 
 
 class NasiyaCheckStatusRequest(BaseModel):

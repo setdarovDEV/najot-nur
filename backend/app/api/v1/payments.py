@@ -13,6 +13,7 @@ from app.models.enums import PaymentProvider, PaymentStatus
 from app.models.payment import Payment
 from app.schemas.common import Message, Page
 from app.schemas.payment import (
+    NasiyaAvailabilityResponse,
     NasiyaCalculateRequest,
     NasiyaCalculateResponse,
     NasiyaCalculatedTariff,
@@ -100,6 +101,10 @@ async def initiate_payment(
         payment_id=payment.id,
         redirect_url=redirect_url,
         status=payment.status,
+        requires_registration=(
+            payload.provider == PaymentProvider.uzum_nasiya
+            and payment_service.uzum_nasiya_requires_registration(payment)
+        ),
     )
 
 
@@ -108,6 +113,21 @@ async def initiate_payment(
 #  (This API has no server-to-server webhook; the mobile app drives
 #  confirm/cancel itself after the WebView OTP step completes.)
 # ──────────────────────────────────────────────
+
+
+@router.get("/uzum-nasiya/availability", response_model=NasiyaAvailabilityResponse)
+async def uzum_nasiya_availability(current_user: CurrentUser) -> NasiyaAvailabilityResponse:
+    """Whether Uzum Nasiya is currently usable.
+
+    Goes false while the circuit breaker (see payment_service) is open after
+    repeated upstream failures — lets the app hide/disable the payment option
+    up front instead of letting every user hit a doomed checkout.
+    """
+    available = payment_service.uzum_nasiya_is_available()
+    return NasiyaAvailabilityResponse(
+        available=available,
+        message="" if available else payment_service.NASIYA_UNAVAILABLE_MESSAGE,
+    )
 
 
 @router.post("/uzum-nasiya/check-status", response_model=NasiyaCheckStatusResponse)
@@ -137,9 +157,14 @@ async def uzum_nasiya_calculate(
         raise AppError("Telefon raqami topilmadi.", status_code=400)
     status_data = await payment_service.uzum_nasiya_check_status(current_user.phone)
     buyer_id = status_data.get("buyer_id")
-    if status_data.get("status") != 4 or not buyer_id:
+    if (
+        status_data.get("status") != 4
+        or not buyer_id
+        or status_data.get("has_limit") is False
+    ):
         raise AppError(
-            "Uzum Nasiya: avval ro'yxatdan o'ting (check-status javobidagi webview).",
+            "Uzum Nasiya: avval ro'yxatdan o'tib, identifikatsiyani yakunlang "
+            "(check-status javobidagi webview).",
             status_code=400,
         )
     tariffs = await payment_service.uzum_nasiya_calculate(

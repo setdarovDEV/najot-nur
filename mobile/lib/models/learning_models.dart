@@ -393,16 +393,22 @@ class PaymentRedirect {
     required this.paymentId,
     required this.redirectUrl,
     required this.status,
+    this.requiresRegistration = false,
   });
 
   final String paymentId;
   final String redirectUrl;
   final String status;
 
+  /// Uzum Nasiya only: [redirectUrl] is Uzum's registration webview, not an
+  /// OTP page — no contract exists yet, so don't call confirm afterwards.
+  final bool requiresRegistration;
+
   factory PaymentRedirect.fromJson(Map<String, dynamic> j) => PaymentRedirect(
         paymentId: (j['payment_id'] ?? '').toString(),
         redirectUrl: (j['redirect_url'] ?? '') as String,
         status: (j['status'] ?? 'pending') as String,
+        requiresRegistration: (j['requires_registration'] ?? false) as bool,
       );
 }
 
@@ -441,10 +447,26 @@ class NasiyaTariff {
 }
 
 /// Uzum Nasiya buyer registration status (POST /payments/uzum-nasiya/check-status).
+class NasiyaAvailability {
+  NasiyaAvailability({required this.available, required this.message});
+
+  /// False while the backend's circuit breaker is open (Uzum Nasiya having
+  /// technical issues) — the mobile app should disable the payment option.
+  final bool available;
+  final String message;
+
+  factory NasiyaAvailability.fromJson(Map<String, dynamic> j) =>
+      NasiyaAvailability(
+        available: (j['available'] ?? true) as bool,
+        message: (j['message'] ?? '') as String,
+      );
+}
+
 class NasiyaStatus {
   NasiyaStatus({
     required this.status,
     required this.isVerified,
+    required this.hasLimit,
     required this.webview,
     required this.availablePeriods,
   });
@@ -452,6 +474,10 @@ class NasiyaStatus {
   final int status;
   /// status == 4 means the buyer can take a contract right away.
   final bool isVerified;
+  /// Whether Uzum has granted the buyer a credit limit. A status-4 buyer
+  /// without a limit cannot create a contract (Uzum's order API even 500s
+  /// for such buyers), so treat them as still needing registration.
+  final bool hasLimit;
   /// Open in a WebView when [isVerified] is false so the buyer can finish
   /// Uzum's own registration.
   final String webview;
@@ -462,6 +488,7 @@ class NasiyaStatus {
     return NasiyaStatus(
       status: status,
       isVerified: status == 4,
+      hasLimit: (j['has_limit'] ?? false) as bool,
       webview: (j['webview'] ?? '') as String,
       availablePeriods: ((j['available_periods'] as List?) ?? [])
           .map((e) => NasiyaTariff.fromCheckStatus(e as Map<String, dynamic>))

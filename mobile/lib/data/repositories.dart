@@ -540,6 +540,17 @@ class LearningRepository {
     }
   }
 
+  /// Uzum Nasiya — whether the provider is currently usable (false while the
+  /// backend's circuit breaker is open after repeated upstream failures).
+  Future<NasiyaAvailability> checkNasiyaAvailability() async {
+    try {
+      final r = await _api.dio.get('/payments/uzum-nasiya/availability');
+      return NasiyaAvailability.fromJson(r.data as Map<String, dynamic>);
+    } catch (e) {
+      throw _api.toApiException(e);
+    }
+  }
+
   /// Uzum Nasiya — check whether the current user is registered/verified.
   Future<NasiyaStatus> checkNasiyaStatus() async {
     try {

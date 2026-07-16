@@ -259,6 +259,9 @@ final audiobookAccessProvider = FutureProvider.autoDispose.family(
 final myOrdersProvider = FutureProvider.autoDispose(
     (ref) => ref.watch(learningRepositoryProvider).myOrders());
 
+final nasiyaAvailabilityProvider = FutureProvider.autoDispose(
+    (ref) => ref.watch(learningRepositoryProvider).checkNasiyaAvailability());
+
 final referencesProvider = FutureProvider.autoDispose(
     (ref) => ref.watch(speechRepositoryProvider).references());
 

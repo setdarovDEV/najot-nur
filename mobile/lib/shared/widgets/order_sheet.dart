@@ -161,6 +161,14 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final mq = MediaQuery.of(context);
+    // If Uzum Nasiya trips the circuit breaker while this method is already
+    // selected, fall back to cash instead of leaving a blocked option chosen.
+    ref.listen(nasiyaAvailabilityProvider, (previous, next) {
+      final available = next.valueOrNull?.available ?? true;
+      if (!available && _method == OrderPaymentMethod.uzumNasiya) {
+        setState(() => _method = OrderPaymentMethod.cash);
+      }
+    });
     return Padding(
       padding:
           EdgeInsets.fromLTRB(24, 20, 24, 24 + mq.viewInsets.bottom),
@@ -496,21 +504,30 @@ class _Step extends StatelessWidget {
   }
 }
 
-class _MethodPicker extends StatelessWidget {
+class _MethodPicker extends ConsumerWidget {
   const _MethodPicker({required this.selected, required this.onChanged});
   final OrderPaymentMethod selected;
   final ValueChanged<OrderPaymentMethod> onChanged;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final items = <(OrderPaymentMethod, String, IconData, Color, bool)>[
+    // Fail open on a loading/error availability check — only the backend's
+    // circuit breaker (an explicit `available: false`) should disable this
+    // tile, a flaky availability request itself shouldn't.
+    final nasiyaAvailability = ref.watch(nasiyaAvailabilityProvider);
+    final nasiyaAvailable = nasiyaAvailability.maybeWhen(
+      data: (v) => v.available,
+      orElse: () => true,
+    );
+    final items = <(OrderPaymentMethod, String, IconData, Color, bool, String)>[
       (
         OrderPaymentMethod.cash,
         l.methodCash,
         Icons.payments_rounded,
         AppColors.wine,
         true,
+        '',
       ),
       (
         OrderPaymentMethod.uzum,
@@ -518,13 +535,15 @@ class _MethodPicker extends StatelessWidget {
         Icons.account_balance_wallet_rounded,
         const Color(0xFF7B2CBF),
         false,
+        'Tez kunda',
       ),
       (
         OrderPaymentMethod.uzumNasiya,
         l.methodUzumNasiya,
         Icons.credit_card_rounded,
         const Color(0xFFFF6B35),
-        true,
+        nasiyaAvailable,
+        'Texnik ishlar',
       ),
     ];
     return Row(
@@ -580,7 +599,7 @@ class _MethodPicker extends StatelessWidget {
                       Opacity(
                         opacity: isAvailable ? 0 : 1,
                         child: Text(
-                          'Tez kunda',
+                          it.$6,
                           style: TextStyle(
                             color: accent,
                             fontSize: 9,

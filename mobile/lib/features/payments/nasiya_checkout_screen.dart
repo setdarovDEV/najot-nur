@@ -79,7 +79,9 @@ class _NasiyaCheckoutScreenState extends ConsumerState<NasiyaCheckoutScreen> {
       final status = await repo.checkNasiyaStatus();
       if (!mounted) return;
 
-      if (!status.isVerified) {
+      if (!status.isVerified || !status.hasLimit) {
+        // No verification or no credit limit yet — either way the buyer
+        // must finish Uzum's own registration/identification first.
         setState(() {
           _status = status;
           _step = _Step.registration;
@@ -150,6 +152,30 @@ class _NasiyaCheckoutScreenState extends ConsumerState<NasiyaCheckoutScreen> {
       );
       if (!mounted) return;
       _payment = redirect;
+
+      if (redirect.requiresRegistration) {
+        // Uzum says the buyer's registration/identification isn't complete —
+        // the redirect is their registration webview, no contract exists yet.
+        final done = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => NasiyaWebViewScreen(
+              url: redirect.redirectUrl,
+              title: "Ro'yxatdan o'tish",
+            ),
+          ),
+        );
+        if (!mounted) return;
+        if (done == true) {
+          _loadStatusAndTariffs();
+        } else {
+          setState(() {
+            _errorMsg =
+                "Uzum Nasiya'da identifikatsiyani yakunlab, qayta urinib ko'ring.";
+            _step = _Step.tariffs;
+          });
+        }
+        return;
+      }
 
       final otpDone = await Navigator.of(context).push<bool>(
         MaterialPageRoute(

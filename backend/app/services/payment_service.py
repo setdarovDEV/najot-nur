@@ -9,7 +9,9 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import time
 import uuid
+from collections import deque
 from datetime import UTC, datetime
 from typing import Any
 
@@ -242,6 +244,61 @@ async def initiate_uzum(
 _NASIYA_PENDING_PREFIX = "nasiya_pending_"
 _NASIYA_MOCK_PREFIX = "nasiya_mock_"
 
+# ──────────────────────────────────────────────
+#  Circuit breaker — Uzum Nasiya's sandbox/prod API has a history of going
+#  down for stretches (broken Keycloak DNS, order-creation 500s) rather than
+#  failing one request at a time. Once we've seen enough consecutive upstream
+#  failures, stop hammering it: fail fast with a friendly "texnik ishlar"
+#  error and let the mobile app hide/disable the Nasiya option, instead of
+#  every user's checkout individually timing out or 500ing.
+# ──────────────────────────────────────────────
+
+_NASIYA_BREAKER_THRESHOLD = 3  # failures within the window to trip
+_NASIYA_BREAKER_WINDOW = 300.0  # seconds (5 min)
+_NASIYA_BREAKER_COOLDOWN = 600.0  # seconds (10 min) before a retry is allowed
+
+_nasiya_failure_times: deque[float] = deque()
+_nasiya_breaker_opened_at: float | None = None
+
+NASIYA_UNAVAILABLE_MESSAGE = (
+    "Uzum Nasiya tizimida hozircha texnik ishlar olib borilmoqda. "
+    "Birozdan so'ng qayta urinib ko'ring yoki boshqa to'lov usulini tanlang."
+)
+
+
+def _nasiya_breaker_is_open() -> bool:
+    global _nasiya_breaker_opened_at
+    if _nasiya_breaker_opened_at is None:
+        return False
+    if time.monotonic() - _nasiya_breaker_opened_at > _NASIYA_BREAKER_COOLDOWN:
+        # Cooldown elapsed — allow one attempt through (half-open) to probe
+        # whether Uzum has recovered.
+        _nasiya_breaker_opened_at = None
+        _nasiya_failure_times.clear()
+        return False
+    return True
+
+
+def _nasiya_record_failure() -> None:
+    global _nasiya_breaker_opened_at
+    now = time.monotonic()
+    _nasiya_failure_times.append(now)
+    while _nasiya_failure_times and now - _nasiya_failure_times[0] > _NASIYA_BREAKER_WINDOW:
+        _nasiya_failure_times.popleft()
+    if len(_nasiya_failure_times) >= _NASIYA_BREAKER_THRESHOLD:
+        _nasiya_breaker_opened_at = now
+        log.error("uzum_nasiya.breaker_opened", failures=len(_nasiya_failure_times))
+
+
+def _nasiya_record_success() -> None:
+    _nasiya_failure_times.clear()
+
+
+def uzum_nasiya_is_available() -> bool:
+    """False while the circuit breaker is open — surfaced to the mobile app
+    so it can disable the payment option instead of letting users hit it."""
+    return not _nasiya_breaker_is_open()
+
 
 def _nasiya_headers() -> dict[str, str]:
     return {
@@ -252,12 +309,17 @@ def _nasiya_headers() -> dict[str, str]:
 
 async def _nasiya_post(path: str, json_body: dict[str, Any]) -> dict[str, Any]:
     """POST to the Uzum Nasiya Partner API and return the parsed JSON body."""
+    if _nasiya_breaker_is_open():
+        raise AppError(NASIYA_UNAVAILABLE_MESSAGE, status_code=503)
+
     url = f"{settings.uzum_nasiya_base_url}{path}"
     try:
         async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
             resp = await client.post(url, headers=_nasiya_headers(), json=json_body)
             resp.raise_for_status()
-            return resp.json()  # type: ignore[no-any-return]
+            result: dict[str, Any] = resp.json()
+        _nasiya_record_success()
+        return result
     except httpx.HTTPStatusError as exc:
         # Uzum's sandbox sometimes returns a full HTML debug page (Laravel
         # Ignition, can be several hundred KB) instead of JSON on a 5xx.
@@ -280,11 +342,27 @@ async def _nasiya_post(path: str, json_body: dict[str, Any]) -> dict[str, Any]:
             body=exc.response.text[:2000],
             path=path,
         )
+        if exc.response.status_code >= 500:
+            _nasiya_record_failure()
+            # Known upstream failure mode: their order-creation handler
+            # crashes with an unhandled TypeError (null PINFL in
+            # ScoringService.getFreezeStatus) when the buyer's identification
+            # is incomplete on Uzum's side, and returns an HTML debug page.
+            # There is no Partner API field to submit PINFL, so the only
+            # user-side remedy is finishing identification in Uzum's own app.
+            raise AppError(
+                "Uzum Nasiya tizimida ichki xatolik yuz berdi. Bu ko'pincha "
+                "Uzum Nasiya'da identifikatsiya (pasport ma'lumotlari) to'liq "
+                "yakunlanmagani bilan bog'liq. Uzum Nasiya ilovasida "
+                "identifikatsiyadan o'ting yoki birozdan so'ng qayta urinib ko'ring.",
+                status_code=502,
+            ) from exc
         raise AppError(
             f"Uzum Nasiya xatoligi: {exc.response.status_code} — {detail}",
             status_code=502,
         ) from exc
     except httpx.RequestError as exc:
+        _nasiya_record_failure()
         log.error("uzum_nasiya.network_error", error=str(exc), path=path)
         raise AppError("Uzum Nasiya bilan aloqa yo'q.", status_code=502) from exc
 
@@ -301,6 +379,13 @@ def _nasiya_numeric_id(value: uuid.UUID | None) -> int:
     """Uzum Nasiya wants small integer ids (product_id, ext_order_id);
     derive one deterministically from a UUID."""
     return int(value.int % 2_147_483_647) if value else 1
+
+
+def uzum_nasiya_requires_registration(payment: Payment) -> bool:
+    """True when initiate returned Uzum's registration webview (no contract yet)."""
+    return bool(
+        payment.external_id and payment.external_id.startswith(_NASIYA_PENDING_PREFIX)
+    )
 
 
 def _nasiya_pack_ids(*, order: int, contract_id: int) -> str:
@@ -400,7 +485,29 @@ async def initiate_uzum_nasiya(
 
         status_data = await uzum_nasiya_check_status(user.phone)
         buyer_id = status_data.get("buyer_id")
-        if status_data.get("status") != 4 or not buyer_id:
+        log.info(
+            "uzum_nasiya.buyer_status",
+            payment_id=str(payment.id),
+            buyer_id=buyer_id,
+            status=status_data.get("status"),
+            scoring_status=status_data.get("scoring_status"),
+            has_limit=status_data.get("has_limit"),
+            balance=status_data.get("balance"),
+            verified_at=status_data.get("verified_at"),
+            periods=len(status_data.get("available_periods") or []),
+        )
+        # status == 4 alone is not enough: verified empirically against the
+        # sandbox (buyer 8899737, 2026-07-15) — a buyer can be status 4 with
+        # verified_at set yet still have has_limit=false / null PINFL on
+        # Uzum's side, and POST /api/v1/orders then crashes their scoring
+        # with an unhandled 500 (getFreezeStatus(null)). Route such buyers
+        # back through Uzum's registration webview instead of hitting the
+        # crash: without a credit limit no contract can be created anyway.
+        identification_incomplete = (
+            status_data.get("has_limit") is False
+            or ("verified_at" in status_data and status_data.get("verified_at") is None)
+        )
+        if status_data.get("status") != 4 or not buyer_id or identification_incomplete:
             # Buyer hasn't finished Uzum's own registration yet — hand the
             # webview URL back so the app can send them there first, then
             # retry /payments/initiate once registration completes.
@@ -411,6 +518,7 @@ async def initiate_uzum_nasiya(
                 "uzum_nasiya.registration_required",
                 payment_id=str(payment.id),
                 status=status_data.get("status"),
+                identification_incomplete=identification_incomplete,
             )
             if not webview:
                 raise AppError(
@@ -426,6 +534,9 @@ async def initiate_uzum_nasiya(
                 "user_id": buyer_id,
                 "period": period,
                 "callback": callback_url,
+                # The published OpenAPI spec types ext_order_id as a string
+                # ("ORDER-454"), but the live API rejects non-numeric values
+                # with 422 "должно быть целым числом" — keep sending an int.
                 "ext_order_id": _nasiya_numeric_id(payment.id),
                 "products": [
                     {

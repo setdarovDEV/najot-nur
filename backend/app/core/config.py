@@ -9,7 +9,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, computed_field
+from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -56,8 +56,19 @@ class Settings(BaseSettings):
     # ───── Auth / JWT ─────
     jwt_secret_key: str = "change_me_to_a_long_random_secret"
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60
-    refresh_token_expire_days: int = 14
+
+    # Token lifetimes, per role. All roles get a short access token plus a
+    # long, sliding refresh token (rotated on every /refresh call — see
+    # auth.py) so an active session practically never re-logins. Admin/
+    # curator access tokens are shorter-lived than mobile's since a
+    # compromised staff credential has a bigger blast radius.
+    access_token_expire_minutes_user: int = 30
+    refresh_token_expire_days_user: int = 90
+    access_token_expire_minutes_curator: int = 20
+    refresh_token_expire_days_curator: int = 30
+    access_token_expire_minutes_admin: int = 15
+    refresh_token_expire_days_admin: int = 30
+
     otp_ttl_seconds: int = 120
     otp_length: int = 6
 

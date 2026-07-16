@@ -19,8 +19,7 @@ from app.core.security import (
     issue_token_pair,
     verify_password_async,
 )
-from app.core.token_blacklist import blacklist_token
-
+from app.core.token_blacklist import blacklist_token, is_token_blacklisted
 from app.models.enums import AuthProvider, Role
 from app.models.user import AuthIdentity, User
 from app.schemas.auth import (
@@ -311,10 +310,11 @@ def _check_email_format(email: str, origin: str) -> None:
 
 def _check_panel_role(user: User, origin: str) -> None:
     """After successful auth, verify role matches the panel → 403 if not."""
+    name = user.full_name or user.email
     if "admin.notiqlik.uz" in origin and user.role != Role.admin:
-        raise ForbiddenError(f"{user.full_name or user.email} — bu panel faqat adminlar uchun.")
+        raise ForbiddenError(f"{name} — bu panel faqat adminlar uchun.")
     if "curator.notiqlik.uz" in origin and user.role != Role.curator:
-        raise ForbiddenError(f"{user.full_name or user.email} — bu panel faqat kuratorlar uchun.")
+        raise ForbiddenError(f"{name} — bu panel faqat kuratorlar uchun.")
 
 
 @router.post("/login", response_model=TokenPair)
@@ -376,8 +376,18 @@ async def me(user: CurrentUser) -> User:
 # ───────────────────── Refresh ─────────────────────
 @router.post("/refresh", response_model=TokenPair)
 async def refresh(payload: RefreshRequest, db: DbSession) -> TokenPair:
+    """Rotating refresh: each call blacklists the refresh token it consumed
+    and issues a brand-new pair. A stolen refresh token stops working the
+    moment the legitimate client refreshes again; an active user who keeps
+    opening the app effectively never has to re-login (sliding expiry).
+    """
     try:
         data = decode_token(payload.refresh_token)
+    except jwt.ExpiredSignatureError as exc:
+        auth_failures_total.labels(reason="refresh_expired").inc()
+        raise UnauthorizedError(
+            "Refresh token muddati tugagan. Qayta login qiling."
+        ) from exc
     except jwt.PyJWTError as exc:
         auth_failures_total.labels(reason="invalid_refresh").inc()
         raise UnauthorizedError("Refresh token yaroqsiz.") from exc
@@ -385,10 +395,20 @@ async def refresh(payload: RefreshRequest, db: DbSession) -> TokenPair:
         auth_failures_total.labels(reason="wrong_token_type").inc()
         raise UnauthorizedError("Noto'g'ri token turi.")
 
+    jti = data.get("jti")
+    if jti and await is_token_blacklisted(jti):
+        auth_failures_total.labels(reason="refresh_reused").inc()
+        raise UnauthorizedError("Refresh token bekor qilingan. Qayta login qiling.")
+
     user = await db.get(User, uuid.UUID(data["sub"]))
     if user is None or not user.is_active:
         auth_failures_total.labels(reason="user_inactive").inc()
         raise UnauthorizedError("Foydalanuvchi topilmadi.")
+
+    exp = data.get("exp")
+    if jti and exp:
+        await blacklist_token(jti, exp)
+
     return _tokens_for(user)
 
 

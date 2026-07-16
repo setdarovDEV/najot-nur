@@ -56,20 +56,13 @@ def _create_token(
 
 
 def create_access_token(
-    subject: str | uuid.UUID, extra: dict[str, Any] | None = None
+    subject: str | uuid.UUID, expire_minutes: int, extra: dict[str, Any] | None = None
 ) -> str:
-    return _create_token(
-        subject,
-        "access",
-        timedelta(minutes=settings.access_token_expire_minutes),
-        extra,
-    )
+    return _create_token(subject, "access", timedelta(minutes=expire_minutes), extra)
 
 
-def create_refresh_token(subject: str | uuid.UUID) -> str:
-    return _create_token(
-        subject, "refresh", timedelta(days=settings.refresh_token_expire_days)
-    )
+def create_refresh_token(subject: str | uuid.UUID, expire_days: int) -> str:
+    return _create_token(subject, "refresh", timedelta(days=expire_days))
 
 
 def decode_token(token: str) -> dict[str, Any]:
@@ -79,10 +72,31 @@ def decode_token(token: str) -> dict[str, Any]:
     )
 
 
+def _token_ttl_for_role(role: str) -> tuple[int, int]:
+    """(access_minutes, refresh_days) for a role. See config.py for rationale."""
+    if role == "admin":
+        return (
+            settings.access_token_expire_minutes_admin,
+            settings.refresh_token_expire_days_admin,
+        )
+    if role == "curator":
+        return (
+            settings.access_token_expire_minutes_curator,
+            settings.refresh_token_expire_days_curator,
+        )
+    return (
+        settings.access_token_expire_minutes_user,
+        settings.refresh_token_expire_days_user,
+    )
+
+
 def issue_token_pair(subject: str | uuid.UUID, role: str) -> dict[str, Any]:
+    access_minutes, refresh_days = _token_ttl_for_role(role)
     return {
-        "access_token": create_access_token(subject, extra={"role": role}),
-        "refresh_token": create_refresh_token(subject),
+        "access_token": create_access_token(
+            subject, access_minutes, extra={"role": role}
+        ),
+        "refresh_token": create_refresh_token(subject, refresh_days),
         "token_type": "bearer",
-        "expires_in": settings.access_token_expire_minutes * 60,
+        "expires_in": access_minutes * 60,
     }

@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { type InternalAxiosRequestConfig } from "axios";
 
 const API_URL =
   import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
@@ -10,6 +10,7 @@ export const WS_URL: string = (() => {
 })();
 
 export const TOKEN_KEY = "notiq_curator_token";
+export const REFRESH_TOKEN_KEY = "notiq_curator_refresh_token";
 
 // 30s default so a hung backend can't spin the UI forever; uploads
 // (FormData bodies — up to 200MB quiz videos) get 10 minutes instead.
@@ -30,15 +31,67 @@ export function setUnauthorizedHandler(fn: (() => void) | null): void {
   onUnauthorized = fn;
 }
 
+type RetryableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
+
+// The backend rotates refresh tokens: each /auth/refresh call invalidates the
+// refresh token it consumed and issues a new one. If several requests 401 at
+// once, they must all await a single in-flight refresh instead of each
+// calling /auth/refresh — a second concurrent call would reuse an
+// already-rotated token and fail.
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refreshToken) return null;
+
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${API_URL}/auth/refresh`, { refresh_token: refreshToken })
+      .then((res) => {
+        const access = res.data.access_token as string;
+        const refresh = res.data.refresh_token as string;
+        localStorage.setItem(TOKEN_KEY, access);
+        localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
+        return access;
+      })
+      .catch(() => {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+        return null;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (axios.isAxiosError(err) && err.response?.status === 401) {
-      const url = err.config?.url ?? "";
-      if (!url.includes("/auth/login")) {
-        localStorage.removeItem(TOKEN_KEY);
-        onUnauthorized?.();
+  async (err) => {
+    if (!axios.isAxiosError(err) || err.response?.status !== 401) {
+      return Promise.reject(err);
+    }
+
+    const config = err.config as RetryableConfig | undefined;
+    const url = config?.url ?? "";
+    // A failed login also returns 401 — don't treat that as a session expiry,
+    // and never try to "refresh" using the response of /auth/refresh itself.
+    const isAuthEndpoint = url.includes("/auth/login") || url.includes("/auth/refresh");
+
+    if (config && !isAuthEndpoint && !config._retried) {
+      config._retried = true;
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        config.headers.Authorization = `Bearer ${newToken}`;
+        return api.request(config);
       }
+    }
+
+    if (!url.includes("/auth/login")) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      onUnauthorized?.();
     }
     return Promise.reject(err);
   },

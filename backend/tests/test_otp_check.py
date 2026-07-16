@@ -1,16 +1,16 @@
 """Tests for the multi-step phone registration flow.
 
 The mobile client splits registration into three steps:
-  1. POST /auth/otp/request  → asks Telegram's official
-                                "Verification Codes" service to send a
-                                code to the user's chat
-  2. POST /auth/otp/check    → verifies the code against Telegram and
-                                marks the phone as verified in Redis
+  1. POST /auth/otp/request  → generates a code, sends it via the
+                                configured SMS provider (mock/eskiz) and
+                                caches it in Redis
+  2. POST /auth/otp/check    → verifies the code against the Redis cache
+                                and marks the phone as verified
   3. POST /auth/otp/verify   → creates the user and issues the JWT pair
-                                (re-verifies against Telegram if the step-2
+                                (re-verifies against Redis if the step-2
                                 flag is missing)
 
-These tests guard the schema and the Telegram verifier integration.
+These tests guard the schema and the SMS-provider integration.
 """
 from __future__ import annotations
 
@@ -23,10 +23,9 @@ from app.main import app
 
 
 @pytest.mark.asyncio
-async def test_otp_check_returns_valid_when_telegram_accepts_code():
-    """`/otp/check` calls Telegram and returns valid when the code is
-    accepted."""
-    with patch("app.api.v1.auth.telegram_verifier.check_code", return_value=True):
+async def test_otp_check_returns_valid_when_code_matches():
+    """`/otp/check` returns valid when the code matches what was cached."""
+    with patch("app.api.v1.auth.sms.verify_otp", return_value=True):
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
@@ -66,15 +65,17 @@ async def test_otp_check_validates_format():
 
 
 @pytest.mark.asyncio
-async def test_otp_request_returns_503_when_telegram_not_configured():
-    """Without TELEGRAM_API_ID / TELEGRAM_API_HASH, /otp/request must
-    surface a clear 503 instead of crashing the request."""
+async def test_otp_request_returns_503_when_eskiz_not_configured():
+    """With SMS_PROVIDER=eskiz but no ESKIZ_EMAIL / ESKIZ_PASSWORD,
+    /otp/request must surface a clear 503 instead of crashing the request."""
     from app.core import config as cfg
 
-    original_id = cfg.settings.telegram_api_id
-    original_hash = cfg.settings.telegram_api_hash
-    cfg.settings.telegram_api_id = 0
-    cfg.settings.telegram_api_hash = ""
+    original_provider = cfg.settings.sms_provider
+    original_email = cfg.settings.eskiz_email
+    original_password = cfg.settings.eskiz_password
+    cfg.settings.sms_provider = "eskiz"
+    cfg.settings.eskiz_email = ""
+    cfg.settings.eskiz_password = ""
     try:
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
@@ -84,9 +85,10 @@ async def test_otp_request_returns_503_when_telegram_not_configured():
                 json={"phone": "+998901112233"},
             )
     finally:
-        cfg.settings.telegram_api_id = original_id
-        cfg.settings.telegram_api_hash = original_hash
+        cfg.settings.sms_provider = original_provider
+        cfg.settings.eskiz_email = original_email
+        cfg.settings.eskiz_password = original_password
 
     assert r.status_code == 503
     body = r.json()
-    assert body["error"]["code"] == "telegram_login_not_configured"
+    assert body["error"]["code"] == "eskiz_not_configured"

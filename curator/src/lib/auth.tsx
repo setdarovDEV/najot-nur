@@ -7,7 +7,13 @@ import {
   type ReactNode,
 } from "react";
 import { AxiosError } from "axios";
-import { api, TOKEN_KEY, isTokenExpired, setUnauthorizedHandler } from "./api";
+import {
+  api,
+  TOKEN_KEY,
+  REFRESH_TOKEN_KEY,
+  isTokenExpired,
+  setUnauthorizedHandler,
+} from "./api";
 
 export type UserRole = "admin" | "curator" | "user";
 
@@ -76,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout() {
     if (typeof window !== "undefined") {
       localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
     }
     setToken(null);
     setRole(null);
@@ -121,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     const res = await api.post("/auth/login", { email, password });
     const access = res.data.access_token as string;
+    const refresh = res.data.refresh_token as string;
     const parsedRole = parseRole(access);
 
     if (parsedRole !== EXPECTED_ROLE) {
@@ -128,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     localStorage.setItem(TOKEN_KEY, access);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
     setToken(access);
     setRole(parsedRole);
     await fetchUser();

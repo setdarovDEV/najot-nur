@@ -42,12 +42,27 @@ class ApiClient {
           }
           handler.next(options);
         },
-        onError: (err, handler) {
+        onError: (err, handler) async {
           final status = err.response?.statusCode;
           // Only treat as "session expired" when the user *was* authenticated
           // — otherwise the 401 is just a normal auth failure (e.g. wrong OTP)
           // and we should let the caller show its own error.
           if (status == 401 && _tokens.accessToken != null) {
+            final alreadyRetried =
+                err.requestOptions.extra['_authRetried'] == true;
+            if (!alreadyRetried) {
+              err.requestOptions.extra['_authRetried'] = true;
+              if (await _refreshAccessToken()) {
+                try {
+                  // onRequest re-attaches the Authorization header from
+                  // TokenStore, which _refreshAccessToken() just updated.
+                  final response = await dio.fetch(err.requestOptions);
+                  return handler.resolve(response);
+                } catch (_) {
+                  // Fall through to session-expired below.
+                }
+              }
+            }
             _handleSessionExpired();
           }
           handler.next(err);
@@ -94,6 +109,7 @@ class ApiClient {
   final OnSessionExpired? _onSessionExpired;
   late final Dio dio;
   bool _sessionExpiredFired = false;
+  Future<bool>? _refreshingFuture;
 
   void _handleSessionExpired() {
     if (_sessionExpiredFired) return;
@@ -102,6 +118,37 @@ class ApiClient {
     // ignore: discarded_futures
     _tokens.clear();
     _onSessionExpired?.call();
+  }
+
+  /// Exchanges the stored refresh token for a fresh access+refresh pair and
+  /// persists both. The backend rotates refresh tokens on every call — if
+  /// several requests 401 at once, they must all await the same in-flight
+  /// refresh instead of each calling /auth/refresh, since a second call
+  /// would reuse an already-rotated (and now blacklisted) token.
+  ///
+  /// Uses a bare Dio instance (no interceptors) so a failed refresh can't
+  /// recursively trigger this same error handler.
+  Future<bool> _refreshAccessToken() {
+    return _refreshingFuture ??= () async {
+      final refreshToken = _tokens.refreshToken;
+      if (refreshToken == null) return false;
+      try {
+        final plainDio = Dio(BaseOptions(baseUrl: AppConstants.apiUrl));
+        final response = await plainDio.post(
+          '/auth/refresh',
+          data: {'refresh_token': refreshToken},
+        );
+        await _tokens.saveTokens(
+          response.data['access_token'] as String,
+          response.data['refresh_token'] as String,
+        );
+        return true;
+      } catch (_) {
+        return false;
+      } finally {
+        _refreshingFuture = null;
+      }
+    }();
   }
 
   /// Call after a successful login so a future 401 can fire again.

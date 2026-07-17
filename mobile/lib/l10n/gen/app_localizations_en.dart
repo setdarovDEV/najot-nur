@@ -435,6 +435,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeFeatures => 'Features';
 
   @override
+  String get homeRecommended => 'Recommended';
+
+  @override
   String get free => 'Free';
 
   @override
@@ -1324,4 +1327,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tryAgain => 'Try again';
+
+  @override
+  String get levelBeginner => 'Beginner';
+
+  @override
+  String get levelIntermediate => 'Intermediate';
+
+  @override
+  String get levelAdvanced => 'Advanced';
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get searchCoursesHint => 'Search courses…';
+
+  @override
+  String coursesCount(int count) {
+    return '$count courses';
+  }
+
+  @override
+  String get priceLabel => 'Price';
 }

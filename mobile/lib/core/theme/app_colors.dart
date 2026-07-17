@@ -40,4 +40,49 @@ abstract class AppColors {
     end: Alignment.bottomCenter,
     colors: [wine, wineDeep],
   );
+
+  // ───── Dark neutrals (Liquid Glass redesign, docs/liquid-glass-redesign-prompt.md) ─────
+  // Per the implementation spec: dark mode flips only the neutrals — fill
+  // white → wineInk, text ink → wine100, accent → wine300. Brand colors,
+  // gradients, and CTAs above stay identical in both modes.
+  static const wineInk = Color(0xFF20161A); // dark "surface" neutral
+  static const bgDark = Color(0xFF17100F); // (slightly deeper than wineInk)
+  static const surfaceDark = wineInk;
+  static const inkDarkPrimary = wine100; // #F6E7EC — primary text on dark
+  static const mutedDark = wine300; // #D79CAF — secondary text/icons on dark
+  static const lineDark = Color(0x1AFFFFFF); // white @ 10%
+  static const accentDark = wine300; // active icon/indicator tint on dark
+
+  // ───── Liquid Glass material tokens ─────
+  // Blur sigma: cards use the lighter tier, chrome/sheets (nav bar, bottom
+  // sheets) use the heavier tier. "subtle"/"heavy" are the clamp range used
+  // by scroll-reactive chrome (see GlassMotion).
+  static const glassBlurCard = 16.0;
+  static const glassBlurCardSubtle = 8.0;
+  static const glassBlurCardHeavy = 24.0;
+  static const glassBlurChrome = 24.0;
+  static const glassBlurChromeSubtle = 12.0;
+  static const glassBlurChromeHeavy = 36.0;
+
+  static const glassFillLight = Color(0x8CFFFFFF); // white @ 55%
+  static const glassFillDark = Color(0x8C20161A); // wineInk @ 55%
+  // Card-tier fill: denser, since cards render WITHOUT a live BackdropFilter
+  // (perf) and need more body to read as frosted over the ambient orbs.
+  static const cardFillLight = Color(0xD9FFFFFF); // white @ 85%
+  static const cardFillDark = Color(0xD920161A); // wineInk @ 85%
+  static const glassHighlightLight = Color(0xBFFFFFFF); // white @ 75% (rim)
+  static const glassHighlightDark = Color(0x33FFFFFF); // white @ 20% (rim)
+  static const glassStrokeLight = Color(0x17000000); // ink-ish @ 9%
+  static const glassStrokeDark = Color(0x1AFFFFFF); // white @ 10%
+  static const glassShadowLight = Color(0x1A3F0918); // wineDeep @ 10%
+  static const glassShadowDark = Color(0x4D000000); // black @ 30%
+  static const sheetScrim = Color(0x4D3F0918); // wineDeep @ 30%
+
+  // ───── Corner radius scale ─────
+  static const radiusHero = 36.0;
+  static const radiusSheet = 34.0;
+  static const radiusCard = 28.0;
+  static const radiusTariffCard = 24.0;
+  static const radiusButton = 20.0;
+  static const radiusSegment = 16.0;
 }

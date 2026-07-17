@@ -892,6 +892,12 @@ abstract class AppLocalizations {
   /// **'Imkoniyatlar'**
   String get homeFeatures;
 
+  /// No description provided for @homeRecommended.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tavsiya etamiz'**
+  String get homeRecommended;
+
   /// No description provided for @free.
   ///
   /// In uz, this message translates to:
@@ -2547,6 +2553,48 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Qayta urinish'**
   String get tryAgain;
+
+  /// No description provided for @levelBeginner.
+  ///
+  /// In uz, this message translates to:
+  /// **'Boshlang\'ich'**
+  String get levelBeginner;
+
+  /// No description provided for @levelIntermediate.
+  ///
+  /// In uz, this message translates to:
+  /// **'O\'rta'**
+  String get levelIntermediate;
+
+  /// No description provided for @levelAdvanced.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yuqori'**
+  String get levelAdvanced;
+
+  /// No description provided for @filterAll.
+  ///
+  /// In uz, this message translates to:
+  /// **'Barchasi'**
+  String get filterAll;
+
+  /// No description provided for @searchCoursesHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kurs qidirish…'**
+  String get searchCoursesHint;
+
+  /// No description provided for @coursesCount.
+  ///
+  /// In uz, this message translates to:
+  /// **'{count} ta kurs'**
+  String coursesCount(int count);
+
+  /// No description provided for @priceLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Narx'**
+  String get priceLabel;
 }
 
 class _AppLocalizationsDelegate

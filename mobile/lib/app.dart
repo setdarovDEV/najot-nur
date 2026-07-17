@@ -92,6 +92,9 @@ class _NotiqAiAppState extends ConsumerState<NotiqAiApp> {
       title: 'NotiqAI',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      // User-controlled from the profile tab; defaults to the device setting.
+      themeMode: ref.watch(themeModeProvider),
       scaffoldMessengerKey: _scaffoldMessengerKey,
       routerConfig: router,
       locale: locale,

@@ -443,6 +443,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get homeFeatures => 'Imkoniyatlar';
 
   @override
+  String get homeRecommended => 'Tavsiya etamiz';
+
+  @override
   String get free => 'Bepul';
 
   @override
@@ -1336,4 +1339,27 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get tryAgain => 'Qayta urinish';
+
+  @override
+  String get levelBeginner => 'Boshlang\'ich';
+
+  @override
+  String get levelIntermediate => 'O\'rta';
+
+  @override
+  String get levelAdvanced => 'Yuqori';
+
+  @override
+  String get filterAll => 'Barchasi';
+
+  @override
+  String get searchCoursesHint => 'Kurs qidirish…';
+
+  @override
+  String coursesCount(int count) {
+    return '$count ta kurs';
+  }
+
+  @override
+  String get priceLabel => 'Narx';
 }

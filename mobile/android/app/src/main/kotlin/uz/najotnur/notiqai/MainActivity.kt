@@ -28,7 +28,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val channelName = "notiqai/security"
     private var channel: MethodChannel? = null
-    private var secureEnabled: Boolean = true
+    private var secureEnabled: Boolean = false
     private var displayManager: DisplayManager? = null
     private val displayListener = object : DisplayManager.DisplayListener {
         override fun onDisplayAdded(displayId: Int) {}

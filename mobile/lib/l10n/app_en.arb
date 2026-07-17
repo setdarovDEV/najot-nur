@@ -132,6 +132,7 @@
   "homeActionObservation": "Check your observation",
   "homeActionObservationSub": "10 tests: psychology and body language",
   "homeFeatures": "Features",
+  "homeRecommended": "Recommended",
   "free": "Free",
   "forSale": "For sale",
   "lessonsShort": "{count} lessons",
@@ -332,15 +333,18 @@
   "listenExpert": "Listen to the expert",
   "playAudio": "Play",
   "stopAudio": "Stop",
-
   "continueCourse": "Continue",
   "courseInProgress": "In progress",
   "courseCompleted": "Course completed",
   "lessonsCompleted": "{completed}/{total} lessons done",
   "@lessonsCompleted": {
     "placeholders": {
-      "completed": { "type": "int" },
-      "total": { "type": "int" }
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "lesson": "Lesson",
@@ -357,7 +361,9 @@
   "lessonCompletedWithScore": "Lesson completed! Score: {score}%",
   "@lessonCompletedWithScore": {
     "placeholders": {
-      "score": { "type": "int" }
+      "score": {
+        "type": "int"
+      }
     }
   },
   "videoOpenError": "Failed to open video",
@@ -365,7 +371,9 @@
   "quizLessonSubtitle": "{count} questions",
   "@quizLessonSubtitle": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "quizAnswerAll": "Please answer all questions",
@@ -375,8 +383,12 @@
   "quizCorrectCount": "{correct}/{total} correct",
   "@quizCorrectCount": {
     "placeholders": {
-      "correct": { "type": "int" },
-      "total": { "type": "int" }
+      "correct": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "homeworkTitle": "Homework",
@@ -398,7 +410,6 @@
   "updateRequiredMessage": "A new version of NotiqAI is available. Please update the app to continue.",
   "updateNow": "Update",
   "updateLater": "Later",
-
   "permissionGateTitle": "Permissions needed",
   "permissionGateMessage": "Grant the permissions below so the app can work fully:",
   "permissionMicrophone": "Microphone",
@@ -407,7 +418,6 @@
   "permissionGrant": "Grant access",
   "permissionOpenSettings": "Open settings",
   "permissionLater": "Later",
-
   "gradeTitleExcellent": "Excellent result!",
   "gradeTitleGood": "Good result!",
   "gradeTitleAverage": "Average result",
@@ -426,7 +436,9 @@
   "gradePronunciationNeedsWork": "{count} word(s) had errors.",
   "@gradePronunciationNeedsWork": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "perfectPronunciation": "Perfect! All words pronounced correctly.",
@@ -437,5 +449,12 @@
   "quizBadSubtitle": "Keep trying, you can do it!",
   "quizMetricScore": "Overall score",
   "quizMetricCorrect": "Correct answers",
-  "tryAgain": "Try again"
+  "tryAgain": "Try again",
+  "levelBeginner": "Beginner",
+  "levelIntermediate": "Intermediate",
+  "levelAdvanced": "Advanced",
+  "filterAll": "All",
+  "searchCoursesHint": "Search courses…",
+  "coursesCount": "{count} courses",
+  "priceLabel": "Price"
 }

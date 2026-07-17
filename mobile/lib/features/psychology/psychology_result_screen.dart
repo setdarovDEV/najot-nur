@@ -5,10 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/glass.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/psychology_models.dart';
 import '../../providers/providers.dart';
 
+/// Psychology result, Liquid Glass mockup "6e"/"3d" language: animated score
+/// ring, glass section cards for the AI analysis / strengths / improvements
+/// and a gradient auth CTA. Submit/AI-request logic is unchanged.
 class PsychologyResultScreen extends ConsumerStatefulWidget {
   const PsychologyResultScreen({super.key, required this.attempt});
   final PsychologyAttempt attempt;
@@ -19,14 +23,23 @@ class PsychologyResultScreen extends ConsumerStatefulWidget {
 }
 
 class _PsychologyResultScreenState
-    extends ConsumerState<PsychologyResultScreen> {
+    extends ConsumerState<PsychologyResultScreen>
+    with SingleTickerProviderStateMixin {
   bool _requesting = false;
   PsychologyAttempt? _attempt;
+
+  late final AnimationController _ring = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
 
   @override
   void initState() {
     super.initState();
     _attempt = widget.attempt;
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) _ring.forward();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (ref.read(autoRequestAiAfterAuthProvider)) {
@@ -34,6 +47,12 @@ class _PsychologyResultScreenState
         _submitAndRequestAi();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _ring.dispose();
+    super.dispose();
   }
 
   /// Re-submits a local attempt to the server then requests AI analysis.
@@ -120,305 +139,241 @@ class _PsychologyResultScreenState
     final isLoggedIn = ref.watch(authControllerProvider).isLoggedIn;
     final hasAi = attempt.aiAnalysis != null && attempt.aiAnalysis!.isNotEmpty;
     final score = attempt.score ?? 0;
-    final topPad = MediaQuery.of(context).padding.top;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final topInset = MediaQuery.of(context).padding.top;
+
+    final ringColor = score >= 70 ? AppColors.success : AppColors.warning;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: ListView(
-        padding: EdgeInsets.zero,
+      body: Stack(
         children: [
-          // ── Hero card ────────────────────────────────────────────────────
-          Container(
-            padding: EdgeInsets.fromLTRB(24, topPad + 16, 24, 30),
-            decoration: const BoxDecoration(
-              gradient: AppColors.heroGradient,
-              borderRadius:
-                  BorderRadius.vertical(bottom: Radius.circular(32)),
-            ),
-            child: Column(
-              children: [
-                Row(
+          const AmbientOrbs(),
+          ListView(
+            padding: EdgeInsets.fromLTRB(16, topInset + 12, 16,
+                MediaQuery.of(context).padding.bottom + 24),
+            children: [
+              GlassEntrance(
+                child: Row(
                   children: [
-                    GestureDetector(
+                    _GlassIconButton(
+                      icon: Icons.arrow_back_rounded,
                       onTap: () => context.go('/home'),
-                      child: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white, size: 20),
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      l.psychologyAnalysis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 17,
+                    Expanded(
+                      child: Text(
+                        l.psychologyAnalysis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: textColor,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 40),
                   ],
                 ),
-                const SizedBox(height: 28),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 100,
-                      height: 100,
-                      child: CustomPaint(
-                        painter: _RingPainter(score / 100),
+              ),
+              const SizedBox(height: 18),
+              // Animated score ring (mockup 6e).
+              GlassEntrance(
+                delay: GlassMotion.entranceStep,
+                child: Center(
+                  child: SizedBox(
+                    width: 150,
+                    height: 150,
+                    child: AnimatedBuilder(
+                      animation: _ring,
+                      builder: (context, _) => CustomPaint(
+                        painter: _ScoreRingPainter(
+                          progress:
+                              Curves.easeOutCubic.transform(_ring.value) *
+                                  (score / 100),
+                          color: ringColor,
+                        ),
                         child: Center(
-                          child: Text(
-                            '$score',
-                            style: const TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              height: 1,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$score',
+                                style: TextStyle(
+                                  fontSize: 40,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1,
+                                  color: textColor,
+                                ),
+                              ),
+                              Text(
+                                l.psychologyScoreLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: mutedColor,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 20),
-                    Expanded(
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              GlassEntrance(
+                delay: GlassMotion.entranceStep * 2,
+                child: Column(
+                  children: [
+                    Text(
+                      _gradeTitle(context),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _gradeSub(context),
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12.5, height: 1.5, color: mutedColor),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              GlassEntrance(
+                delay: GlassMotion.entranceStep * 3,
+                child: const _WaveformCard(),
+              ),
+              const SizedBox(height: 14),
+
+              // ── AI Analysis card ───────────────────────────────────────
+              if (hasAi)
+                GlassEntrance(
+                  delay: GlassMotion.entranceStep * 4,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _AiCard(
+                      title: 'AI tahlil',
+                      child: Text(
+                        attempt.aiAnalysis!,
+                        style: TextStyle(
+                          height: 1.6,
+                          fontSize: 13.5,
+                          color: dark
+                              ? AppColors.inkDarkPrimary
+                                  .withValues(alpha: 0.86)
+                              : AppColors.inkSoft,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // ── Strengths ──────────────────────────────────────────────
+              if (attempt.strengths.isNotEmpty)
+                GlassEntrance(
+                  delay: GlassMotion.entranceStep * 5,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _ListCard(
+                      title: l.strengthsTitle,
+                      items: attempt.strengths,
+                      color: AppColors.success,
+                    ),
+                  ),
+                ),
+
+              // ── Improvements ───────────────────────────────────────────
+              if (attempt.improvements.isNotEmpty)
+                GlassEntrance(
+                  delay: GlassMotion.entranceStep * 6,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _ListCard(
+                      title: l.improvementsTitle,
+                      items: attempt.improvements,
+                      color: AppColors.warning,
+                    ),
+                  ),
+                ),
+
+              // ── Request AI (unauthenticated) ───────────────────────────
+              if (!isLoggedIn)
+                GlassEntrance(
+                  delay: GlassMotion.entranceStep * 7,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _AuthCtaCard(
+                      title: l.psychologyAiTitle,
+                      subtitle: l.psychologyAiSubtitle,
+                      buttonLabel: l.registerLogin,
+                      loading: _requesting,
+                      onTap: _goToAuth,
+                    ),
+                  ),
+                )
+              else if (!hasAi)
+                GlassEntrance(
+                  delay: GlassMotion.entranceStep * 7,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _AiCard(
+                      title: l.psychologyAnalysis,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            _gradeTitle(context),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              height: 1.2,
-                            ),
+                            l.psychologyAiSubtitle,
+                            style:
+                                TextStyle(color: mutedColor, height: 1.4),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _gradeSub(context),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
-                              height: 1.5,
-                            ),
+                          const SizedBox(height: 14),
+                          _PrimaryCta(
+                            label: _requesting ? l.analyzing : l.analyze,
+                            loading: _requesting,
+                            onTap: _requesting ? null : _requestAi,
                           ),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ],
-            ),
-          ),
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Waveform ───────────────────────────────────────────────
-                _WaveformCard(),
-                const SizedBox(height: 20),
-
-                // ── AI Analysis card ───────────────────────────────────────
-                if (hasAi) ...[
-                  _SectionTitle(l.psychologyAnalysis),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.line),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: AppColors.wine.withValues(alpha: 0.10),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.auto_awesome_rounded,
-                                  color: AppColors.wine, size: 20),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'AI tahlil',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                                color: AppColors.wine,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          attempt.aiAnalysis!,
-                          style: const TextStyle(
-                              height: 1.6, color: AppColors.ink),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-
-                // ── Strengths ──────────────────────────────────────────────
-                if (attempt.strengths.isNotEmpty) ...[
-                  _SectionTitle(l.strengthsTitle),
-                  const SizedBox(height: 8),
-                  ...attempt.strengths.map(
-                    (s) => _BulletRow(text: s, color: AppColors.success),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // ── Improvements ───────────────────────────────────────────
-                if (attempt.improvements.isNotEmpty) ...[
-                  _SectionTitle(l.improvementsTitle),
-                  const SizedBox(height: 8),
-                  ...attempt.improvements.map(
-                    (s) => _BulletRow(text: s, color: AppColors.warning),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // ── Request AI (unauthenticated) ───────────────────────────
-                if (!isLoggedIn) ...[
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.wineGradient,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          l.psychologyAiTitle,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          l.psychologyAiSubtitle,
-                          style: const TextStyle(
-                              color: Colors.white70, height: 1.4),
-                        ),
-                        const SizedBox(height: 14),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppColors.wine,
-                          ),
-                          onPressed: _requesting ? null : _goToAuth,
-                          child: _requesting
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.wine,
-                                    strokeWidth: 2.4,
-                                  ),
-                                )
-                              : Text(l.registerLogin),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ] else if (!hasAi) ...[
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.line),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color:
-                                    AppColors.wine.withValues(alpha: 0.10),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.auto_awesome_rounded,
-                                  color: AppColors.wine, size: 20),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              l.psychologyAnalysis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                                color: AppColors.wine,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          l.psychologyAiSubtitle,
-                          style: const TextStyle(color: AppColors.muted),
-                        ),
-                        const SizedBox(height: 14),
-                        ElevatedButton.icon(
-                          onPressed: _requesting ? null : _requestAi,
-                          icon: _requesting
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.auto_awesome_rounded),
-                          label: Text(
-                              _requesting ? l.analyzing : l.analyze),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.wine,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // ── Back button ─────────────────────────────────────────────
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.go('/home'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppColors.wine),
-                      foregroundColor: AppColors.wine,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+              // ── Back button ─────────────────────────────────────────────
+              GlassEntrance(
+                delay: GlassMotion.entranceStep * 8,
+                child: GlassPressable(
+                  onTap: () => context.go('/home'),
+                  child: GlassContainer(
+                    borderRadius: AppColors.radiusButton,
+                    height: 54,
+                    withShadow: false,
+                    alignment: Alignment.center,
+                    child: Text(
+                      l.backToHome,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: dark
+                            ? AppColors.inkDarkPrimary
+                            : AppColors.inkSoft,
                       ),
                     ),
-                    child: Text(l.backToHome),
                   ),
                 ),
-                const SizedBox(height: 32),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -428,7 +383,288 @@ class _PsychologyResultScreenState
 
 // ── Local widgets ────────────────────────────────────────────────────────────
 
+class _GlassIconButton extends StatelessWidget {
+  const _GlassIconButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return GlassPressable(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: dark ? AppColors.glassFillDark : AppColors.glassFillLight,
+          border: Border.all(
+            color:
+                dark ? AppColors.glassStrokeDark : AppColors.glassStrokeLight,
+            width: 0.5,
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: dark ? AppColors.inkDarkPrimary : AppColors.ink,
+        ),
+      ),
+    );
+  }
+}
+
+class _PrimaryCta extends StatelessWidget {
+  const _PrimaryCta({
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+  });
+  final String label;
+  final VoidCallback? onTap;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassPressable(
+      onTap: loading ? null : onTap,
+      child: Opacity(
+        opacity: onTap == null && !loading ? 0.5 : 1,
+        child: Container(
+          height: 50,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: AppColors.wineGradient,
+            borderRadius: BorderRadius.circular(AppColors.radiusButton),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.wine.withValues(alpha: 0.30),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
+                )
+              : Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Glass card with the sparkle icon header used for AI sections.
+class _AiCard extends StatelessWidget {
+  const _AiCard({required this.title, required this.child});
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
+    return GlassContainer(
+      borderRadius: AppColors.radiusTariffCard,
+      withShadow: false,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: dark
+                      ? AppColors.wine300.withValues(alpha: 0.16)
+                      : AppColors.wine.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.auto_awesome_rounded,
+                    color: accent, size: 19),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14.5,
+                  color: accent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _ListCard extends StatelessWidget {
+  const _ListCard({
+    required this.title,
+    required this.items,
+    required this.color,
+  });
+  final String title;
+  final List<String> items;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final bodyColor = dark
+        ? AppColors.inkDarkPrimary.withValues(alpha: 0.82)
+        : AppColors.inkSoft;
+
+    return GlassContainer(
+      borderRadius: AppColors.radiusTariffCard,
+      withShadow: false,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w800,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (final s in items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration:
+                          BoxDecoration(color: color, shape: BoxShape.circle),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      s,
+                      style: TextStyle(
+                          height: 1.5, fontSize: 13, color: bodyColor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Gradient auth CTA card (brand wine — same in both modes).
+class _AuthCtaCard extends StatelessWidget {
+  const _AuthCtaCard({
+    required this.title,
+    required this.subtitle,
+    required this.buttonLabel,
+    required this.loading,
+    required this.onTap,
+  });
+  final String title;
+  final String subtitle;
+  final String buttonLabel;
+  final bool loading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: AppColors.wineGradient,
+        borderRadius: BorderRadius.circular(AppColors.radiusTariffCard),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.wine.withValues(alpha: 0.30),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: const TextStyle(color: Colors.white70, height: 1.4),
+          ),
+          const SizedBox(height: 14),
+          GlassPressable(
+            onTap: loading ? null : onTap,
+            child: Container(
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppColors.radiusSegment),
+              ),
+              child: loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.4, color: AppColors.wine),
+                    )
+                  : Text(
+                      buttonLabel,
+                      style: const TextStyle(
+                        color: AppColors.wine,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _WaveformCard extends StatelessWidget {
+  const _WaveformCard();
+
   static const _heights = [
     0.3, 0.6, 0.9, 0.5, 1.0, 0.4, 0.7, 0.8, 0.5, 0.3,
     0.6, 0.9, 0.4, 0.7, 0.5, 1.0, 0.6, 0.4, 0.8, 0.5,
@@ -437,14 +673,14 @@ class _WaveformCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final barColor = dark ? AppColors.wine300 : AppColors.wine;
+
+    return GlassContainer(
+      borderRadius: AppColors.radiusButton,
+      withShadow: false,
       height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
-      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -453,7 +689,7 @@ class _WaveformCard extends StatelessWidget {
             width: 4,
             height: 40 * h,
             decoration: BoxDecoration(
-              color: AppColors.wine.withValues(alpha: 0.6 + h * 0.4),
+              color: barColor.withValues(alpha: 0.5 + h * 0.5),
               borderRadius: BorderRadius.circular(4),
             ),
           );
@@ -463,75 +699,38 @@ class _WaveformCard extends StatelessWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-        text,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-      );
-}
-
-class _BulletRow extends StatelessWidget {
-  const _BulletRow({required this.text, required this.color});
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Container(
-              width: 7,
-              height: 7,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(text, style: const TextStyle(height: 1.5)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RingPainter extends CustomPainter {
-  _RingPainter(this.progress);
+class _ScoreRingPainter extends CustomPainter {
+  _ScoreRingPainter({required this.progress, required this.color});
   final double progress;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final radius = size.width / 2 - 8;
+    final radius = size.width / 2 - 11;
     final bg = Paint()
-      ..color = Colors.white.withValues(alpha: 0.25)
+      ..color = color.withValues(alpha: 0.14)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 10
       ..strokeCap = StrokeCap.round;
     final fg = Paint()
-      ..color = Colors.white
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 10
       ..strokeCap = StrokeCap.round;
     canvas.drawCircle(center, radius, bg);
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
-      2 * math.pi * progress.clamp(0.0, 1.0),
-      false,
-      fg,
-    );
+    if (progress > 0) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2,
+        2 * math.pi * progress.clamp(0.0, 1.0),
+        false,
+        fg,
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(_RingPainter old) => old.progress != progress;
+  bool shouldRepaint(_ScoreRingPainter old) =>
+      old.progress != progress || old.color != color;
 }

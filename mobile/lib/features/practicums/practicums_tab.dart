@@ -3,18 +3,41 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/glass.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../providers/providers.dart';
+import '../../shared/widgets/common.dart';
 import '../../shared/widgets/enrollment_lock.dart';
 import 'practicum_card.dart';
 
-class PracticumsTab extends ConsumerWidget {
+/// Practicums tab, Liquid Glass tab pattern (courses tab, mockup "2a"):
+/// ambient orbs, large in-scroll title, scroll-reactive top chrome and glass
+/// practicum cards. Enrollment gating and list data are unchanged.
+class PracticumsTab extends ConsumerStatefulWidget {
   const PracticumsTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PracticumsTab> createState() => _PracticumsTabState();
+}
+
+class _PracticumsTabState extends ConsumerState<PracticumsTab> {
+  final _scrollOffset = ValueNotifier<double>(0);
+
+  @override
+  void dispose() {
+    _scrollOffset.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final enrollment = ref.watch(enrollmentStatusProvider);
+    final practicumsAsync = ref.watch(practicumsProvider);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final topInset = MediaQuery.of(context).padding.top;
 
     final isLocked = enrollment.when(
       loading: () => false,
@@ -23,206 +46,149 @@ class PracticumsTab extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _Header(l: l),
-            if (isLocked) _PreviewBanner(context: context),
-            Expanded(child: _PracticumList(isLocked: isLocked)),
-          ],
-        ),
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          const AmbientOrbs(),
+          practicumsAsync.when(
+            loading: () => const AppLoader(),
+            error: (e, _) => ErrorView(
+              message: l.errorPrefix(e.toString()),
+              onRetry: () => ref.invalidate(practicumsProvider),
+            ),
+            data: (list) {
+              final approved =
+                  list.where((p) => p.status == 'approved').toList();
+              return NotificationListener<ScrollNotification>(
+                onNotification: (n) {
+                  if (n.metrics.axis == Axis.vertical) {
+                    _scrollOffset.value = n.metrics.pixels;
+                  }
+                  return false;
+                },
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(16, topInset + 18, 16, 150),
+                  children: [
+                    GlassEntrance(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l.practicumsTitle,
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                              color: textColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            l.practicumsSubtitle,
+                            style:
+                                TextStyle(fontSize: 12.5, color: mutedColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (isLocked) ...[
+                      const GlassEntrance(
+                        delay: GlassMotion.entranceStep,
+                        child: _PreviewBanner(),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (approved.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 40),
+                        child: EmptyView(
+                          icon: Icons.headphones_outlined,
+                          message: l.noPracticums,
+                        ),
+                      )
+                    else
+                      for (var i = 0; i < approved.length; i++) ...[
+                        GlassEntrance(
+                          delay: GlassMotion.entranceStep * (2 + i),
+                          child: PracticumInlineCard(
+                            practicum: approved[i],
+                            isLocked: isLocked,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                  ],
+                ),
+              );
+            },
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: GlassTopChrome(
+                offset: _scrollOffset, title: l.practicumsTitle),
+          ),
+        ],
       ),
     );
   }
 }
 
+/// "Kurs sotib olib to'liq foydalaning" — glass preview banner for
+/// non-enrolled users.
 class _PreviewBanner extends StatelessWidget {
-  const _PreviewBanner({required this.context});
-  final BuildContext context;
+  const _PreviewBanner();
 
   @override
-  Widget build(BuildContext ctx) {
-    return GestureDetector(
-      onTap: () => ctx.go('/home'),
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
+    return GlassPressable(
+      onTap: () => context.go('/home'),
+      child: GlassContainer(
+        borderRadius: AppColors.radiusTariffCard,
+        withShadow: false,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppColors.wine.withValues(alpha: 0.12),
-              AppColors.wine.withValues(alpha: 0.06),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.wine.withValues(alpha: 0.25)),
-        ),
         child: Row(
           children: [
             Container(
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.wine.withValues(alpha: 0.15),
+                color: dark
+                    ? AppColors.wine300.withValues(alpha: 0.16)
+                    : AppColors.wine.withValues(alpha: 0.10),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.lock_outline_rounded,
-                  color: AppColors.wine, size: 18),
+              child: Icon(Icons.lock_outline_rounded, color: accent, size: 18),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Kurs sotib olib to\'liq foydalaning',
+                    "Kurs sotib olib to'liq foydalaning",
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       fontSize: 13,
-                      color: AppColors.wine,
+                      color: accent,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Hozir ko\'rish rejimida. Yozish va AI tahlil uchun kurs kerak.',
-                    style: TextStyle(color: AppColors.muted, fontSize: 12),
+                    "Hozir ko'rish rejimida. Yozish va AI tahlil uchun kurs kerak.",
+                    style: TextStyle(color: mutedColor, fontSize: 11.5),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                size: 14, color: AppColors.wine),
+            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: accent),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PracticumList extends ConsumerWidget {
-  const _PracticumList({required this.isLocked});
-  final bool isLocked;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final practicumsAsync = ref.watch(practicumsProvider);
-    return practicumsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => _ErrorState(message: l.errorPrefix(e.toString())),
-      data: (list) {
-        final approved = list.where((p) => p.status == 'approved').toList();
-        if (approved.isEmpty) return _EmptyState(l: l);
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-          itemCount: approved.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (_, i) => PracticumInlineCard(
-            practicum: approved[i],
-            isLocked: isLocked,
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.l});
-  final AppLocalizations l;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l.practicumsTitle,
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l.practicumsSubtitle,
-            style: const TextStyle(color: AppColors.muted, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.l});
-  final AppLocalizations l;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.wine.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.headphones_outlined,
-                size: 40,
-                color: AppColors.wine,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l.noPracticums,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.muted,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message});
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.muted),
         ),
       ),
     );

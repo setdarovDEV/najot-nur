@@ -7,19 +7,40 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/glass.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/practicum_models.dart';
 import '../../providers/providers.dart';
+import '../../shared/widgets/common.dart';
 import '../../shared/widgets/deep_letter_analysis.dart';
 import '../../shared/widgets/enrollment_lock.dart';
 import '../../shared/widgets/voice_recorder.dart';
 
-class PracticumDetailScreen extends ConsumerWidget {
+/// Practicum detail, Liquid Glass standalone pattern: floating glass back
+/// chrome over ambient orbs, a wine gradient hero, glass cards for the
+/// expert audio player / expert text and the voice-practice section.
+/// Audio playback, recording submission and enrollment gating are unchanged.
+class PracticumDetailScreen extends ConsumerStatefulWidget {
   const PracticumDetailScreen({super.key, required this.practicumId});
   final String practicumId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PracticumDetailScreen> createState() =>
+      _PracticumDetailScreenState();
+}
+
+class _PracticumDetailScreenState
+    extends ConsumerState<PracticumDetailScreen> {
+  final _scrollOffset = ValueNotifier<double>(0);
+
+  @override
+  void dispose() {
+    _scrollOffset.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
 
     final enrollment = ref.watch(enrollmentStatusProvider);
@@ -29,23 +50,67 @@ class PracticumDetailScreen extends ConsumerWidget {
       data: (s) => !s.hasActiveEnrollment && !s.isStaff,
     );
 
-    final async = ref.watch(practicumDetailProvider(practicumId));
+    final async = ref.watch(practicumDetailProvider(widget.practicumId));
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: Text(l.practicumsTitle),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.ink,
-        elevation: 0,
+      body: Stack(
+        children: [
+          const AmbientOrbs(),
+          async.when(
+            loading: () => const AppLoader(),
+            error: (e, _) => ErrorView(message: l.errorPrefix(e.toString())),
+            data: (p) => NotificationListener<ScrollNotification>(
+              onNotification: (n) {
+                if (n.metrics.axis == Axis.vertical) {
+                  _scrollOffset.value = n.metrics.pixels;
+                }
+                return false;
+              },
+              child: _Body(
+                practicum: p,
+                practicumId: widget.practicumId,
+                isLocked: isLocked,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: GlassTopChrome(
+                offset: _scrollOffset, title: l.practicumsTitle),
+          ),
+        ],
       ),
-      body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(l.errorPrefix(e.toString()))),
-        data: (p) => _Body(
-          practicum: p,
-          practicumId: practicumId,
-          isLocked: isLocked,
+    );
+  }
+}
+
+class _GlassBackButton extends StatelessWidget {
+  const _GlassBackButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return GlassPressable(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: dark ? AppColors.glassFillDark : AppColors.glassFillLight,
+          border: Border.all(
+            color:
+                dark ? AppColors.glassStrokeDark : AppColors.glassStrokeLight,
+            width: 0.5,
+          ),
+        ),
+        child: Icon(
+          Icons.arrow_back_rounded,
+          size: 20,
+          color: dark ? AppColors.inkDarkPrimary : AppColors.ink,
         ),
       ),
     );
@@ -148,126 +213,55 @@ class _BodyState extends ConsumerState<_Body> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final p = widget.practicum;
     final hasAudio = p.expertAudioUrl != null;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+    final topInset = MediaQuery.of(context).padding.top;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+      padding: EdgeInsets.fromLTRB(16, topInset + 12, 16, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Hero card
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.wine,
-                  AppColors.wine.withValues(alpha: 0.75),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.wine.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          GlassEntrance(
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.headphones_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (p.category != null)
-                            Text(
-                              p.category!,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.8),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          Text(
-                            p.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 18,
-                              height: 1.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        p.isFree ? 'Bepul' : 'Pullik',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (p.description != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    p.description!,
+                _GlassBackButton(
+                    onTap: () => Navigator.of(context).maybePop()),
+                Expanded(
+                  child: Text(
+                    l.practicumsTitle,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 13,
-                      height: 1.5,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
                     ),
                   ),
-                ],
+                ),
+                const SizedBox(width: 40),
               ],
             ),
           ),
+          const SizedBox(height: 14),
 
-          const SizedBox(height: 16),
-
-          // Audio player
-          if (hasAudio)
-            Container(
+          // ── Hero card (brand gradient, same in both modes) ──
+          GlassEntrance(
+            delay: GlassMotion.entranceStep,
+            child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                gradient: AppColors.wineGradient,
+                borderRadius: BorderRadius.circular(AppColors.radiusCard),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 12,
-                    offset: const Offset(0, 2),
+                    color: AppColors.wine.withValues(alpha: 0.30),
+                    blurRadius: 28,
+                    offset: const Offset(0, 12),
                   ),
                 ],
               ),
@@ -277,257 +271,411 @@ class _BodyState extends ConsumerState<_Body> {
                   Row(
                     children: [
                       Container(
-                        width: 36,
-                        height: 36,
+                        width: 52,
+                        height: 52,
                         decoration: BoxDecoration(
-                          color: AppColors.wine.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(
-                          Icons.record_voice_over_rounded,
-                          color: AppColors.wine,
-                          size: 18,
+                          Icons.headphones_rounded,
+                          color: Colors.white,
+                          size: 28,
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'Ekspert ovozi',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: _loading ? null : _togglePlay,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: _playing
-                                ? AppColors.wine
-                                : AppColors.wine.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                            boxShadow: _playing
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.wine
-                                          .withValues(alpha: 0.35),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: _loading
-                              ? const Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: AppColors.wine,
-                                  ),
-                                )
-                              : Icon(
-                                  _playing
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                  color: _playing
-                                      ? Colors.white
-                                      : AppColors.wine,
-                                  size: 28,
-                                ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SliderTheme(
-                              data: SliderThemeData(
-                                thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 6),
-                                overlayShape: const RoundSliderOverlayShape(
-                                    overlayRadius: 14),
-                                activeTrackColor: AppColors.wine,
-                                inactiveTrackColor:
-                                    AppColors.wine.withValues(alpha: 0.15),
-                                thumbColor: AppColors.wine,
-                                overlayColor:
-                                    AppColors.wine.withValues(alpha: 0.15),
-                                trackHeight: 3,
+                            if (p.category != null)
+                              Text(
+                                p.category!,
+                                style: TextStyle(
+                                  color:
+                                      Colors.white.withValues(alpha: 0.8),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                              child: Slider(
-                                min: 0,
-                                max: _duration.inMilliseconds.toDouble().clamp(
-                                    1, double.infinity),
-                                value: _position.inMilliseconds
-                                    .toDouble()
-                                    .clamp(0,
-                                        _duration.inMilliseconds.toDouble()),
-                                onChanged: (v) {
-                                  _player?.seek(
-                                      Duration(milliseconds: v.toInt()));
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 4),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    _fmt(_position),
-                                    style: const TextStyle(
-                                      color: AppColors.muted,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  Text(
-                                    _fmt(_duration),
-                                    style: const TextStyle(
-                                      color: AppColors.muted,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
+                            Text(
+                              p.title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18,
+                                height: 1.2,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-          if (hasAudio) const SizedBox(height: 16),
-
-          // Expert text
-          if (p.expertText != null && p.expertText!.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 12,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
                       Container(
-                        width: 36,
-                        height: 36,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(999),
                         ),
-                        child: const Icon(
-                          Icons.format_quote_rounded,
-                          color: Colors.blue,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'Ekspert matni',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
+                        child: Text(
+                          p.isFree ? 'Bepul' : 'Pullik',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.line),
-                    ),
-                    child: SelectableText(
-                      p.expertText!,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        height: 1.7,
-                        color: AppColors.ink,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          const SizedBox(height: 16),
-
-          // Voice practice section
-          if (p.expertText != null && p.expertText!.isNotEmpty)
-            widget.isLocked
-                ? _LockedPracticeSection(practicum: p)
-                : _VoicePracticeSection(
-                    practicum: p,
-                    onSubmit: (filePath) async {
-                      await ref
-                          .read(practicumRepositoryProvider)
-                          .submitVoice(widget.practicumId, filePath);
-                      ref.invalidate(
-                          myPracticumSubmissionProvider(widget.practicumId));
-                    },
-                    submissionAsync: ref
-                        .watch(myPracticumSubmissionProvider(widget.practicumId)),
-                  )
-          else
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.wine.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.wine.withValues(alpha: 0.15),
-                ),
-              ),
-              child: const Row(
-                children: [
-                  Icon(
-                    Icons.lightbulb_outline_rounded,
-                    color: AppColors.wine,
-                    size: 20,
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Ekspert ovozini tinglab, matni bo\'yicha o\'zingiz mashq qiling.',
+                  if (p.description != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      p.description!,
                       style: TextStyle(
-                        color: AppColors.wine,
+                        color: Colors.white.withValues(alpha: 0.85),
                         fontSize: 13,
                         height: 1.5,
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // ── Audio player (glass) ──
+          if (hasAudio) ...[
+            GlassEntrance(
+              delay: GlassMotion.entranceStep * 2,
+              child: GlassContainer(
+                borderRadius: AppColors.radiusTariffCard,
+                withShadow: false,
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: dark
+                                ? AppColors.wine300.withValues(alpha: 0.16)
+                                : AppColors.wine.withValues(alpha: 0.10),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.record_voice_over_rounded,
+                            color: accent,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Ekspert ovozi',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14.5,
+                            color: textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        GlassPressable(
+                          onTap: _loading ? null : _togglePlay,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              gradient:
+                                  _playing ? AppColors.wineGradient : null,
+                              color: _playing
+                                  ? null
+                                  : (dark
+                                      ? AppColors.wine300
+                                          .withValues(alpha: 0.16)
+                                      : AppColors.wine
+                                          .withValues(alpha: 0.10)),
+                              shape: BoxShape.circle,
+                              boxShadow: _playing
+                                  ? [
+                                      BoxShadow(
+                                        color: AppColors.wine
+                                            .withValues(alpha: 0.35),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: _loading
+                                ? Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: accent,
+                                    ),
+                                  )
+                                : Icon(
+                                    _playing
+                                        ? Icons.pause_rounded
+                                        : Icons.play_arrow_rounded,
+                                    color:
+                                        _playing ? Colors.white : accent,
+                                    size: 28,
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SliderTheme(
+                                data: SliderThemeData(
+                                  thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 6),
+                                  overlayShape:
+                                      const RoundSliderOverlayShape(
+                                          overlayRadius: 14),
+                                  activeTrackColor: accent,
+                                  inactiveTrackColor:
+                                      accent.withValues(alpha: 0.15),
+                                  thumbColor: accent,
+                                  overlayColor:
+                                      accent.withValues(alpha: 0.15),
+                                  trackHeight: 3,
+                                ),
+                                child: Slider(
+                                  min: 0,
+                                  max: _duration.inMilliseconds
+                                      .toDouble()
+                                      .clamp(1, double.infinity),
+                                  value: _position.inMilliseconds
+                                      .toDouble()
+                                      .clamp(
+                                          0,
+                                          _duration.inMilliseconds
+                                              .toDouble()),
+                                  onChanged: (v) {
+                                    _player?.seek(
+                                        Duration(milliseconds: v.toInt()));
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _fmt(_position),
+                                      style: TextStyle(
+                                        color: mutedColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      _fmt(_duration),
+                                      style: TextStyle(
+                                        color: mutedColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // ── Expert text (glass) ──
+          if (p.expertText != null && p.expertText!.isNotEmpty) ...[
+            GlassEntrance(
+              delay: GlassMotion.entranceStep * 3,
+              child: GlassContainer(
+                borderRadius: AppColors.radiusTariffCard,
+                withShadow: false,
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.blue.withValues(alpha: 0.14),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.format_quote_rounded,
+                            color: AppColors.blue,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Ekspert matni',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14.5,
+                            color: textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.wine
+                            .withValues(alpha: dark ? 0.14 : 0.05),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: SelectableText(
+                        p.expertText!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.7,
+                          color: dark
+                              ? AppColors.inkDarkPrimary
+                                  .withValues(alpha: 0.86)
+                              : AppColors.ink,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // ── Voice practice section ──
+          GlassEntrance(
+            delay: GlassMotion.entranceStep * 4,
+            child: p.expertText != null && p.expertText!.isNotEmpty
+                ? (widget.isLocked
+                    ? _LockedPracticeSection(practicum: p)
+                    : _VoicePracticeSection(
+                        practicum: p,
+                        onSubmit: (filePath) async {
+                          await ref
+                              .read(practicumRepositoryProvider)
+                              .submitVoice(widget.practicumId, filePath);
+                          ref.invalidate(myPracticumSubmissionProvider(
+                              widget.practicumId));
+                        },
+                        submissionAsync: ref.watch(
+                            myPracticumSubmissionProvider(
+                                widget.practicumId)),
+                      ))
+                : GlassContainer(
+                    borderRadius: AppColors.radiusSegment,
+                    withShadow: false,
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.lightbulb_outline_rounded,
+                          color: accent,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            "Ekspert ovozini tinglab, matni bo'yicha o'zingiz mashq qiling.",
+                            style: TextStyle(
+                              color: accent,
+                              fontSize: 13,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// Section header row shared by the locked/unlocked practice cards.
+class _PracticeHeader extends StatelessWidget {
+  const _PracticeHeader({required this.locked});
+  final bool locked;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
+    return Row(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            gradient: locked ? null : AppColors.wineGradient,
+            color: locked
+                ? (dark
+                    ? AppColors.wine300.withValues(alpha: 0.16)
+                    : AppColors.wine.withValues(alpha: 0.10))
+                : null,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            Icons.mic_rounded,
+            color: locked ? accent : Colors.white,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ovozli mashq',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15.5,
+                color: textColor,
+              ),
+            ),
+            Text(
+              "Matnni o'qing — AI tahlil qiladi",
+              style: TextStyle(color: mutedColor, fontSize: 12),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -540,199 +688,153 @@ class _LockedPracticeSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Section header (same style as unlocked, but locked state)
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.wine.withValues(alpha: 0.08),
-                AppColors.wine.withValues(alpha: 0.03),
-              ],
-            ),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
-          ),
-          child: Row(
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
+    return GlassContainer(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _PracticeHeader(locked: true),
+          const SizedBox(height: 16),
+
+          // AI preview cards (what they'd get)
+          Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.wine.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.mic_rounded,
-                    color: AppColors.wine, size: 20),
+              const _PreviewMetric(
+                icon: Icons.stars_rounded,
+                label: 'Umumiy ball',
+                value: '—/100',
+                color: AppColors.wine,
               ),
-              const SizedBox(width: 12),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Ovozli mashq',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                  Text(
-                    'Matnni o\'qing — AI tahlil qiladi',
-                    style: TextStyle(color: AppColors.muted, fontSize: 12),
-                  ),
-                ],
+              const SizedBox(width: 10),
+              const _PreviewMetric(
+                icon: Icons.track_changes_rounded,
+                label: 'Aniqlik',
+                value: '—%',
+                color: AppColors.blue,
+              ),
+              const SizedBox(width: 10),
+              const _PreviewMetric(
+                icon: Icons.spellcheck_rounded,
+                label: "Xato so'zlar",
+                value: '—',
+                color: AppColors.orange,
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 16),
 
-        // Locked content
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius:
-                const BorderRadius.vertical(bottom: Radius.circular(20)),
-            border: Border(
-              left: BorderSide(color: AppColors.wine.withValues(alpha: 0.15)),
-              right: BorderSide(color: AppColors.wine.withValues(alpha: 0.15)),
-              bottom: BorderSide(color: AppColors.wine.withValues(alpha: 0.15)),
+          // AI analysis preview blurred hint
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.wine.withValues(alpha: dark ? 0.14 : 0.05),
+              borderRadius: BorderRadius.circular(14),
             ),
-          ),
-          child: Column(
-            children: [
-              // AI preview cards (what they'd get)
-              Row(
-                children: [
-                  _PreviewMetric(
-                    icon: Icons.stars_rounded,
-                    label: 'Umumiy ball',
-                    value: '—/100',
-                    color: AppColors.wine,
-                  ),
-                  const SizedBox(width: 10),
-                  _PreviewMetric(
-                    icon: Icons.track_changes_rounded,
-                    label: 'Aniqlik',
-                    value: '—%',
-                    color: Colors.blue,
-                  ),
-                  const SizedBox(width: 10),
-                  _PreviewMetric(
-                    icon: Icons.spellcheck_rounded,
-                    label: 'Xato so\'zlar',
-                    value: '—',
-                    color: Colors.orange,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // AI analysis preview blurred hint
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.line),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.auto_awesome_rounded,
-                            size: 16, color: AppColors.wine),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'AI tahlil ko\'rinishi:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                            color: AppColors.ink,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    _BlurredLine(width: double.infinity),
-                    const SizedBox(height: 6),
-                    _BlurredLine(width: 220),
-                    const SizedBox(height: 6),
-                    _BlurredLine(width: 180),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        _BlurredChip(),
-                        const SizedBox(width: 8),
-                        _BlurredChip(width: 80),
-                        const SizedBox(width: 8),
-                        _BlurredChip(width: 60),
-                      ],
+                    Icon(Icons.auto_awesome_rounded, size: 16, color: accent),
+                    const SizedBox(width: 6),
+                    Text(
+                      "AI tahlil ko'rinishi:",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: textColor,
+                      ),
                     ),
                   ],
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Lock icon + message
-              const Icon(Icons.lock_rounded, size: 36, color: AppColors.wine),
-              const SizedBox(height: 10),
-              const Text(
-                'Ovoz yozish va AI tahlil olish\nuchun kurs sotib oling',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  color: AppColors.ink,
-                  height: 1.4,
+                const SizedBox(height: 8),
+                const _BlurredLine(width: double.infinity),
+                const SizedBox(height: 6),
+                const _BlurredLine(width: 220),
+                const SizedBox(height: 6),
+                const _BlurredLine(width: 180),
+                const SizedBox(height: 10),
+                const Row(
+                  children: [
+                    _BlurredChip(),
+                    SizedBox(width: 8),
+                    _BlurredChip(width: 80),
+                    SizedBox(width: 8),
+                    _BlurredChip(width: 60),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Kurs egalari:\n• Ovoz yozib topshiradi\n• AI talaffuz tahlilini oladi\n• So\'z va fonem xatolarini ko\'radi\n• Ekspert ovozi bilan solishtiriladi',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 13,
-                  height: 1.6,
-                ),
-              ),
-              const SizedBox(height: 20),
+              ],
+            ),
+          ),
 
-              // CTA button
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => context.go('/home'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.wine,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+          const SizedBox(height: 20),
+
+          // Lock icon + message
+          Icon(Icons.lock_rounded, size: 36, color: accent),
+          const SizedBox(height: 10),
+          Text(
+            'Ovoz yozish va AI tahlil olish\nuchun kurs sotib oling',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              color: textColor,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Kurs egalari:\n• Ovoz yozib topshiradi\n• AI talaffuz tahlilini oladi\n• So'z va fonem xatolarini ko'radi\n• Ekspert ovozi bilan solishtiriladi",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: mutedColor,
+              fontSize: 13,
+              height: 1.6,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // CTA button — gradient (glass CTA idiom)
+          GlassPressable(
+            onTap: () => context.go('/home'),
+            child: Container(
+              height: 52,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: AppColors.wineGradient,
+                borderRadius: BorderRadius.circular(AppColors.radiusButton),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.wine.withValues(alpha: 0.30),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
                   ),
-                  icon: const Icon(Icons.school_outlined,
-                      color: Colors.white, size: 20),
-                  label: const Text(
+                ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.school_outlined, color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Text(
                     'Kurs sotib olish',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
-                      fontSize: 15,
+                      fontSize: 14.5,
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -751,11 +853,14 @@ class _PreviewMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.07),
+          color: color.withValues(alpha: dark ? 0.14 : 0.07),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withValues(alpha: 0.15)),
         ),
@@ -768,13 +873,13 @@ class _PreviewMetric extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 16,
-                color: color.withValues(alpha: 0.4),
+                color: color.withValues(alpha: 0.5),
               ),
             ),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.muted, fontSize: 10),
+              style: TextStyle(color: mutedColor, fontSize: 10),
             ),
           ],
         ),
@@ -789,11 +894,13 @@ class _BlurredLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final base = dark ? AppColors.mutedDark : AppColors.muted;
     return Container(
       width: width,
       height: 10,
       decoration: BoxDecoration(
-        color: AppColors.muted.withValues(alpha: 0.15),
+        color: base.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
       ),
     );
@@ -831,68 +938,27 @@ class _VoicePracticeSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final bodyColor = dark
+        ? AppColors.inkDarkPrimary.withValues(alpha: 0.82)
+        : AppColors.inkSoft;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Section header
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.wine.withValues(alpha: 0.08),
-                AppColors.wine.withValues(alpha: 0.03),
-              ],
-            ),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
-          ),
-          child: Row(
+        GlassContainer(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.wine,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.mic_rounded, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Ovozli mashq',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                  Text(
-                    'Matnni o\'qing — AI tahlil qiladi',
-                    style: TextStyle(color: AppColors.muted, fontSize: 12),
-                  ),
-                ],
+              const _PracticeHeader(locked: false),
+              const SizedBox(height: 14),
+              VoiceRecorder(
+                onSubmit: onSubmit,
+                referenceText: practicum.expertText,
               ),
             ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-            border: Border(
-              left: BorderSide(color: AppColors.wine.withValues(alpha: 0.15)),
-              right: BorderSide(color: AppColors.wine.withValues(alpha: 0.15)),
-              bottom: BorderSide(color: AppColors.wine.withValues(alpha: 0.15)),
-            ),
-          ),
-          child: VoiceRecorder(
-            onSubmit: onSubmit,
-            referenceText: practicum.expertText,
           ),
         ),
 
@@ -917,17 +983,17 @@ class _VoicePracticeSection extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Row(
+                  Row(
                     children: [
                       Icon(Icons.history_rounded,
-                          size: 18, color: AppColors.muted),
-                      SizedBox(width: 6),
+                          size: 18, color: mutedColor),
+                      const SizedBox(width: 6),
                       Text(
                         'Oxirgi natija',
                         style: TextStyle(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           fontSize: 14,
-                          color: AppColors.inkSoft,
+                          color: bodyColor,
                         ),
                       ),
                     ],

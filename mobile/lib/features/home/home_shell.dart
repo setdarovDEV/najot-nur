@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../l10n/gen/app_localizations.dart';
+import '../../shared/widgets/glass_nav_bar.dart';
 import '../quizzes/quizzes_tab.dart';
 import 'audiobooks_tab.dart';
 import 'courses_tab.dart';
@@ -66,62 +67,40 @@ class _HomeShellState extends State<HomeShell> {
         _handleBack();
       },
       child: Scaffold(
+        // Content must scroll *behind* the floating glass pill so its
+        // BackdropFilter has something real to blur.
+        extendBody: true,
         body: IndexedStack(index: _index, children: _tabs),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 20,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          child: NavigationBarTheme(
-            data: NavigationBarThemeData(
-              backgroundColor: Colors.white,
-              indicatorColor: AppColors.wine100,
-              labelTextStyle: WidgetStateProperty.all(
-                const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              ),
+        bottomNavigationBar: GlassNavBar(
+          selectedIndex: _index,
+          onSelect: (i) => setState(() => _index = i),
+          items: [
+            GlassNavItem(
+              icon: Icons.home_outlined,
+              activeIcon: Icons.home_rounded,
+              label: l.tabHome,
             ),
-            child: NavigationBar(
-              selectedIndex: _index,
-              height: 68,
-              onDestinationSelected: (i) => setState(() => _index = i),
-              destinations: [
-                NavigationDestination(
-                  icon: const Icon(Icons.home_outlined),
-                  selectedIcon: const Icon(Icons.home_rounded, color: AppColors.wine),
-                  label: l.tabHome,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.play_circle_outline),
-                  selectedIcon:
-                      const Icon(Icons.play_circle_fill_rounded, color: AppColors.wine),
-                  label: l.tabCourses,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.headphones_outlined),
-                  selectedIcon:
-                      const Icon(Icons.headphones_rounded, color: AppColors.wine),
-                  label: l.tabBooks,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.quiz_outlined),
-                  selectedIcon:
-                      const Icon(Icons.quiz_rounded, color: AppColors.wine),
-                  label: l.tabPracticums,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.person_outline),
-                  selectedIcon: const Icon(Icons.person_rounded, color: AppColors.wine),
-                  label: l.tabProfile,
-                ),
-              ],
+            GlassNavItem(
+              icon: Icons.play_circle_outline,
+              activeIcon: Icons.play_circle_fill_rounded,
+              label: l.tabCourses,
             ),
-          ),
+            GlassNavItem(
+              icon: Icons.headphones_outlined,
+              activeIcon: Icons.headphones_rounded,
+              label: l.tabBooks,
+            ),
+            GlassNavItem(
+              icon: Icons.quiz_outlined,
+              activeIcon: Icons.quiz_rounded,
+              label: l.tabPracticums,
+            ),
+            GlassNavItem(
+              icon: Icons.person_outline,
+              activeIcon: Icons.person_rounded,
+              label: l.tabProfile,
+            ),
+          ],
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/glass.dart';
 import '../../features/payments/nasiya_checkout_screen.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/learning_models.dart';
@@ -11,6 +12,7 @@ import '../../providers/providers.dart';
 
 /// Opens the "buy" / "request access" bottom sheet used by both
 /// the course detail screen and the audiobook locked gate.
+/// Liquid Glass mockup "1c": frosted sheet over a wine-tinted scrim.
 Future<void> showOrderRequestSheet(
   BuildContext context, {
   required OrderPurpose purpose,
@@ -20,16 +22,18 @@ Future<void> showOrderRequestSheet(
 }) {
   return showModalBottomSheet(
     context: context,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.transparent,
+    barrierColor: AppColors.sheetScrim,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-    ),
-    builder: (_) => _OrderRequestSheet(
-      purpose: purpose,
-      targetId: targetId,
-      targetTitle: targetTitle,
-      amount: amount,
+    builder: (_) => GlassSheet(
+      child: SingleChildScrollView(
+        child: _OrderRequestSheet(
+          purpose: purpose,
+          targetId: targetId,
+          targetTitle: targetTitle,
+          amount: amount,
+        ),
+      ),
     ),
   );
 }
@@ -169,73 +173,87 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
         setState(() => _method = OrderPaymentMethod.cash);
       }
     });
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
     return Padding(
-      padding:
-          EdgeInsets.fromLTRB(24, 20, 24, 24 + mq.viewInsets.bottom),
+      padding: EdgeInsets.fromLTRB(6, 6, 6, mq.viewInsets.bottom + 10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // drag handle
-          Center(
-            child: Container(
-              width: 44,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 18),
-              decoration: BoxDecoration(
-                color: AppColors.line,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
+          const SizedBox(height: 10),
           Text(
             widget.purpose == OrderPurpose.course
                 ? l.orderSheetCourseTitle
                 : l.orderSheetAudiobookTitle,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: textColor,
+            ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            widget.targetTitle,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppColors.muted),
-          ),
-          const SizedBox(height: 20),
-          // Amount (read-only — pulled from server-side data)
+          const SizedBox(height: 12),
+          // Item summary — icon, title, price (mockup 1c)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.wine100,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.wine.withValues(alpha: 0.18)),
+              color: AppColors.wine.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(l.amountLabel,
-                    style: const TextStyle(
-                      color: AppColors.wine,
-                      fontWeight: FontWeight.w700,
-                    )),
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.wineGradient,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    widget.purpose == OrderPurpose.course
+                        ? Icons.play_arrow_rounded
+                        : Icons.headphones_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.targetTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Text(
-                  l.sumPrice(widget.amount.toStringAsFixed(0)),
-                  style: const TextStyle(
-                    color: AppColors.wine,
-                    fontSize: 20,
+                  widget.amount.toStringAsFixed(0),
+                  style: TextStyle(
+                    fontSize: 13,
                     fontWeight: FontWeight.w800,
+                    color: dark ? AppColors.wine300 : AppColors.wine,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Text(l.paymentMethod,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.muted)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
+          Text(
+            l.paymentMethod.toUpperCase(),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+              color: mutedColor,
+            ),
+          ),
+          const SizedBox(height: 8),
           _MethodPicker(
             selected: _method,
             onChanged: (m) => setState(() => _method = m),
@@ -251,37 +269,56 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
               color: const Color(0xFF7B2CBF),
             )
           else
-            _RedirectHintCard(
+            const _RedirectHintCard(
               icon: Icons.credit_card_rounded,
               title: 'Uzum Nasiya orqali bo\'lib to\'lash',
               body: 'Davom etsangiz, ro\'yxatdan o\'tish (agar kerak bo\'lsa), '
                   'to\'lov muddatini tanlash va SMS kod bilan tasdiqlash '
                   'bosqichlariga o\'tasiz.',
-              color: const Color(0xFFFF6B35),
+              color: Color(0xFFFF6B35),
             ),
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(_error!,
-                style: const TextStyle(
-                    color: Colors.redAccent, fontSize: 12)),
+                style:
+                    const TextStyle(color: AppColors.danger, fontSize: 12)),
           ],
-          const SizedBox(height: 22),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _submitting ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _method == OrderPaymentMethod.uzum
-                    ? const Color(0xFF7B2CBF)
-                    : _method == OrderPaymentMethod.uzumNasiya
-                        ? const Color(0xFFFF6B35)
-                        : AppColors.wine,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                textStyle:
-                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+          const SizedBox(height: 16),
+          // Jami row (mockup 1c)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(l.amountLabel,
+                    style: TextStyle(fontSize: 13, color: mutedColor)),
+                Text(
+                  l.sumPrice(widget.amount.toStringAsFixed(0)),
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          GlassPressable(
+            onTap: _submitting ? null : _submit,
+            child: Container(
+              height: 54,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: AppColors.wineGradient,
+                borderRadius: BorderRadius.circular(AppColors.radiusButton),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.wine.withValues(alpha: 0.30),
+                    blurRadius: 28,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
               ),
               child: _submitting
                   ? const SizedBox(
@@ -295,6 +332,11 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
                         OrderPaymentMethod.uzumNasiya => 'Davom etish',
                         OrderPaymentMethod.uzum => l.orderSubmit,
                       },
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
                     ),
             ),
           ),
@@ -305,8 +347,8 @@ class _OrderRequestSheetState extends ConsumerState<_OrderRequestSheet> {
                   ? 'So\'rov admin tomonidan ko\'rib chiqiladi. Tasdiqlangandan so\'ng kurs avtomatik ochiladi.'
                   : l.orderSheetFooter,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                  color: AppColors.muted, fontSize: 12, height: 1.4),
+              style:
+                  TextStyle(color: mutedColor, fontSize: 11, height: 1.4),
             ),
           ),
         ],
@@ -321,9 +363,9 @@ class _CashInstructions extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green.withValues(alpha: 0.06),
+        color: AppColors.success.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,11 +376,11 @@ class _CashInstructions extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.15),
+                  color: AppColors.success.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.payments_rounded,
-                    color: Colors.green, size: 17),
+                    color: AppColors.success, size: 17),
               ),
               const SizedBox(width: 10),
               const Text(
@@ -346,23 +388,23 @@ class _CashInstructions extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
-                  color: Colors.green,
+                  color: AppColors.success,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          _Step(
+          const _Step(
             number: '1',
             text: 'Quyidagi tugmani bosib so\'rov yuboring',
           ),
           const SizedBox(height: 8),
-          _Step(
+          const _Step(
             number: '2',
             text: 'Admin siz bilan bog\'lanadi yoki ofisga kelib to\'lovni amalga oshiring',
           ),
           const SizedBox(height: 8),
-          _Step(
+          const _Step(
             number: '3',
             text: 'To\'lov tasdiqlanganidan so\'ng kurs avtomatik ravishda ochiladi',
           ),
@@ -372,13 +414,13 @@ class _CashInstructions extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+              border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.phone_rounded, size: 16, color: Colors.green),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.phone_rounded, size: 16, color: AppColors.success),
+                SizedBox(width: 8),
+                Text(
                   '+998 71 200 00 00',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
@@ -474,14 +516,14 @@ class _Step extends StatelessWidget {
           width: 22,
           height: 22,
           decoration: BoxDecoration(
-            color: Colors.green.withValues(alpha: 0.15),
+            color: AppColors.success.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           child: Center(
             child: Text(
               number,
               style: const TextStyle(
-                color: Colors.green,
+                color: AppColors.success,
                 fontWeight: FontWeight.w800,
                 fontSize: 12,
               ),
@@ -512,6 +554,9 @@ class _MethodPicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
     // Fail open on a loading/error availability check — only the backend's
     // circuit breaker (an explicit `available: false`) should disable this
     // tile, a flaky availability request itself shouldn't.
@@ -520,20 +565,12 @@ class _MethodPicker extends ConsumerWidget {
       data: (v) => v.available,
       orElse: () => true,
     );
-    final items = <(OrderPaymentMethod, String, IconData, Color, bool, String)>[
-      (
-        OrderPaymentMethod.cash,
-        l.methodCash,
-        Icons.payments_rounded,
-        AppColors.wine,
-        true,
-        '',
-      ),
+    final items = <(OrderPaymentMethod, String, IconData, bool, String)>[
+      (OrderPaymentMethod.cash, l.methodCash, Icons.payments_rounded, true, ''),
       (
         OrderPaymentMethod.uzum,
         l.methodUzum,
         Icons.account_balance_wallet_rounded,
-        const Color(0xFF7B2CBF),
         false,
         'Tez kunda',
       ),
@@ -541,80 +578,98 @@ class _MethodPicker extends ConsumerWidget {
         OrderPaymentMethod.uzumNasiya,
         l.methodUzumNasiya,
         Icons.credit_card_rounded,
-        const Color(0xFFFF6B35),
         nasiyaAvailable,
         'Texnik ishlar',
       ),
     ];
-    return Row(
-      children: List.generate(items.length, (i) {
-        final it = items[i];
-        final active = it.$1 == selected;
-        final isAvailable = it.$5;
-        final accent = it.$4;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: i < items.length - 1 ? 8 : 0),
-            child: Opacity(
-              opacity: isAvailable ? 1.0 : 0.5,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: isAvailable ? () => onChanged(it.$1) : null,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: active ? accent : Colors.white,
-                    border: Border.all(
-                      color: active ? accent : AppColors.line,
-                      width: 1.4,
+    final selectedIndex =
+        items.indexWhere((it) => it.$1 == selected).clamp(0, items.length - 1);
+
+    // Segmented pill with a morphing indicator (mockup 1c).
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final segmentWidth = (constraints.maxWidth - 8) / items.length;
+        return Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: AppColors.wine.withValues(alpha: dark ? 0.14 : 0.06),
+            borderRadius: BorderRadius.circular(AppColors.radiusButton),
+          ),
+          child: SizedBox(
+            height: 58,
+            child: Stack(
+              children: [
+                AnimatedPositioned(
+                  duration: GlassMotion.tabMorph,
+                  curve: GlassMotion.tabMorphCurve,
+                  left: segmentWidth * selectedIndex,
+                  width: segmentWidth,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: dark
+                          ? Colors.white.withValues(alpha: 0.14)
+                          : Colors.white.withValues(alpha: 0.92),
+                      borderRadius:
+                          BorderRadius.circular(AppColors.radiusSegment),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.wineDeep
+                              .withValues(alpha: dark ? 0.3 : 0.12),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 10),
-                      Icon(
-                        it.$3,
-                        color: active ? Colors.white : accent,
-                        size: 22,
-                      ),
-                      const SizedBox(height: 6),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Text(
-                          it.$2,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: active ? Colors.white : AppColors.ink,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Opacity(
-                        opacity: isAvailable ? 0 : 1,
-                        child: Text(
-                          it.$6,
-                          style: TextStyle(
-                            color: accent,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
-              ),
+                Row(
+                  children: [
+                    for (final it in items)
+                      Expanded(
+                        child: Opacity(
+                          opacity: it.$4 ? 1.0 : 0.45,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: it.$4 ? () => onChanged(it.$1) : null,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  it.$3,
+                                  size: 18,
+                                  color: it.$1 == selected
+                                      ? (dark
+                                          ? AppColors.wine300
+                                          : AppColors.wine)
+                                      : mutedColor,
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  it.$4 || it.$5.isEmpty ? it.$2 : it.$5,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: it.$1 == selected
+                                        ? textColor
+                                        : mutedColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
         );
-      }),
+      },
     );
   }
 }

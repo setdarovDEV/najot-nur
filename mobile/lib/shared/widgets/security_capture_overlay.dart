@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../services/security_service.dart';
+import 'secure_screen.dart';
 
 /// Black/dark overlay shown the instant the OS reports a screen-capture
 /// attempt. The warning is a single, unmovable banner so the user can see
@@ -20,6 +21,24 @@ class SecurityCaptureOverlay extends ConsumerWidget {
     final status = ref.watch(securityStatusProvider).valueOrNull;
     final captured = status?.isCaptured ?? false;
     if (!captured) return child;
+    // Capture is only *blocked/flagged* on paid video-lesson screens — the
+    // rest of the app allows screenshots/recording, so no warning there.
+    return ValueListenableBuilder<bool>(
+      valueListenable: SecureScreen.protectionActive,
+      builder: (context, protected, _) {
+        if (!protected) return child;
+        return _CaptureWarning(child: child);
+      },
+    );
+  }
+}
+
+class _CaptureWarning extends StatelessWidget {
+  const _CaptureWarning({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Stack(
       children: [

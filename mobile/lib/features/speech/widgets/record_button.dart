@@ -115,6 +115,8 @@ class _RecordButtonState extends State<RecordButton>
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
     return Column(
       children: [
         GestureDetector(
@@ -129,14 +131,21 @@ class _RecordButtonState extends State<RecordButton>
               width: 92,
               height: 92,
               decoration: BoxDecoration(
-                color: _recording ? AppColors.danger : AppColors.wine,
+                gradient: _recording ? null : AppColors.wineGradient,
+                color: _recording ? AppColors.danger : null,
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: dark
+                      ? AppColors.glassHighlightDark
+                      : AppColors.glassHighlightLight,
+                  width: 1.5,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: (_recording ? AppColors.danger : AppColors.wine)
-                        .withValues(alpha: 0.4),
-                    blurRadius: 24,
-                    spreadRadius: 2,
+                        .withValues(alpha: 0.40),
+                    blurRadius: 30,
+                    offset: const Offset(0, 14),
                   ),
                 ],
               ),
@@ -158,7 +167,7 @@ class _RecordButtonState extends State<RecordButton>
         Text(
           _recording ? _label : 'Yozishni boshlash uchun bosing',
           style: TextStyle(
-            color: _recording ? AppColors.danger : AppColors.muted,
+            color: _recording ? AppColors.danger : mutedColor,
             fontWeight: FontWeight.w700,
             fontVariations: const [FontVariation('wght', 700)],
           ),

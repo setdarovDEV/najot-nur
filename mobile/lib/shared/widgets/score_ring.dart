@@ -20,11 +20,16 @@ class ScoreRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       width: size,
       height: size,
       child: CustomPaint(
-        painter: _RingPainter(score / 100, _color),
+        painter: _RingPainter(
+          score / 100,
+          _color,
+          dark ? AppColors.lineDark : AppColors.line,
+        ),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -43,7 +48,8 @@ class ScoreRing extends StatelessWidget {
                   label!,
                   style: TextStyle(
                     fontSize: size * 0.1,
-                    color: AppColors.muted,
+                    fontWeight: FontWeight.w700,
+                    color: dark ? AppColors.mutedDark : AppColors.muted,
                   ),
                 ),
             ],
@@ -55,16 +61,17 @@ class ScoreRing extends StatelessWidget {
 }
 
 class _RingPainter extends CustomPainter {
-  _RingPainter(this.progress, this.color);
+  _RingPainter(this.progress, this.color, this.trackColor);
   final double progress;
   final Color color;
+  final Color trackColor;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
     final radius = size.width / 2 - 8;
     final bg = Paint()
-      ..color = AppColors.line
+      ..color = trackColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 12
       ..strokeCap = StrokeCap.round;
@@ -86,5 +93,7 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) =>
-      old.progress != progress || old.color != color;
+      old.progress != progress ||
+      old.color != color ||
+      old.trackColor != trackColor;
 }

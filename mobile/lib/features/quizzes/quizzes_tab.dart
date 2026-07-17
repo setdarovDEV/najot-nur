@@ -2,24 +2,54 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/glass.dart';
 import '../../l10n/gen/app_localizations.dart';
+import '../../models/practicum_models.dart';
 import '../../models/quiz_models.dart';
 import '../../providers/providers.dart';
+import '../../shared/widgets/common.dart';
 import '../../shared/widgets/enrollment_lock.dart';
-import '../practicums/practicum_card.dart';
 
-class QuizzesTab extends ConsumerWidget {
+/// Tests tab, Liquid Glass mockup "5a": in-scroll large title, uppercase
+/// section eyebrows and glass rows with icon chips for quizzes and
+/// practicums. Data still comes from [quizzesProvider]/[practicumsProvider]
+/// and navigation is unchanged.
+class QuizzesTab extends ConsumerStatefulWidget {
   const QuizzesTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<QuizzesTab> createState() => _QuizzesTabState();
+}
+
+class _QuizzesTabState extends ConsumerState<QuizzesTab> {
+  final _scrollOffset = ValueNotifier<double>(0);
+
+  @override
+  void dispose() {
+    _scrollOffset.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final auth = ref.watch(authControllerProvider);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final topInset = MediaQuery.of(context).padding.top;
 
     if (!auth.isLoggedIn) {
-      return _LoginGate(l: l);
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            const AmbientOrbs(),
+            _LoginGate(l: l),
+          ],
+        ),
+      );
     }
 
     final enrollment = ref.watch(enrollmentStatusProvider);
@@ -29,220 +59,211 @@ class QuizzesTab extends ConsumerWidget {
       data: (s) => !s.hasActiveEnrollment && !s.isStaff,
     );
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: AppColors.surface,
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                child: Text(
-                  l.testsTitle,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.w800),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Text(
-                  'Testlar va ovozli mashqlar',
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              if (isLocked)
-                GestureDetector(
-                  onTap: () => context.go('/home'),
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.wine.withValues(alpha: 0.12),
-                          AppColors.wine.withValues(alpha: 0.06),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                          color: AppColors.wine.withValues(alpha: 0.25)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.lock_outline_rounded,
-                            color: AppColors.wine, size: 16),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            'Ko\'rish rejimi — topshirish uchun kurs kerak',
-                            style: TextStyle(
-                                color: AppColors.wine,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600),
-                          ),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          const AmbientOrbs(),
+          NotificationListener<ScrollNotification>(
+            onNotification: (n) {
+              if (n.metrics.axis == Axis.vertical) {
+                _scrollOffset.value = n.metrics.pixels;
+              }
+              return false;
+            },
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(16, topInset + 18, 16, 150),
+              children: [
+                GlassEntrance(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.testsTitle,
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                          color: textColor,
                         ),
-                        const Icon(Icons.arrow_forward_ios_rounded,
-                            size: 12, color: AppColors.wine),
-                      ],
-                    ),
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  height: 44,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.line),
-                  ),
-                  child: TabBar(
-                    indicator: BoxDecoration(
-                      color: AppColors.wine,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    indicatorPadding: EdgeInsets.zero,
-                    dividerColor: Colors.transparent,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: AppColors.ink,
-                    labelStyle: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                    unselectedLabelStyle: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                    tabs: const [
-                      Tab(text: 'Testlar'),
-                      Tab(text: 'Praktikumlar'),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Viktorinalar va psixologik testlar',
+                        style: TextStyle(fontSize: 12.5, color: mutedColor),
+                      ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              const Expanded(
-                child: TabBarView(
-                  children: [
-                    _QuizzesList(),
-                    _PracticumsList(),
-                  ],
+                if (isLocked) ...[
+                  const SizedBox(height: 12),
+                  GlassEntrance(
+                    delay: GlassMotion.entranceStep,
+                    child: _ViewModeBanner(
+                      onTap: () => context.go('/home'),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                GlassEntrance(
+                  delay: GlassMotion.entranceStep,
+                  child: _PsychologyCard(
+                    onTap: () => context.push('/psychology'),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 18),
+                GlassEntrance(
+                  delay: GlassMotion.entranceStep * 2,
+                  child: _SectionEyebrow('Testlar'.toUpperCase()),
+                ),
+                const SizedBox(height: 10),
+                ..._buildQuizzes(context, l),
+                const SizedBox(height: 18),
+                GlassEntrance(
+                  delay: GlassMotion.entranceStep * 3,
+                  child: _SectionEyebrow('Praktikumlar'.toUpperCase()),
+                ),
+                const SizedBox(height: 10),
+                ..._buildPracticums(context, l, isLocked),
+              ],
+            ),
           ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: GlassTopChrome(offset: _scrollOffset, title: l.testsTitle),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildQuizzes(BuildContext context, AppLocalizations l) {
+    final quizzesAsync = ref.watch(quizzesProvider);
+    return quizzesAsync.when(
+      loading: () => const [
+        Padding(padding: EdgeInsets.symmetric(vertical: 24), child: AppLoader()),
+      ],
+      error: (e, _) => [
+        ErrorView(
+          message: e.toString(),
+          onRetry: () => ref.invalidate(quizzesProvider),
+        ),
+      ],
+      data: (list) {
+        if (list.isEmpty) {
+          return [
+            _SectionEmpty(icon: Icons.quiz_outlined, message: l.noQuizzes),
+          ];
+        }
+        return [
+          for (var i = 0; i < list.length; i++) ...[
+            GlassEntrance(
+              delay: GlassMotion.entranceStep * (2 + i),
+              child: _QuizCard(quiz: list[i]),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ];
+      },
+    );
+  }
+
+  List<Widget> _buildPracticums(
+      BuildContext context, AppLocalizations l, bool isLocked) {
+    final practicumsAsync = ref.watch(practicumsProvider);
+    return practicumsAsync.when(
+      loading: () => const [
+        Padding(padding: EdgeInsets.symmetric(vertical: 24), child: AppLoader()),
+      ],
+      error: (e, _) => [
+        ErrorView(
+          message: e.toString(),
+          onRetry: () => ref.invalidate(practicumsProvider),
+        ),
+      ],
+      data: (list) {
+        final approved = list.where((p) => p.status == 'approved').toList();
+        if (approved.isEmpty) {
+          return [
+            _SectionEmpty(
+              icon: Icons.headphones_outlined,
+              message: l.noPracticums,
+            ),
+          ];
+        }
+        return [
+          for (var i = 0; i < approved.length; i++) ...[
+            GlassEntrance(
+              delay: GlassMotion.entranceStep * (4 + i),
+              child: _PracticumCard(
+                practicum: approved[i],
+                isLocked: isLocked,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ];
+      },
+    );
+  }
+}
+
+// ───────────────────────── Section pieces ─────────────────────────
+
+class _SectionEyebrow extends StatelessWidget {
+  const _SectionEyebrow(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1,
+          color: mutedColor,
         ),
       ),
     );
   }
 }
 
-class _QuizzesList extends ConsumerWidget {
-  const _QuizzesList();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final quizzesAsync = ref.watch(quizzesProvider);
-
-    return quizzesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text(l.errorPrefix(e.toString()))),
-      data: (list) => list.isEmpty
-          ? _EmptyBlock(
-              icon: Icons.quiz_outlined,
-              message: l.noQuizzes,
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-              itemCount: list.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, i) => _QuizCard(quiz: list[i]),
-            ),
-    );
-  }
-}
-
-class _PracticumsList extends ConsumerWidget {
-  const _PracticumsList();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final practicumsAsync = ref.watch(practicumsProvider);
-    final isLocked = ref.watch(enrollmentStatusProvider).when(
-      loading: () => false,
-      error: (_, __) => false,
-      data: (s) => !s.hasActiveEnrollment && !s.isStaff,
-    );
-
-    return practicumsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text(l.errorPrefix(e.toString()))),
-      data: (list) {
-        final approved = list.where((p) => p.status == 'approved').toList();
-        if (approved.isEmpty) {
-          return _EmptyBlock(
-            icon: Icons.headphones_outlined,
-            message: l.noPracticums,
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-          itemCount: approved.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (_, i) => PracticumInlineCard(
-            practicum: approved[i],
-            isLocked: isLocked,
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _EmptyBlock extends StatelessWidget {
-  const _EmptyBlock({required this.icon, required this.message});
-  final IconData icon;
-  final String message;
+class _ViewModeBanner extends StatelessWidget {
+  const _ViewModeBanner({required this.onTap});
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+    return GlassPressable(
+      onTap: onTap,
+      child: GlassContainer(
+        borderRadius: AppColors.radiusSegment,
+        withShadow: false,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        child: Row(
           children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.wine.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 40, color: AppColors.wine),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.muted,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
+            Icon(Icons.lock_outline_rounded, color: accent, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                "Ko'rish rejimi — topshirish uchun kurs kerak",
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
+            Icon(Icons.arrow_forward_ios_rounded, size: 12, color: accent),
           ],
         ),
       ),
@@ -256,38 +277,196 @@ class _LoginGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.quiz_outlined,
-                size: 64, color: AppColors.wine.withValues(alpha: 0.6)),
-            const SizedBox(height: 20),
-            Text(
-              l.loginRequired,
-              textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+        padding: const EdgeInsets.all(24),
+        child: GlassEntrance(
+          child: GlassContainer(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 66,
+                  height: 66,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: dark
+                        ? AppColors.wine300.withValues(alpha: 0.16)
+                        : AppColors.wine.withValues(alpha: 0.10),
+                  ),
+                  child: Icon(Icons.quiz_outlined, size: 28, color: accent),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  l.loginRequired,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w800,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                GlassPressable(
+                  onTap: () => context.push('/auth'),
+                  child: Container(
+                    height: 54,
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.wineGradient,
+                      borderRadius:
+                          BorderRadius.circular(AppColors.radiusButton),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.wine.withValues(alpha: 0.30),
+                          blurRadius: 28,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      l.loginRequiredBtn,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: () => context.push('/auth'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.wine,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact inline empty state for a section — same fixed height for both
+/// the quizzes and practicums sections so empty blocks always match.
+class _SectionEmpty extends StatelessWidget {
+  const _SectionEmpty({required this.icon, required this.message});
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
+    return GlassContainer(
+      borderRadius: AppColors.radiusTariffCard,
+      withShadow: false,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: dark
+                  ? AppColors.wine300.withValues(alpha: 0.16)
+                  : AppColors.wine.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: accent, size: 21),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: mutedColor,
               ),
-              child: Text(
-                l.loginRequiredBtn,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────── Cards ─────────────────────────
+
+/// Featured psychology-test card (mockup 5a's highlighted result card slot):
+/// orange-tinted icon, title + subtitle, chevron — routes to the existing
+/// /psychology flow.
+class _PsychologyCard extends StatelessWidget {
+  const _PsychologyCard({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+
+    return GlassPressable(
+      onTap: onTap,
+      child: GlassContainer(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'PSIXOLOGIK TEST',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+                color: AppColors.orange,
               ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: AppColors.orange.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.psychology_rounded,
+                      color: AppColors.orange, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.psychologyTest,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l.psychologyTestSub,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: mutedColor),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded,
+                    color: mutedColor, size: 22),
+              ],
             ),
           ],
         ),
@@ -303,11 +482,11 @@ class _QuizCard extends StatelessWidget {
   Color _diffColor() {
     switch (quiz.difficulty) {
       case 'easy':
-        return Colors.green;
+        return AppColors.success;
       case 'hard':
-        return Colors.red;
+        return AppColors.danger;
       default:
-        return Colors.orange;
+        return AppColors.warning;
     }
   }
 
@@ -325,102 +504,77 @@ class _QuizCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final imageUrl = _absoluteUrl(quiz.coverImageUrl);
-    final hasImage = imageUrl != null;
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => context.push('/quizzes/${quiz.id}'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
+    return GlassPressable(
+      onTap: () => context.push('/quizzes/${quiz.id}'),
+      child: GlassContainer(
+        borderRadius: AppColors.radiusTariffCard,
+        withShadow: false,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
           children: [
-            if (hasImage)
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20)),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: AppColors.wine.withValues(alpha: 0.08),
-                      child: const Icon(Icons.image_not_supported_outlined,
-                          color: AppColors.muted),
-                    ),
-                  ),
-                ),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: dark
+                    ? AppColors.wine300.withValues(alpha: 0.16)
+                    : AppColors.wine.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(14),
               ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
+              child: Icon(Icons.quiz_rounded, color: accent, size: 21),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: AppColors.wine.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.quiz_rounded,
-                        color: AppColors.wine, size: 24),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          quiz.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 15),
-                        ),
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: _diffColor().withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                _diffLabel(l),
-                                style: TextStyle(
-                                    color: _diffColor(),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                            Text(
-                              l.quizQuestions(quiz.questionCount),
-                              style: const TextStyle(
-                                  color: AppColors.muted, fontSize: 12),
-                            ),
-                            if (quiz.videoUrl != null) ...[
-                              const _Badge(
-                                icon: Icons.play_circle_outline_rounded,
-                                label: 'Video',
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
+                  Text(
+                    quiz.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: AppColors.muted),
+                  const SizedBox(height: 2),
+                  Text(
+                    [
+                      l.quizQuestions(quiz.questionCount),
+                      if (quiz.videoUrl != null) 'Video',
+                    ].join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11.5, color: mutedColor),
+                  ),
                 ],
               ),
             ),
+            const SizedBox(width: 10),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _diffColor().withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                _diffLabel(l),
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  color: _diffColor(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right_rounded, color: mutedColor, size: 20),
           ],
         ),
       ),
@@ -428,39 +582,73 @@ class _QuizCard extends StatelessWidget {
   }
 }
 
-class _Badge extends StatelessWidget {
-  const _Badge({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
+class _PracticumCard extends StatelessWidget {
+  const _PracticumCard({required this.practicum, required this.isLocked});
+  final Practicum practicum;
+  final bool isLocked;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: Colors.blue.shade700),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-                color: Colors.blue.shade700,
-                fontSize: 11,
-                fontWeight: FontWeight.w600),
-          ),
-        ],
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+
+    return GlassPressable(
+      onTap: () => context.push('/practicums/${practicum.id}'),
+      child: GlassContainer(
+        borderRadius: AppColors.radiusTariffCard,
+        withShadow: false,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppColors.blue.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.headphones_rounded,
+                  color: AppColors.blue, size: 21),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    practicum.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                  if (practicum.category != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      practicum.category!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 11.5, color: mutedColor),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Icon(
+              isLocked
+                  ? Icons.lock_outline_rounded
+                  : Icons.chevron_right_rounded,
+              color: mutedColor,
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }
-}
-
-String? _absoluteUrl(String? path) {
-  if (path == null || path.isEmpty) return null;
-  if (path.startsWith('http')) return path;
-  return '${AppConstants.apiUrl}$path';
 }

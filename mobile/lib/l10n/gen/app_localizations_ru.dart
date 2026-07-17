@@ -435,6 +435,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeFeatures => 'Возможности';
 
   @override
+  String get homeRecommended => 'Рекомендуем';
+
+  @override
   String get free => 'Бесплатно';
 
   @override
@@ -1325,4 +1328,27 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get tryAgain => 'Попробовать снова';
+
+  @override
+  String get levelBeginner => 'Начальный';
+
+  @override
+  String get levelIntermediate => 'Средний';
+
+  @override
+  String get levelAdvanced => 'Продвинутый';
+
+  @override
+  String get filterAll => 'Все';
+
+  @override
+  String get searchCoursesHint => 'Поиск курсов…';
+
+  @override
+  String coursesCount(int count) {
+    return '$count курсов';
+  }
+
+  @override
+  String get priceLabel => 'Цена';
 }

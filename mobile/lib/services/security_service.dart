@@ -16,6 +16,7 @@ import '../core/network/token_store.dart';
 import '../data/repositories.dart';
 import '../models/user.dart';
 import '../providers/providers.dart';
+import '../shared/widgets/secure_screen.dart';
 import 'security_channel.dart';
 
 /// State broadcast for the rest of the UI.
@@ -89,7 +90,13 @@ class SecurityService {
   /// 5) record a 5-second audio clip and upload it as identity proof.
   Future<void> onLogin(AppUser user) async {
     try {
-      await SecurityChannel.instance.setSecure(enabled: true);
+      // FLAG_SECURE is no longer applied app-wide — screenshots/recording are
+      // allowed everywhere except the paid video-lesson screens, which toggle
+      // it themselves via SecureScreen (shared/widgets/secure_screen.dart).
+      // Don't clear the flag if a secure screen happens to be on stack.
+      if (!SecureScreen.protectionActive.value) {
+        await SecurityChannel.instance.setSecure(enabled: false);
+      }
 
       // Subscribe to native capture / mirror events.
       _captureSub ??= SecurityChannel.instance.onCaptureChanged.listen((cap) {

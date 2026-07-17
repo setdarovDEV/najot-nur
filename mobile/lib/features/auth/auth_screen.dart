@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/glass.dart';
 import '../../core/utils/phone_formatter.dart';
 import '../../data/repositories.dart';
 import '../../l10n/gen/app_localizations.dart';
@@ -258,50 +259,61 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+
     return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        foregroundColor: AppColors.wine,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        leading: _step != _Step.phone
-            ? IconButton(
-                onPressed: _loading ? null : _goBack,
-                icon: const Icon(Icons.arrow_back),
-              )
-            : null,
-        title: Text(
-          l.registerLogin,
-          style: const TextStyle(
-            color: AppColors.wine,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _ModeTabs(
-                  controller: _tabController,
-                  loginLabel: l.login,
-                  registerLabel: l.register,
+      body: Stack(
+        children: [
+          const AmbientOrbs(),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        if (_step != _Step.phone)
+                          _GlassBackButton(
+                            onTap: _loading ? null : _goBack,
+                          )
+                        else
+                          const SizedBox(width: 40, height: 40),
+                        Expanded(
+                          child: Text(
+                            l.registerLogin,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 40),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _ModeTabs(
+                      controller: _tabController,
+                      loginLabel: l.login,
+                      registerLabel: l.register,
+                    ),
+                    const SizedBox(height: 20),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: _buildStep(l),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: _buildStep(l),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -356,6 +368,39 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   }
 }
 
+/// Circular frosted back button used above the step content.
+class _GlassBackButton extends StatelessWidget {
+  const _GlassBackButton({required this.onTap});
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return GlassPressable(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: dark ? AppColors.glassFillDark : AppColors.glassFillLight,
+          border: Border.all(
+            color:
+                dark ? AppColors.glassStrokeDark : AppColors.glassStrokeLight,
+            width: 0.5,
+          ),
+        ),
+        child: Icon(
+          Icons.arrow_back_rounded,
+          size: 20,
+          color: dark ? AppColors.inkDarkPrimary : AppColors.ink,
+        ),
+      ),
+    );
+  }
+}
+
+/// Login / Register segmented control on a glass track (mockup segments).
 class _ModeTabs extends StatelessWidget {
   const _ModeTabs({
     required this.controller,
@@ -369,26 +414,41 @@ class _ModeTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+
     return Container(
       height: 48,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.wine100,
-        borderRadius: BorderRadius.circular(14),
+        color: dark ? AppColors.glassFillDark : AppColors.glassFillLight,
+        borderRadius: BorderRadius.circular(AppColors.radiusSegment),
+        border: Border.all(
+          color: dark ? AppColors.glassStrokeDark : AppColors.glassStrokeLight,
+          width: 0.5,
+        ),
       ),
       child: TabBar(
         controller: controller,
         indicator: BoxDecoration(
-          color: AppColors.wine,
-          borderRadius: BorderRadius.circular(10),
+          gradient: AppColors.wineGradient,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.wine.withValues(alpha: 0.30),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
         labelColor: Colors.white,
-        unselectedLabelColor: AppColors.wine,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        unselectedLabelColor: mutedColor,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
         unselectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        splashBorderRadius: BorderRadius.circular(12),
         tabs: [
           Tab(text: loginLabel),
           Tab(text: registerLabel),
@@ -416,34 +476,73 @@ class _PhoneStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 8),
-        Text(
-          l.enterPhoneTitle,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppColors.wine,
+        const SizedBox(height: 16),
+        GlassEntrance(
+          child: Column(
+            children: [
+              const AuthBrandMark(),
+              const SizedBox(height: 16),
+              Text(
+                l.welcome,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 23,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                  color: textColor,
+                ),
               ),
+              const SizedBox(height: 5),
+              Text(
+                mode == _AuthMode.login
+                    ? l.enterPhoneForLogin
+                    : l.enterPhoneForRegister,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: mutedColor, fontSize: 13),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          mode == _AuthMode.login
-              ? l.enterPhoneForLogin
-              : l.enterPhoneForRegister,
-          style: const TextStyle(color: AppColors.muted, fontSize: 14),
-        ),
-        const SizedBox(height: 24),
-        PhoneField(controller: phone),
-        if (error != null) ...[
-          const SizedBox(height: 12),
-          Text(error!, style: const TextStyle(color: AppColors.danger)),
-        ],
-        const SizedBox(height: 28),
-        ElevatedButton(
-          onPressed: loading ? null : onSubmit,
-          child: loading ? const Spinner() : Text(l.continueAction),
+        const SizedBox(height: 22),
+        GlassEntrance(
+          delay: GlassMotion.entranceStep,
+          child: GlassContainer(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PhoneField(controller: phone),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(error!,
+                      style: const TextStyle(color: AppColors.danger)),
+                ],
+                const SizedBox(height: 14),
+                GlassCta(
+                  label: l.continueAction,
+                  loading: loading,
+                  onTap: onSubmit,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  l.termsNotice,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    height: 1.5,
+                    color: mutedColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -474,65 +573,94 @@ class _PasswordStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Text(
-          l.enterPasswordFor(phone),
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppColors.wine,
+        GlassEntrance(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l.enterPasswordFor(phone),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                ),
               ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          l.loginSubtitle,
-          style: const TextStyle(color: AppColors.muted, fontSize: 14),
-        ),
-        const SizedBox(height: 24),
-        TextFormField(
-          controller: password,
-          obscureText: obscure,
-          textInputAction: TextInputAction.done,
-          onFieldSubmitted: (_) => onSubmit(),
-          validator: (v) {
-            if (v == null || v.trim().length < 6) {
-              return l.passwordTooShort;
-            }
-            return null;
-          },
-          decoration: InputDecoration(
-            labelText: l.password,
-            prefixIcon: const Icon(Icons.lock_outline, color: AppColors.wine),
-            suffixIcon: IconButton(
-              onPressed: onToggleObscure,
-              icon: Icon(
-                obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                color: AppColors.muted,
+              const SizedBox(height: 6),
+              Text(
+                l.loginSubtitle,
+                style: TextStyle(color: mutedColor, fontSize: 14),
               ),
-            ),
+            ],
           ),
         ),
-        if (error != null) ...[
-          const SizedBox(height: 12),
-          Text(error!, style: const TextStyle(color: AppColors.danger)),
-        ],
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: loading ? null : onForgot,
-            child: Text(
-              l.forgotPassword,
-              style: const TextStyle(color: AppColors.wine),
+        const SizedBox(height: 20),
+        GlassEntrance(
+          delay: GlassMotion.entranceStep,
+          child: GlassContainer(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: password,
+                  obscureText: obscure,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => onSubmit(),
+                  style: TextStyle(color: textColor),
+                  validator: (v) {
+                    if (v == null || v.trim().length < 6) {
+                      return l.passwordTooShort;
+                    }
+                    return null;
+                  },
+                  decoration: glassFieldDecoration(
+                    context,
+                    label: l.password,
+                    prefixIcon: Icon(Icons.lock_outline, color: accent),
+                    suffixIcon: IconButton(
+                      onPressed: onToggleObscure,
+                      icon: Icon(
+                        obscure
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: mutedColor,
+                      ),
+                    ),
+                  ),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(error!,
+                      style: const TextStyle(color: AppColors.danger)),
+                ],
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: loading ? null : onForgot,
+                    child: Text(
+                      l.forgotPassword,
+                      style: TextStyle(
+                        color: accent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GlassCta(label: l.login, loading: loading, onTap: onSubmit),
+              ],
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: loading ? null : onSubmit,
-          child: loading ? const Spinner() : Text(l.login),
         ),
       ],
     );
@@ -645,32 +773,47 @@ class _RegisterInfoStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.wine100,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.line),
-          ),
-          child: CheckboxListTile(
-            value: offerAccepted,
-            onChanged: onOfferChanged,
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            activeColor: AppColors.wine,
-            title: Text(
-              l.offerAcceptTitle,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                l.offerAcceptSubtitle,
-                style: const TextStyle(color: AppColors.muted, fontSize: 12),
+        Builder(builder: (context) {
+          final dark = Theme.of(context).brightness == Brightness.dark;
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: dark
+                  ? AppColors.wine300.withValues(alpha: 0.12)
+                  : AppColors.wine100,
+              borderRadius: BorderRadius.circular(AppColors.radiusSegment),
+              border: Border.all(
+                color: dark ? AppColors.lineDark : AppColors.line,
+                width: 0.5,
               ),
             ),
-          ),
-        ),
+            child: CheckboxListTile(
+              value: offerAccepted,
+              onChanged: onOfferChanged,
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              activeColor: AppColors.wine,
+              title: Text(
+                l.offerAcceptTitle,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: dark ? AppColors.inkDarkPrimary : AppColors.ink,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  l.offerAcceptSubtitle,
+                  style: TextStyle(
+                    color: dark ? AppColors.mutedDark : AppColors.muted,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
         if (error != null) ...[
           const SizedBox(height: 12),
           Text(error!, style: const TextStyle(color: AppColors.danger)),

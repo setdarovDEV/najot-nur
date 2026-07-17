@@ -1,16 +1,34 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/glass.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/speech_models.dart';
+import '../../shared/widgets/score_ring.dart';
 import 'widgets/char_analysis_view.dart';
 
-class VoiceResultScreen extends StatelessWidget {
+/// AI pronunciation result, Liquid Glass mockup "3d": score ring on top,
+/// glass metric cards with progress bars, transcript card with
+/// danger-highlighted mispronounced words, then recommendation cards.
+class VoiceResultScreen extends StatefulWidget {
   const VoiceResultScreen({super.key, required this.analysis});
   final VoiceAnalysis analysis;
+
+  @override
+  State<VoiceResultScreen> createState() => _VoiceResultScreenState();
+}
+
+class _VoiceResultScreenState extends State<VoiceResultScreen> {
+  final _scrollOffset = ValueNotifier<double>(0);
+
+  VoiceAnalysis get analysis => widget.analysis;
+
+  @override
+  void dispose() {
+    _scrollOffset.dispose();
+    super.dispose();
+  }
 
   String _gradeTitle(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -82,12 +100,17 @@ class VoiceResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+    final topInset = MediaQuery.of(context).padding.top;
 
     final metrics = [
       _Metric(
         label: l.metricPronunciationAccuracy,
         value: analysis.accuracyScore,
-        color: AppColors.wine,
+        color: accent,
       ),
       _Metric(
         label: l.metricWordAccuracy,
@@ -107,192 +130,279 @@ class VoiceResultScreen extends StatelessWidget {
         ),
     ];
 
+    var entrance = 0;
+    Duration nextDelay() => GlassMotion.entranceStep * entrance++;
+
     return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: ListView(
-        padding: EdgeInsets.zero,
+      body: Stack(
         children: [
-          // ── Hero card ──────────────────────────────────────────────────────
-          _HeroCard(
-            score: analysis.overallScore,
-            title: _gradeTitle(context),
-            subtitle: _gradeSub(context),
-            screenTitle: l.voiceAnalysis,
-          ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const AmbientOrbs(),
+          NotificationListener<ScrollNotification>(
+            onNotification: (n) {
+              if (n.metrics.axis == Axis.vertical) {
+                _scrollOffset.value = n.metrics.pixels;
+              }
+              return false;
+            },
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(16, topInset + 12, 16, 60),
               children: [
-                // ── Waveform ─────────────────────────────────────────────────
-                _WaveformCard(),
-                const SizedBox(height: 20),
-
-                // ── Metrics ───────────────────────────────────────────────────
-                _SectionTitle(l.analysisMetrics),
-                const SizedBox(height: 12),
-                _MetricsCard(metrics: metrics),
-                const SizedBox(height: 20),
-
-                // ── Text with errors ──────────────────────────────────────────
-                _SectionTitle(l.textWithErrors),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.line),
+                GlassEntrance(
+                  delay: nextDelay(),
+                  child: Row(
+                    children: [
+                      _GlassBackButton(
+                          onTap: () => Navigator.of(context).maybePop()),
+                      Expanded(
+                        child: Text(
+                          l.voiceAnalysis,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 40),
+                    ],
                   ),
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                          fontSize: 17, height: 1.7, color: AppColors.ink),
-                      children: _spans(),
+                ),
+                const SizedBox(height: 14),
+                GlassEntrance(
+                  delay: nextDelay(),
+                  child: Column(
+                    children: [
+                      Text(
+                        l.voiceCheck.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                          color: mutedColor,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        _gradeTitle(context),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          color: textColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                GlassEntrance(
+                  delay: nextDelay(),
+                  child: Center(
+                    child: ScoreRing(
+                      score: analysis.overallScore,
+                      size: 150,
+                      label: 'umumiy ball',
                     ),
                   ),
                 ),
-                if (analysis.wordErrors.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: analysis.wordErrors
-                        .map(
-                          (e) => Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color:
-                                  AppColors.danger.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              e.word,
-                              style: const TextStyle(
-                                color: AppColors.danger,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
+                const SizedBox(height: 10),
+                GlassEntrance(
+                  delay: nextDelay(),
+                  child: Text(
+                    _gradeSub(context),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 12.5, height: 1.5, color: mutedColor),
                   ),
-                ] else ...[
-                  const SizedBox(height: 12),
-                  _SuccessRow(l.perfectPronunciation),
-                ],
-                const SizedBox(height: 20),
-
-                // ── Letter-by-letter analysis ─────────────────────────────────
-                if (analysis.hasCharAnalysis) ...[
-                  _SectionTitle(l.charLevelAnalysis),
-                  const SizedBox(height: 12),
-                  CharAnalysisView(analysis: analysis),
-                  const SizedBox(height: 20),
-                ],
-
-                // ── Summary ───────────────────────────────────────────────────
-                if (analysis.summary.isNotEmpty) ...[
-                  _SectionTitle(l.overallAnalysis),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppColors.wine100,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      analysis.summary,
-                      style: const TextStyle(
-                          height: 1.6, color: AppColors.ink),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-
-                // ── Phoneme errors ────────────────────────────────────────────
-                if (analysis.phonemeErrors.isNotEmpty) ...[
-                  _SectionTitle(l.soundErrors),
-                  const SizedBox(height: 10),
-                  ...analysis.phonemeErrors.map(
-                    (p) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.line),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.wine.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
+                ),
+                const SizedBox(height: 18),
+                GlassEntrance(
+                  delay: nextDelay(),
+                  child: _SectionLabel(l.analysisMetrics),
+                ),
+                const SizedBox(height: 10),
+                GlassEntrance(
+                  delay: nextDelay(),
+                  child: _MetricsCard(metrics: metrics),
+                ),
+                const SizedBox(height: 16),
+                GlassEntrance(
+                  delay: nextDelay(),
+                  child: _SectionLabel(l.textWithErrors),
+                ),
+                const SizedBox(height: 10),
+                GlassEntrance(
+                  delay: nextDelay(),
+                  child: GlassContainer(
+                    borderRadius: AppColors.radiusTariffCard,
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        RichText(
+                          text: TextSpan(
+                            style: TextStyle(
+                              fontSize: 15,
+                              height: 1.7,
+                              color: textColor,
                             ),
-                            child: const Icon(
-                              Icons.record_voice_over_rounded,
-                              color: AppColors.wine,
-                              size: 16,
-                            ),
+                            children: _spans(),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l.wordAndSound(
-                                    p['word']?.toString() ?? '',
-                                    p['sound']?.toString() ?? '',
-                                  ),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.ink,
-                                  ),
-                                ),
-                                if ((p['note']?.toString() ?? '').isNotEmpty)
-                                  Text(
-                                    p['note'].toString(),
-                                    style: const TextStyle(
-                                      color: AppColors.muted,
-                                      fontSize: 13,
-                                      height: 1.4,
+                        ),
+                        if (analysis.wordErrors.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: analysis.wordErrors
+                                .map(
+                                  (e) => Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 11, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.danger
+                                          .withValues(alpha: 0.12),
+                                      borderRadius:
+                                          BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      e.word,
+                                      style: const TextStyle(
+                                        color: AppColors.danger,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ),
-                              ],
-                            ),
+                                )
+                                .toList(),
                           ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Belgilangan so\'zlarda talaffuzni yaxshilash mumkin',
+                            style: TextStyle(
+                                fontSize: 10.5, color: mutedColor),
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 12),
+                          _SuccessRow(l.perfectPronunciation),
                         ],
-                      ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-
-                // ── Back button ────────────────────────────────────────────────
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.go('/home'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppColors.wine),
-                      foregroundColor: AppColors.wine,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: Text(l.backToHome),
                   ),
                 ),
-                const SizedBox(height: 32),
+                if (analysis.hasCharAnalysis) ...[
+                  const SizedBox(height: 16),
+                  GlassEntrance(
+                    delay: nextDelay(),
+                    child: _SectionLabel(l.charLevelAnalysis),
+                  ),
+                  const SizedBox(height: 10),
+                  GlassEntrance(
+                    delay: nextDelay(),
+                    child: CharAnalysisView(analysis: analysis),
+                  ),
+                ],
+                if (analysis.summary.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  GlassEntrance(
+                    delay: nextDelay(),
+                    child: _SectionLabel(l.overallAnalysis),
+                  ),
+                  const SizedBox(height: 10),
+                  GlassEntrance(
+                    delay: nextDelay(),
+                    child: _RecommendationCard(text: analysis.summary),
+                  ),
+                ],
+                if (analysis.phonemeErrors.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  GlassEntrance(
+                    delay: nextDelay(),
+                    child: _SectionLabel(l.soundErrors),
+                  ),
+                  const SizedBox(height: 10),
+                  ...analysis.phonemeErrors.map(
+                    (p) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: GlassEntrance(
+                        delay: nextDelay(),
+                        child: GlassContainer(
+                          borderRadius: AppColors.radiusButton,
+                          withShadow: false,
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: dark
+                                      ? AppColors.wine300
+                                          .withValues(alpha: 0.16)
+                                      : AppColors.wine100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.record_voice_over_rounded,
+                                  color: accent,
+                                  size: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l.wordAndSound(
+                                        p['word']?.toString() ?? '',
+                                        p['sound']?.toString() ?? '',
+                                      ),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    if ((p['note']?.toString() ?? '')
+                                        .isNotEmpty)
+                                      Text(
+                                        p['note'].toString(),
+                                        style: TextStyle(
+                                          color: mutedColor,
+                                          fontSize: 12.5,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 18),
+                GlassEntrance(
+                  delay: nextDelay(),
+                  child: _PrimaryCta(
+                    label: l.backToHome,
+                    onTap: () => context.go('/home'),
+                  ),
+                ),
               ],
             ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child:
+                GlassTopChrome(offset: _scrollOffset, title: l.voiceAnalysis),
           ),
         ],
       ),
@@ -313,185 +423,73 @@ class _Metric {
   final Color color;
 }
 
-class _HeroCard extends StatelessWidget {
-  const _HeroCard({
-    required this.score,
-    required this.title,
-    required this.subtitle,
-    required this.screenTitle,
-  });
-  final int score;
-  final String title;
-  final String subtitle;
-  final String screenTitle;
+class _GlassBackButton extends StatelessWidget {
+  const _GlassBackButton({required this.onTap});
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final topPad = MediaQuery.of(context).padding.top;
-    return Container(
-      padding: EdgeInsets.fromLTRB(24, topPad + 16, 24, 30),
-      decoration: const BoxDecoration(
-        gradient: AppColors.heroGradient,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.of(context).maybePop(),
-                child: const Icon(Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                screenTitle,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 17,
-                ),
-              ),
-            ],
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return GlassPressable(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: dark ? AppColors.glassFillDark : AppColors.glassFillLight,
+          border: Border.all(
+            color:
+                dark ? AppColors.glassStrokeDark : AppColors.glassStrokeLight,
+            width: 0.5,
           ),
-          const SizedBox(height: 28),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 100,
-                height: 100,
-                child: CustomPaint(
-                  painter: _WhiteRingPainter(score / 100),
-                  child: Center(
-                    child: Text(
-                      '$score',
-                      style: const TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        height: 1,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      subtitle,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
+        child: Icon(
+          Icons.arrow_back_rounded,
+          size: 20,
+          color: dark ? AppColors.inkDarkPrimary : AppColors.ink,
+        ),
       ),
     );
   }
 }
 
-class _WhiteRingPainter extends CustomPainter {
-  _WhiteRingPainter(this.progress);
-  final double progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final radius = size.width / 2 - 8;
-    final bg = Paint()
-      ..color = Colors.white.withValues(alpha: 0.25)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round;
-    final fg = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round;
-    canvas.drawCircle(center, radius, bg);
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
-      2 * math.pi * progress.clamp(0.0, 1.0),
-      false,
-      fg,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_WhiteRingPainter old) => old.progress != progress;
-}
-
-class _WaveformCard extends StatelessWidget {
-  static const _heights = [
-    0.3, 0.5, 0.8, 0.6, 1.0, 0.7, 0.4, 0.9, 0.6, 0.3,
-    0.7, 0.5, 0.8, 0.4, 0.6, 1.0, 0.7, 0.5, 0.3, 0.6,
-    0.9, 0.4, 0.7, 0.5, 0.8, 0.6, 0.3, 0.7, 0.9, 0.5,
-  ];
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: _heights.map((h) {
-          return Container(
-            width: 4,
-            height: 40 * h,
-            decoration: BoxDecoration(
-              color: AppColors.wine.withValues(alpha: 0.6 + h * 0.4),
-              borderRadius: BorderRadius.circular(4),
-            ),
-          );
-        }).toList(),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1,
+          color: mutedColor,
+        ),
       ),
     );
   }
 }
 
+/// Metric rows in one glass card: label + % + tinted progress bar (mockup 3d).
 class _MetricsCard extends StatelessWidget {
   const _MetricsCard({required this.metrics});
   final List<_Metric> metrics;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
-      ),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+
+    return GlassContainer(
+      borderRadius: AppColors.radiusTariffCard,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Column(
         children: metrics
             .map(
@@ -505,10 +503,10 @@ class _MetricsCard extends StatelessWidget {
                       children: [
                         Text(
                           m.label,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.inkSoft,
-                            fontSize: 14,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: textColor,
+                            fontSize: 13.5,
                           ),
                         ),
                         Text(
@@ -516,17 +514,17 @@ class _MetricsCard extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
                             color: m.color,
-                            fontSize: 14,
+                            fontSize: 15,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(999),
                       child: LinearProgressIndicator(
                         value: m.value / 100,
-                        minHeight: 7,
+                        minHeight: 5,
                         backgroundColor: m.color.withValues(alpha: 0.12),
                         color: m.color,
                       ),
@@ -541,15 +539,46 @@ class _MetricsCard extends StatelessWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
+/// AI recommendation glass card with a wine-tinted sparkle chip.
+class _RecommendationCard extends StatelessWidget {
+  const _RecommendationCard({required this.text});
   final String text;
 
   @override
-  Widget build(BuildContext context) => Text(
-        text,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-      );
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
+    return GlassContainer(
+      borderRadius: AppColors.radiusTariffCard,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: dark
+                  ? AppColors.wine300.withValues(alpha: 0.16)
+                  : AppColors.wine100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.auto_awesome_rounded, color: accent, size: 17),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style:
+                  TextStyle(height: 1.6, fontSize: 13.5, color: textColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SuccessRow extends StatelessWidget {
@@ -558,12 +587,16 @@ class _SuccessRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: AppColors.success.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+        color: AppColors.success.withValues(alpha: dark ? 0.16 : 0.10),
+        borderRadius: BorderRadius.circular(AppColors.radiusSegment),
+        border: Border.all(
+          color: AppColors.success.withValues(alpha: 0.3),
+          width: 0.5,
+        ),
       ),
       child: Row(
         children: [
@@ -575,11 +608,48 @@ class _SuccessRow extends StatelessWidget {
               text,
               style: const TextStyle(
                 color: AppColors.success,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PrimaryCta extends StatelessWidget {
+  const _PrimaryCta({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassPressable(
+      onTap: onTap,
+      child: Container(
+        height: 54,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: AppColors.wineGradient,
+          borderRadius: BorderRadius.circular(AppColors.radiusButton),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.wine.withValues(alpha: 0.30),
+              blurRadius: 28,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
     );
   }

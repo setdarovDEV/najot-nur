@@ -3,120 +3,224 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/glass.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../shared/widgets/brand.dart';
 
-class HelpContactScreen extends StatelessWidget {
+/// Help & contact, Liquid Glass style: gradient banner, glass action cards
+/// and frosted contact rows with tinted icon chips.
+class HelpContactScreen extends StatefulWidget {
   const HelpContactScreen({super.key});
+
+  @override
+  State<HelpContactScreen> createState() => _HelpContactScreenState();
+}
+
+class _HelpContactScreenState extends State<HelpContactScreen> {
+  final _scrollOffset = ValueNotifier<double>(0);
+
+  @override
+  void dispose() {
+    _scrollOffset.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final topInset = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.helpContact), titleSpacing: 20),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      body: Stack(
         children: [
-          // ── Banner ──
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: AppColors.wineGradient,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
+          const AmbientOrbs(),
+          NotificationListener<ScrollNotification>(
+            onNotification: (n) {
+              if (n.metrics.axis == Axis.vertical) {
+                _scrollOffset.value = n.metrics.pixels;
+              }
+              return false;
+            },
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(16, topInset + 12, 16, 60),
               children: [
-                const BrandBadge(size: 56, radius: 16),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                GlassEntrance(
+                  child: Row(
                     children: [
-                      Text(
-                        l.contactBannerTitle,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+                      _GlassBackButton(onTap: () => context.pop()),
+                      Expanded(
+                        child: Text(
+                          l.helpContact,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                            color: textColor,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l.contactBannerSubtitle,
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 12),
-                      ),
+                      const SizedBox(width: 40),
                     ],
                   ),
                 ),
+                const SizedBox(height: 14),
+
+                // ── Banner ──
+                GlassEntrance(
+                  delay: GlassMotion.entranceStep,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.wineGradient,
+                      borderRadius:
+                          BorderRadius.circular(AppColors.radiusCard),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.wine.withValues(alpha: 0.30),
+                          blurRadius: 28,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const BrandBadge(size: 56, radius: 16),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l.contactBannerTitle,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                l.contactBannerSubtitle,
+                                style: TextStyle(
+                                  color:
+                                      Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // ── Chat & FAQ action cards ──
+                GlassEntrance(
+                  delay: GlassMotion.entranceStep * 2,
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _ActionCard(
+                            icon: Icons.chat_rounded,
+                            color: dark ? AppColors.wine300 : AppColors.wine,
+                            title: l.supportChatTitle,
+                            subtitle: l.chatActionSubtitle,
+                            onTap: () => context.push('/profile/chat'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _ActionCard(
+                            icon: Icons.help_outline_rounded,
+                            color: AppColors.orange,
+                            title: l.faqTitle,
+                            subtitle: l.faqActionSubtitle,
+                            onTap: () => context.push('/profile/faq'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Quick contact ──
+                GlassEntrance(
+                  delay: GlassMotion.entranceStep * 3,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 10),
+                    child: Text(
+                      l.quickContact.toUpperCase(),
+                      style: TextStyle(
+                        color: mutedColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ),
+                for (final (i, tile) in [
+                  (
+                    Icons.telegram_rounded,
+                    AppColors.blue,
+                    l.contactTelegram,
+                    l.telegramHandle,
+                    'https://t.me/najotnur_support',
+                  ),
+                  (
+                    Icons.phone_in_talk_rounded,
+                    dark ? AppColors.wine300 : AppColors.wine,
+                    l.contactPhone,
+                    l.supportPhone,
+                    'tel:+998712000000',
+                  ),
+                  (
+                    Icons.alternate_email_rounded,
+                    AppColors.orange,
+                    l.contactEmail,
+                    l.supportEmail,
+                    'mailto:support@najotnur.uz',
+                  ),
+                  (
+                    Icons.location_on_outlined,
+                    AppColors.blue,
+                    l.contactAddress,
+                    l.supportAddress,
+                    null,
+                  ),
+                ].indexed) ...[
+                  GlassEntrance(
+                    delay: GlassMotion.entranceStep * (4 + i),
+                    child: _ContactTile(
+                      icon: tile.$1,
+                      color: tile.$2,
+                      title: tile.$3,
+                      subtitle: tile.$4,
+                      url: tile.$5,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                const SizedBox(height: 22),
+                const Center(child: BrandWordmark(size: 32)),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-
-          // ── Chat & FAQ action cards ──
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: _ActionCard(
-                    icon: Icons.chat_rounded,
-                    color: AppColors.wine,
-                    title: l.supportChatTitle,
-                    subtitle: l.chatActionSubtitle,
-                    onTap: () => context.push('/profile/chat'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _ActionCard(
-                    icon: Icons.help_outline_rounded,
-                    color: AppColors.orange,
-                    title: l.faqTitle,
-                    subtitle: l.faqActionSubtitle,
-                    onTap: () => context.push('/profile/faq'),
-                  ),
-                ),
-              ],
-            ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child:
+                GlassTopChrome(offset: _scrollOffset, title: l.helpContact),
           ),
-          const SizedBox(height: 24),
-
-          // ── Quick contact ──
-          _SectionLabel(l.quickContact),
-          _ContactTile(
-            icon: Icons.telegram_rounded,
-            color: const Color(0xFF27A2E0),
-            title: l.contactTelegram,
-            subtitle: l.telegramHandle,
-            url: 'https://t.me/najotnur_support',
-          ),
-          _ContactTile(
-            icon: Icons.phone_in_talk_rounded,
-            color: AppColors.wine,
-            title: l.contactPhone,
-            subtitle: l.supportPhone,
-            url: 'tel:+998712000000',
-          ),
-          _ContactTile(
-            icon: Icons.alternate_email_rounded,
-            color: AppColors.orange,
-            title: l.contactEmail,
-            subtitle: l.supportEmail,
-            url: 'mailto:support@najotnur.uz',
-          ),
-          _ContactTile(
-            icon: Icons.location_on_outlined,
-            color: AppColors.blue,
-            title: l.contactAddress,
-            subtitle: l.supportAddress,
-            url: null,
-          ),
-          const SizedBox(height: 32),
-          const Center(child: BrandWordmark(size: 32)),
-          const SizedBox(height: 16),
         ],
       ),
     );
@@ -124,6 +228,37 @@ class HelpContactScreen extends StatelessWidget {
 }
 
 // ─────────────────────────── Widgets ───────────────────────────
+
+class _GlassBackButton extends StatelessWidget {
+  const _GlassBackButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return GlassPressable(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: dark ? AppColors.glassFillDark : AppColors.glassFillLight,
+          border: Border.all(
+            color:
+                dark ? AppColors.glassStrokeDark : AppColors.glassStrokeLight,
+            width: 0.5,
+          ),
+        ),
+        child: Icon(
+          Icons.arrow_back_rounded,
+          size: 20,
+          color: dark ? AppColors.inkDarkPrimary : AppColors.ink,
+        ),
+      ),
+    );
+  }
+}
 
 class _ActionCard extends StatelessWidget {
   const _ActionCard({
@@ -142,15 +277,15 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+
+    return GlassPressable(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.line),
-        ),
+      child: GlassContainer(
+        borderRadius: AppColors.radiusTariffCard,
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -158,7 +293,7 @@ class _ActionCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
+                color: color.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(13),
               ),
               child: Icon(icon, color: color, size: 22),
@@ -166,42 +301,22 @@ class _ActionCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w800,
-                fontSize: 14,
+                fontSize: 13.5,
+                color: textColor,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(
-                color: AppColors.muted,
+              style: TextStyle(
+                color: mutedColor,
                 fontSize: 11,
                 height: 1.3,
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 10),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: AppColors.muted,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.4,
         ),
       ),
     );
@@ -225,38 +340,59 @@ class _ContactTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: ListTile(
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: color),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+
+    return GlassPressable(
+      onTap: url == null
+          ? null
+          : () async {
+              final uri = Uri.parse(url!);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+      child: GlassContainer(
+        borderRadius: AppColors.radiusButton,
+        withShadow: false,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 21),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: mutedColor, fontSize: 11.5),
+                  ),
+                ],
+              ),
+            ),
+            if (url != null)
+              Icon(Icons.open_in_new_rounded, color: mutedColor, size: 18),
+          ],
         ),
-        title:
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(subtitle,
-            style: const TextStyle(color: AppColors.muted, fontSize: 12)),
-        trailing: url == null
-            ? null
-            : const Icon(Icons.open_in_new_rounded, color: AppColors.muted),
-        onTap: url == null
-            ? null
-            : () async {
-                final uri = Uri.parse(url!);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              },
       ),
     );
   }

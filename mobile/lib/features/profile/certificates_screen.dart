@@ -1,106 +1,193 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/glass.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/learning_models.dart';
 import '../../models/profile.dart';
 import '../../providers/providers.dart';
 import '../../shared/widgets/common.dart';
 
-class CertificatesScreen extends ConsumerWidget {
+/// Certificates, Liquid Glass mockup "5b": a glass card framing a
+/// certificate preview (seal, course, date + serial), pending/rejected
+/// request rows and a gradient download CTA. Request/download logic is
+/// unchanged.
+class CertificatesScreen extends ConsumerStatefulWidget {
   const CertificatesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CertificatesScreen> createState() =>
+      _CertificatesScreenState();
+}
+
+class _CertificatesScreenState extends ConsumerState<CertificatesScreen> {
+  final _scrollOffset = ValueNotifier<double>(0);
+
+  @override
+  void dispose() {
+    _scrollOffset.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     if (!ref.watch(authControllerProvider).isLoggedIn) {
       return const LoginGuard(child: SizedBox.shrink());
     }
     final certsAsync = ref.watch(certificatesProvider);
     final reqsAsync = ref.watch(certificateRequestsProvider);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final topInset = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l.certificates),
-        titleSpacing: 20,
-      ),
-      body: RefreshIndicator(
-        color: AppColors.wine,
-        onRefresh: () async {
-          ref.invalidate(certificatesProvider);
-          ref.invalidate(certificateRequestsProvider);
-        },
-        child: CustomScrollView(
-          slivers: [
-            // ── Pending / rejected requests ──
-            reqsAsync.when(
-              loading: () => const SliverToBoxAdapter(child: AppLoader()),
-              error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
-              data: (reqs) {
-                final active = reqs
-                    .where((r) => r.isPending || r.isRejected)
-                    .toList();
-                if (active.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
-                return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (_, i) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _RequestCard(req: active[i]),
-                      ),
-                      childCount: active.length,
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            // ── Issued certificates ──
-            certsAsync.when(
-              loading: () =>
-                  const SliverToBoxAdapter(child: AppLoader()),
-              error: (e, _) => SliverToBoxAdapter(
-                child: ErrorView(
-                  message: e.toString(),
-                  onRetry: () => ref.invalidate(certificatesProvider),
-                ),
-              ),
-              data: (items) {
-                if (items.isEmpty) {
-                  return SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                      child: _EmptyBanner(l: l),
-                    ),
-                  );
+      body: Stack(
+        children: [
+          const AmbientOrbs(),
+          RefreshIndicator(
+            color: AppColors.wine,
+            onRefresh: () async {
+              ref.invalidate(certificatesProvider);
+              ref.invalidate(certificateRequestsProvider);
+            },
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (n) {
+                if (n.metrics.axis == Axis.vertical) {
+                  _scrollOffset.value = n.metrics.pixels;
                 }
-                return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (_, i) => Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: _CertificateCard(cert: items[i]),
-                      ),
-                      childCount: items.length,
+                return false;
+              },
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(16, topInset + 12, 16, 60),
+                children: [
+                  GlassEntrance(
+                    child: Row(
+                      children: [
+                        _GlassBackButton(onTap: () => context.pop()),
+                        Expanded(
+                          child: Text(
+                            l.certificates,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 40),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
+                  const SizedBox(height: 12),
 
-            // ── Request new certificate button ──
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-              sliver: SliverToBoxAdapter(
-                child: _RequestButton(),
+                  // ── Pending / rejected requests ──
+                  reqsAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (reqs) {
+                      final active = reqs
+                          .where((r) => r.isPending || r.isRejected)
+                          .toList();
+                      if (active.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        children: [
+                          for (var i = 0; i < active.length; i++) ...[
+                            GlassEntrance(
+                              delay: GlassMotion.entranceStep * (1 + i),
+                              child: _RequestCard(req: active[i]),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+
+                  // ── Issued certificates ──
+                  certsAsync.when(
+                    loading: () => const Padding(
+                      padding: EdgeInsets.only(top: 40),
+                      child: AppLoader(),
+                    ),
+                    error: (e, _) => ErrorView(
+                      message: e.toString(),
+                      onRetry: () => ref.invalidate(certificatesProvider),
+                    ),
+                    data: (items) {
+                      if (items.isEmpty) {
+                        return GlassEntrance(
+                          delay: GlassMotion.entranceStep,
+                          child: _EmptyBanner(l: l),
+                        );
+                      }
+                      return Column(
+                        children: [
+                          for (var i = 0; i < items.length; i++) ...[
+                            GlassEntrance(
+                              delay: GlassMotion.entranceStep * (1 + i),
+                              child: _CertificateCard(cert: items[i]),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+
+                  // ── Request new certificate ──
+                  const SizedBox(height: 6),
+                  GlassEntrance(
+                    delay: GlassMotion.entranceStep * 2,
+                    child: _RequestButton(),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child:
+                GlassTopChrome(offset: _scrollOffset, title: l.certificates),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassBackButton extends StatelessWidget {
+  const _GlassBackButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return GlassPressable(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: dark ? AppColors.glassFillDark : AppColors.glassFillLight,
+          border: Border.all(
+            color:
+                dark ? AppColors.glassStrokeDark : AppColors.glassStrokeLight,
+            width: 0.5,
+          ),
+        ),
+        child: Icon(
+          Icons.arrow_back_rounded,
+          size: 20,
+          color: dark ? AppColors.inkDarkPrimary : AppColors.ink,
         ),
       ),
     );
@@ -113,21 +200,22 @@ class _EmptyBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
+    return GlassContainer(
+      borderRadius: AppColors.radiusTariffCard,
+      withShadow: false,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.wine.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.wine.withValues(alpha: 0.2)),
-      ),
       child: Row(
         children: [
-          Icon(Icons.workspace_premium_outlined, color: AppColors.wine, size: 32),
+          Icon(Icons.workspace_premium_outlined, color: accent, size: 32),
           const SizedBox(width: 14),
           Expanded(
             child: Text(
               l.noCertificates,
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              style: TextStyle(color: mutedColor, fontSize: 13),
             ),
           ),
         ],
@@ -144,65 +232,73 @@ class _RequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
     final isPending = req.isPending;
-    final color = isPending ? const Color(0xFFF59E0B) : const Color(0xFFEF4444);
-    final bgColor = isPending
-        ? const Color(0xFFFEF3C7)
-        : const Color(0xFFFEE2E2);
-    final icon = isPending ? Icons.hourglass_top_rounded : Icons.cancel_outlined;
+    final color = isPending ? AppColors.warning : AppColors.danger;
+    final icon =
+        isPending ? Icons.hourglass_top_rounded : Icons.cancel_outlined;
     final label = isPending ? l.certRequestPending : l.certRequestRejected;
 
-    return Container(
+    return GlassContainer(
+      borderRadius: AppColors.radiusTariffCard,
+      withShadow: false,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 19),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   req.courseTitle,
                   style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: textColor,
+                    fontSize: 13.5,
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   label,
                   style: TextStyle(
                     color: color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             '${l.certFullName}: ${req.fullName}',
-            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+            style: TextStyle(fontSize: 12, color: mutedColor),
           ),
           if (req.isRejected && req.rejectionReason != null) ...[
             const SizedBox(height: 4),
             Text(
               '${l.certRejectionReason}: ${req.rejectionReason}',
-              style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444)),
+              style: const TextStyle(fontSize: 12, color: AppColors.danger),
             ),
           ],
         ],
@@ -217,6 +313,8 @@ class _RequestButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final coursesAsync = ref.watch(coursesProvider);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
 
     return coursesAsync.when(
       loading: () => const SizedBox.shrink(),
@@ -227,11 +325,11 @@ class _RequestButton extends ConsumerWidget {
         return OutlinedButton.icon(
           onPressed: () => _showRequestDialog(context, ref, l, courses),
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.wine,
-            side: const BorderSide(color: AppColors.wine),
+            foregroundColor: accent,
+            side: BorderSide(color: accent),
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppColors.radiusButton),
             ),
           ),
           icon: const Icon(Icons.add_circle_outline_rounded),
@@ -257,6 +355,7 @@ class _RequestButton extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: AppColors.sheetScrim,
       builder: (ctx) => _RequestSheet(
         courses: courses,
         nameCtrl: nameCtrl,
@@ -304,50 +403,43 @@ class _RequestSheetState extends State<_RequestSheet> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
+      child: GlassSheet(
+        padding: const EdgeInsets.fromLTRB(24, 10, 24, 32),
         child: Form(
           key: widget.formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
               Text(
                 l.certRequestNew,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
+                  color: textColor,
                 ),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<Course>(
-                value: _selected,
+                initialValue: _selected,
                 hint: Text(l.certSelectCourse),
                 items: widget.courses
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c.title)))
+                    .map((c) =>
+                        DropdownMenuItem(value: c, child: Text(c.title)))
                     .toList(),
                 onChanged: (v) => setState(() => _selected = v),
-                validator: (v) => v == null ? l.certSelectCourseRequired : null,
+                validator: (v) =>
+                    v == null ? l.certSelectCourseRequired : null,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                        BorderRadius.circular(AppColors.radiusSegment),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -362,7 +454,8 @@ class _RequestSheetState extends State<_RequestSheet> {
                   labelText: l.certFullName,
                   hintText: l.certFullNameHint,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                        BorderRadius.circular(AppColors.radiusSegment),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -370,7 +463,9 @@ class _RequestSheetState extends State<_RequestSheet> {
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().length < 3) return l.fullNameTooShort;
+                  if (v == null || v.trim().length < 3) {
+                    return l.fullNameTooShort;
+                  }
                   return null;
                 },
               ),
@@ -378,12 +473,15 @@ class _RequestSheetState extends State<_RequestSheet> {
                 const SizedBox(height: 8),
                 Text(
                   _error!,
-                  style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13),
+                  style:
+                      const TextStyle(color: AppColors.danger, fontSize: 13),
                 ),
               ],
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _loading
+              _PrimaryCta(
+                label: l.certRequestSend,
+                loading: _loading,
+                onTap: _loading
                     ? null
                     : () async {
                         if (!widget.formKey.currentState!.validate()) return;
@@ -402,30 +500,6 @@ class _RequestSheetState extends State<_RequestSheet> {
                           if (mounted) setState(() => _loading = false);
                         }
                       },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.wine,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: _loading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        l.certRequestSend,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
-                      ),
               ),
             ],
           ),
@@ -435,7 +509,69 @@ class _RequestSheetState extends State<_RequestSheet> {
   }
 }
 
-// ───── Issued certificate card ─────
+class _PrimaryCta extends StatelessWidget {
+  const _PrimaryCta({
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+    this.icon,
+  });
+  final String label;
+  final VoidCallback? onTap;
+  final bool loading;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassPressable(
+      onTap: loading ? null : onTap,
+      child: Opacity(
+        opacity: onTap == null && !loading ? 0.5 : 1,
+        child: Container(
+          height: 54,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: AppColors.wineGradient,
+            borderRadius: BorderRadius.circular(AppColors.radiusButton),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.wine.withValues(alpha: 0.30),
+                blurRadius: 28,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icon != null) ...[
+                      Icon(icon, size: 18, color: Colors.white),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+// ───── Issued certificate card (mockup 5b) ─────
 class _CertificateCard extends StatelessWidget {
   const _CertificateCard({required this.cert});
   final Certificate cert;
@@ -446,128 +582,135 @@ class _CertificateCard extends StatelessWidget {
     return '$dd.$mm.${d.year}';
   }
 
+  Future<void> _download(BuildContext context, AppLocalizations l) async {
+    final rawUrl = cert.pdfUrl!.startsWith('http')
+        ? cert.pdfUrl!
+        : '${AppConstants.apiUrl.replaceAll('/api/v1', '')}${cert.pdfUrl}';
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null) return;
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.pdfUrl(rawUrl))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.wine, AppColors.wineDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
+    return GlassContainer(
+      padding: const EdgeInsets.all(14),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.workspace_premium_rounded,
-                  color: Colors.white,
-                  size: 26,
-                ),
+          // Framed certificate preview (mockup 5b).
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: AppColors.wine.withValues(alpha: 0.25),
+                width: 1.5,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  cert.courseTitle,
-                  style: const TextStyle(
-                    color: Colors.white,
+            ),
+            child: Column(
+              children: [
+                // Seal
+                Container(
+                  width: 54,
+                  height: 54,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [AppColors.wine, AppColors.wineDeep],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.wine.withValues(alpha: 0.30),
+                        blurRadius: 22,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.workspace_premium_rounded,
+                      color: Colors.white, size: 26),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  l.certificates.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
                     fontWeight: FontWeight.w800,
-                    fontSize: 16,
+                    letterSpacing: 3,
+                    color: accent,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _Stat(label: l.date, value: _date(cert.issuedAt)),
-              const SizedBox(width: 16),
-              _Stat(label: l.grade, value: cert.grade?.toString() ?? '—'),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _Stat(
-                  label: l.serial,
-                  value: cert.serialNumber,
-                  small: true,
+                const SizedBox(height: 8),
+                Text(
+                  cert.courseTitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: textColor,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          if (cert.pdfUrl != null)
-            OutlinedButton.icon(
-              onPressed: () async {
-                final rawUrl = cert.pdfUrl!.startsWith('http')
-                    ? cert.pdfUrl!
-                    : '${AppConstants.apiUrl.replaceAll('/api/v1', '')}${cert.pdfUrl}';
-                final uri = Uri.tryParse(rawUrl);
-                if (uri == null) return;
-                final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                if (!ok && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l.pdfUrl(rawUrl))),
-                  );
-                }
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white70),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                if (cert.grade != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${l.grade}: ${cert.grade}',
+                    style: TextStyle(fontSize: 11.5, color: mutedColor),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _date(cert.issuedAt),
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 10,
+                        color: mutedColor,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Flexible(
+                      child: Text(
+                        'ID: ${cert.serialNumber}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 10,
+                          color: mutedColor,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              icon: const Icon(Icons.download_rounded, size: 18),
-              label: Text(l.pdfDownload),
+              ],
             ),
+          ),
+          if (cert.pdfUrl != null) ...[
+            const SizedBox(height: 12),
+            _PrimaryCta(
+              label: l.pdfDownload,
+              icon: Icons.download_rounded,
+              onTap: () => _download(context, l),
+            ),
+          ],
         ],
       ),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value, this.small = false});
-  final String label;
-  final String value;
-  final bool small;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: small ? 12 : 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
     );
   }
 }

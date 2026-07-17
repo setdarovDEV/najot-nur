@@ -180,6 +180,7 @@
   "homeActionObservation": "Kuzatuvchanlikni tekshirish",
   "homeActionObservationSub": "10 ta test: psixologiya va tana tili",
   "homeFeatures": "Imkoniyatlar",
+  "homeRecommended": "Tavsiya etamiz",
   "free": "Bepul",
   "forSale": "Sotuvda",
   "lessonsShort": "{count} dars",
@@ -501,15 +502,18 @@
   "listenExpert": "Ekspert ovozini tinglang",
   "playAudio": "Tinglash",
   "stopAudio": "To'xtatish",
-
   "continueCourse": "Davom ettirish",
   "courseInProgress": "O'rganilmoqda",
   "courseCompleted": "Kurs yakunlangan",
   "lessonsCompleted": "{completed}/{total} dars bajarildi",
   "@lessonsCompleted": {
     "placeholders": {
-      "completed": { "type": "int" },
-      "total": { "type": "int" }
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "lesson": "Dars",
@@ -526,7 +530,9 @@
   "lessonCompletedWithScore": "Dars yakunlandi! Ball: {score}%",
   "@lessonCompletedWithScore": {
     "placeholders": {
-      "score": { "type": "int" }
+      "score": {
+        "type": "int"
+      }
     }
   },
   "videoOpenError": "Videoni ochib bo'lmadi",
@@ -534,7 +540,9 @@
   "quizLessonSubtitle": "{count} ta savol",
   "@quizLessonSubtitle": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "quizAnswerAll": "Barcha savollarga javob bering",
@@ -544,8 +552,12 @@
   "quizCorrectCount": "{correct}/{total} to'g'ri",
   "@quizCorrectCount": {
     "placeholders": {
-      "correct": { "type": "int" },
-      "total": { "type": "int" }
+      "correct": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "homeworkTitle": "Uy vazifasi",
@@ -567,7 +579,6 @@
   "updateRequiredMessage": "NotiqAI ning yangi versiyasi chiqdi. Davom etish uchun ilovani yangilang.",
   "updateNow": "Yangilash",
   "updateLater": "Keyinroq",
-
   "permissionGateTitle": "Ruxsatlar kerak",
   "permissionGateMessage": "Ilova to'liq ishlashi uchun quyidagi ruxsatlarni bering:",
   "permissionMicrophone": "Mikrofon",
@@ -576,7 +587,6 @@
   "permissionGrant": "Ruxsat berish",
   "permissionOpenSettings": "Sozlamalarga o'tish",
   "permissionLater": "Keyinroq",
-
   "gradeTitleExcellent": "A'lo darajadagi natija!",
   "gradeTitleGood": "Yaxshi natija!",
   "gradeTitleAverage": "O'rtacha natija",
@@ -595,7 +605,9 @@
   "gradePronunciationNeedsWork": "{count} ta so'zda xatolik topildi.",
   "@gradePronunciationNeedsWork": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "perfectPronunciation": "A'lo! Barcha so'zlar to'g'ri aytildi.",
@@ -606,5 +618,19 @@
   "quizBadSubtitle": "Qayta urinib ko'ring, siz qila olasiz!",
   "quizMetricScore": "Umumiy ball",
   "quizMetricCorrect": "To'g'ri javoblar",
-  "tryAgain": "Qayta urinish"
+  "tryAgain": "Qayta urinish",
+  "levelBeginner": "Boshlang'ich",
+  "levelIntermediate": "O'rta",
+  "levelAdvanced": "Yuqori",
+  "filterAll": "Barchasi",
+  "searchCoursesHint": "Kurs qidirish…",
+  "coursesCount": "{count} ta kurs",
+  "@coursesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "priceLabel": "Narx"
 }

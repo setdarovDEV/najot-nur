@@ -4,11 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/glass.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/psychology_models.dart';
 import '../../providers/providers.dart';
-import '../../shared/widgets/common.dart';
 
+/// Psychology test flow, Liquid Glass mockup "6a" language: gradient
+/// progress bar, glass question card and letter-chip option rows (selected =
+/// wine ring). Static test content, answers and submit logic are unchanged.
 class PsychologyScreen extends ConsumerStatefulWidget {
   const PsychologyScreen({super.key});
 
@@ -82,77 +85,157 @@ class _PsychologyScreenState extends ConsumerState<PsychologyScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+    final topInset = MediaQuery.of(context).padding.top;
+
     final tests = _staticTests ?? const <PsychologyTest>[];
     if (tests.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: Text(l.psychologyTest)),
-        body: ErrorView(message: l.noTests),
+        body: Stack(
+          children: [
+            const AmbientOrbs(),
+            Center(
+              child: Text(l.noTests, style: TextStyle(color: mutedColor)),
+            ),
+            Positioned(
+              top: topInset + 8,
+              left: 12,
+              child: _GlassIconButton(
+                icon: Icons.arrow_back_rounded,
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
+            ),
+          ],
+        ),
       );
     }
 
     final isLast = _page == tests.length - 1;
     final currentId = tests[_page].id;
     final answered = _answers.containsKey(currentId);
+    final progress = (_page + 1) / tests.length;
+    final counter =
+        '${'${_page + 1}'.padLeft(2, '0')}/${'${tests.length}'.padLeft(2, '0')}';
 
     return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        foregroundColor: AppColors.wine,
-        elevation: 0,
-        title: Text(
-          l.psychologyTest,
-          style: const TextStyle(color: AppColors.wine, fontWeight: FontWeight.w800),
-        ),
-      ),
-      body: Column(
+      body: Stack(
         children: [
-          _Header(
-            pageIndex: _page,
-            total: tests.length,
-            answered: _answers.length,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-            child: Text(
-              l.psychologyIntro,
-              style: const TextStyle(color: AppColors.muted, fontSize: 13),
-            ),
-          ),
-          Expanded(
-            child: PageView.builder(
-              controller: _controller,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: tests.length,
-              onPageChanged: (i) => setState(() => _page = i),
-              itemBuilder: (_, i) => _TestView(
-                test: tests[i],
-                index: i,
-                selected: _answers[tests[i].id],
-                onSelected: (opt) => setState(() => _answers[tests[i].id] = opt),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  if (_page > 0)
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _controller.previousPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOut,
-                        ),
-                        child: Text(l.back),
+          const AmbientOrbs(),
+          Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, topInset + 12, 16, 0),
+                child: Column(
+                  children: [
+                    GlassEntrance(
+                      child: Row(
+                        children: [
+                          _GlassIconButton(
+                            icon: Icons.arrow_back_rounded,
+                            onTap: () => Navigator.of(context).maybePop(),
+                          ),
+                          Expanded(
+                            child: Text(
+                              l.psychologyTest,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
+                                color: textColor,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 11, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: dark
+                                  ? AppColors.wine300.withValues(alpha: 0.16)
+                                  : AppColors.wine.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              counter,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures()
+                                ],
+                                color: accent,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  if (_page > 0) const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton(
-                      onPressed: !answered || _submitting
+                    const SizedBox(height: 12),
+                    // Thin gradient progress bar (mockup 6a).
+                    GlassEntrance(
+                      delay: GlassMotion.entranceStep,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: Container(
+                          height: 6,
+                          color: dark
+                              ? AppColors.wine300.withValues(alpha: 0.16)
+                              : AppColors.wine.withValues(alpha: 0.10),
+                          alignment: Alignment.centerLeft,
+                          child: AnimatedFractionallySizedBox(
+                            duration: GlassMotion.tabMorph,
+                            curve: GlassMotion.tabMorphCurve,
+                            widthFactor: progress,
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(999)),
+                                gradient: LinearGradient(
+                                  colors: [AppColors.wine, AppColors.orange],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l.psychologyIntro,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: mutedColor, fontSize: 11.5),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: PageView.builder(
+                  controller: _controller,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: tests.length,
+                  onPageChanged: (i) => setState(() => _page = i),
+                  itemBuilder: (_, i) => _TestView(
+                    test: tests[i],
+                    index: i,
+                    selected: _answers[tests[i].id],
+                    onSelected: (opt) =>
+                        setState(() => _answers[tests[i].id] = opt),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                    16, 4, 16, MediaQuery.of(context).padding.bottom + 16),
+                child: Column(
+                  children: [
+                    _PrimaryCta(
+                      label: isLast ? l.finishAndAnalyze : l.next,
+                      loading: _submitting,
+                      onTap: !answered
                           ? null
                           : () {
                               if (isLast) {
@@ -164,71 +247,122 @@ class _PsychologyScreenState extends ConsumerState<PsychologyScreen> {
                                 );
                               }
                             },
-                      child: _submitting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2.4))
-                          : Text(isLast ? l.finishAndAnalyze : l.next),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({
-    required this.pageIndex,
-    required this.total,
-    required this.answered,
-  });
-  final int pageIndex;
-  final int total;
-  final int answered;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                l.questionCounter(pageIndex + 1, total),
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, color: AppColors.wine),
-              ),
-              Text(
-                l.answeredCount(answered),
-                style: const TextStyle(color: AppColors.muted),
+                    if (_page > 0)
+                      GlassPressable(
+                        onTap: () => _controller.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Text(
+                            l.back,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: mutedColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: (pageIndex + 1) / total,
-              minHeight: 8,
-              backgroundColor: AppColors.line,
-              color: AppColors.wine,
-            ),
-          ),
         ],
       ),
     );
   }
 }
+
+// ───────────────────────── Shared bits ─────────────────────────
+
+class _GlassIconButton extends StatelessWidget {
+  const _GlassIconButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return GlassPressable(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: dark ? AppColors.glassFillDark : AppColors.glassFillLight,
+          border: Border.all(
+            color:
+                dark ? AppColors.glassStrokeDark : AppColors.glassStrokeLight,
+            width: 0.5,
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: dark ? AppColors.inkDarkPrimary : AppColors.ink,
+        ),
+      ),
+    );
+  }
+}
+
+class _PrimaryCta extends StatelessWidget {
+  const _PrimaryCta({
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+  });
+  final String label;
+  final VoidCallback? onTap;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassPressable(
+      onTap: loading ? null : onTap,
+      child: Opacity(
+        opacity: onTap == null && !loading ? 0.5 : 1,
+        child: Container(
+          height: 54,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: AppColors.wineGradient,
+            borderRadius: BorderRadius.circular(AppColors.radiusButton),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.wine.withValues(alpha: 0.30),
+                blurRadius: 28,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
+                )
+              : Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────── Question page ─────────────────────────
 
 class _TestView extends ConsumerWidget {
   const _TestView({
@@ -243,16 +377,21 @@ class _TestView extends ConsumerWidget {
   final int? selected;
   final ValueChanged<int> onSelected;
 
+  // Brand-only gradients per category (purple replaced with wine/orange/blue).
   static const _gradients = <String, List<Color>>{
-    'emotions': [Color(0xFF7B2FF7), Color(0xFF4A0EB5)],
-    'stress': [Color(0xFFFF5C39), Color(0xFFE0431F)],
-    'motivation': [Color(0xFF5BC2E7), Color(0xFF2E9BC4)],
+    'emotions': [AppColors.wine, AppColors.wineDeep],
+    'stress': [AppColors.orange, AppColors.wine],
+    'motivation': [AppColors.blue, AppColors.wine],
     'general': [AppColors.wine, AppColors.wineDeep],
   };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
     final gradient = LinearGradient(
       colors: _gradients[test.category] ?? _gradients['general']!,
       begin: Alignment.topLeft,
@@ -260,31 +399,32 @@ class _TestView extends ConsumerWidget {
     );
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
       children: [
         _MediaBlock(test: test, gradient: gradient),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         Row(
           children: [
             Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: AppColors.wine.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(20),
+                color: dark
+                    ? AppColors.wine300.withValues(alpha: 0.16)
+                    : AppColors.wine.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(999),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.psychology_rounded,
-                      size: 14, color: AppColors.wine),
+                  Icon(Icons.psychology_rounded, size: 14, color: accent),
                   const SizedBox(width: 5),
                   Text(
                     l.psychologyTest,
-                    style: const TextStyle(
-                      color: AppColors.wine,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
+                    style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
                     ),
                   ),
                 ],
@@ -293,8 +433,8 @@ class _TestView extends ConsumerWidget {
             const Spacer(),
             Text(
               l.testNumber(index + 1),
-              style: const TextStyle(
-                color: AppColors.muted,
+              style: TextStyle(
+                color: mutedColor,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -302,66 +442,135 @@ class _TestView extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 12),
-        Text(
-          test.title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: AppColors.ink,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          test.prompt,
-          style: const TextStyle(fontSize: 15, height: 1.5),
-        ),
-        const SizedBox(height: 18),
-        ...List.generate(test.options.length, (i) {
-          final isSelected = selected == i;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: GestureDetector(
-              onTap: () => onSelected(i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.wine100 : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isSelected ? AppColors.wine : AppColors.line,
-                    width: isSelected ? 1.8 : 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      isSelected
-                          ? Icons.radio_button_checked_rounded
-                          : Icons.radio_button_unchecked_rounded,
-                      color: isSelected ? AppColors.wine : AppColors.muted,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        test.options[i],
-                        style: TextStyle(
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
+        // Question card (mockup 6a).
+        GlassContainer(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                test.title.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                  color: mutedColor,
                 ),
               ),
-            ),
-          );
-        }),
+              const SizedBox(height: 10),
+              Text(
+                test.prompt,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  height: 1.4,
+                  color: textColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        for (var i = 0; i < test.options.length; i++) ...[
+          _OptionTile(
+            letter: String.fromCharCode(65 + i),
+            text: test.options[i],
+            selected: selected == i,
+            onTap: () => onSelected(i),
+          ),
+          const SizedBox(height: 10),
+        ],
       ],
     );
   }
 }
+
+/// Answer option row (mockup 6a): glass row with an A/B/C/D letter chip;
+/// selected = wine ring + tinted letter chip.
+class _OptionTile extends StatelessWidget {
+  const _OptionTile({
+    required this.letter,
+    required this.text,
+    required this.selected,
+    required this.onTap,
+  });
+  final String letter;
+  final String text;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
+
+    return GlassPressable(
+      onTap: onTap,
+      child: Stack(
+        children: [
+          GlassContainer(
+            borderRadius: AppColors.radiusButton,
+            withShadow: false,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.wine
+                        : (dark
+                            ? AppColors.wine300.withValues(alpha: 0.16)
+                            : AppColors.wine.withValues(alpha: 0.10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    letter,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: selected ? Colors.white : accent,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (selected)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius:
+                        BorderRadius.circular(AppColors.radiusButton),
+                    border: Border.all(color: AppColors.wine, width: 1.5),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────── Media block ─────────────────────────
 
 class _MediaBlock extends ConsumerWidget {
   const _MediaBlock({required this.test, required this.gradient});
@@ -380,16 +589,16 @@ class _MediaBlock extends ConsumerWidget {
     if (!hasUrl) {
       // Static placeholder until real media is wired up.
       return Container(
-        height: 200,
+        height: 190,
         decoration: BoxDecoration(
           gradient: gradient,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(AppColors.radiusTariffCard),
         ),
         alignment: Alignment.center,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white54, size: 56),
+            Icon(icon, color: Colors.white54, size: 52),
             const SizedBox(height: 8),
             Text(
               l.mediaPlaceholder,
@@ -404,23 +613,28 @@ class _MediaBlock extends ConsumerWidget {
       return GestureDetector(
         onTap: () => _openVideo(context, ref, url),
         child: Container(
-          height: 200,
+          height: 190,
           decoration: BoxDecoration(
             gradient: gradient,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(AppColors.radiusTariffCard),
           ),
           alignment: Alignment.center,
+          // Frosted play button (mockup 6b idiom).
           child: Container(
-            width: 72,
-            height: 72,
-            decoration: const BoxDecoration(
-              color: Colors.white24,
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.16),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.35),
+                width: 0.5,
+              ),
             ),
             child: const Icon(
               Icons.play_arrow_rounded,
               color: Colors.white,
-              size: 44,
+              size: 34,
             ),
           ),
         ),
@@ -429,32 +643,33 @@ class _MediaBlock extends ConsumerWidget {
 
     final fullUrl = ref.read(apiClientProvider).resolveMediaUrl(url);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(AppColors.radiusTariffCard),
       child: Image.network(
         fullUrl,
-        height: 200,
+        height: 190,
         width: double.infinity,
         fit: BoxFit.cover,
         loadingBuilder: (_, child, progress) {
           if (progress == null) return child;
           return Container(
-            height: 200,
+            height: 190,
             decoration: BoxDecoration(
               gradient: gradient,
-              borderRadius: BorderRadius.circular(22),
+              borderRadius:
+                  BorderRadius.circular(AppColors.radiusTariffCard),
             ),
             alignment: Alignment.center,
             child: const CircularProgressIndicator(color: Colors.white),
           );
         },
         errorBuilder: (_, __, ___) => Container(
-          height: 200,
+          height: 190,
           decoration: BoxDecoration(
             gradient: gradient,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(AppColors.radiusTariffCard),
           ),
           alignment: Alignment.center,
-          child: Icon(icon, color: Colors.white54, size: 56),
+          child: Icon(icon, color: Colors.white54, size: 52),
         ),
       ),
     );

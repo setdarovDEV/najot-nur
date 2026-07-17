@@ -3,236 +3,516 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/glass.dart';
 import '../../l10n/gen/app_localizations.dart';
+import '../../models/learning_models.dart';
 import '../../providers/providers.dart';
-import '../../shared/widgets/brand.dart';
 
-class HomeTab extends ConsumerWidget {
+/// Home tab, Liquid Glass mockup "1a/1b": gradient hero with the speech
+/// action card overlapping it, a 2×2 glass section grid, and a recommended
+/// course + audiobook pulled from the live catalog. Ambient orbs drift
+/// behind everything; a glass top chrome fades in on scroll.
+class HomeTab extends ConsumerStatefulWidget {
   const HomeTab({super.key, this.onChangeTab});
 
   final ValueChanged<int>? onChangeTab;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends ConsumerState<HomeTab> {
+  final _scrollOffset = ValueNotifier<double>(0);
+
+  @override
+  void dispose() {
+    _scrollOffset.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
     final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _Header(isLoggedIn: auth.isLoggedIn, name: auth.user?.displayName),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+    return Stack(
+      children: [
+        const AmbientOrbs(),
+        NotificationListener<ScrollNotification>(
+          onNotification: (n) {
+            if (n.metrics.axis == Axis.vertical) {
+              _scrollOffset.value = n.metrics.pixels;
+            }
+            return false;
+          },
+          child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  l.homeGreeting,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  l.homeSubtitle,
-                  style: const TextStyle(color: AppColors.muted),
-                ),
-                const SizedBox(height: 20),
-                _BigActionCard(
-                  title: l.homeActionSpeech,
-                  subtitle: l.homeActionSpeechSub,
-                  icon: Icons.graphic_eq_rounded,
-                  gradient: AppColors.wineGradient,
-                  onTap: () => context.push('/speech'),
-                ),
-                const SizedBox(height: 16),
-                _BigActionCard(
-                  title: l.psychologyTest,
-                  subtitle: l.psychologyTestSub,
-                  icon: Icons.psychology_rounded,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7B2FF7), Color(0xFF4A0EB5)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                _Hero(isLoggedIn: auth.isLoggedIn, name: auth.user?.displayName),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Speech action card overlaps the hero (mockup: -42px).
+                      Transform.translate(
+                        offset: const Offset(0, -42),
+                        child: GlassEntrance(
+                          delay: GlassMotion.entranceStep,
+                          child: _SpeechCard(
+                            title: l.homeActionSpeech,
+                            subtitle: l.homeActionSpeechSub,
+                            onTap: () => context.push('/speech'),
+                          ),
+                        ),
+                      ),
+                      Transform.translate(
+                        offset: const Offset(0, -30),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
+                              child: Text(
+                                l.homeFeatures,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: textColor,
+                                ),
+                              ),
+                            ),
+                            _SectionsGrid(onChangeTab: widget.onChangeTab),
+                            const SizedBox(height: 22),
+                            _RecommendedSection(
+                              textColor: textColor,
+                              mutedColor: mutedColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  onTap: () => context.push('/psychology'),
-                ),
-                const SizedBox(height: 28),
-                Text(
-                  l.homeFeatures,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _MiniCard(
-                        icon: Icons.play_circle_fill_rounded,
-                        title: l.videoLessons,
-                        color: AppColors.wine,
-                        onTap: () => onChangeTab?.call(1),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _MiniCard(
-                        icon: Icons.headphones_rounded,
-                        title: l.audiobooks,
-                        color: AppColors.blue,
-                        onTap: () => onChangeTab?.call(2),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: GlassTopChrome(offset: _scrollOffset, title: 'NotiqAI'),
+        ),
+      ],
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.isLoggedIn, this.name});
+// ───────────────────────── Hero ─────────────────────────
+
+class _Hero extends StatelessWidget {
+  const _Hero({required this.isLoggedIn, this.name});
   final bool isLoggedIn;
   final String? name;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-          20, MediaQuery.of(context).padding.top + 16, 16, 26),
-      decoration: const BoxDecoration(
-        gradient: AppColors.heroGradient,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: BrandWordmark(onDark: true, size: 40),
-            ),
+    final topInset = MediaQuery.of(context).padding.top;
+
+    return GlassEntrance(
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.fromLTRB(20, topInset + 20, 20, 66),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            stops: [0.0, 0.58, 1.0],
+            colors: [AppColors.wine, AppColors.wineDark, AppColors.wineDeep],
           ),
-          if (isLoggedIn)
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(AppColors.radiusHero),
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              left: -20,
+              right: -20,
+              bottom: -66,
+              child: CustomPaint(
+                size: const Size(double.infinity, 70),
+                painter: _WavePainter(),
+              ),
+            ),
             Row(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 140),
-                  child: Text(
-                    name ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.homeGreeting,
+                        style: const TextStyle(
+                          fontSize: 23,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l.homeSubtitle,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          color: Colors.white.withValues(alpha: 0.72),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                const CircleAvatar(
-                  backgroundColor: Colors.white24,
-                  child: Icon(Icons.person, color: Colors.white),
-                ),
+                const SizedBox(width: 12),
+                if (isLoggedIn)
+                  _HeroGlassBadge(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          (name?.isNotEmpty ?? false)
+                              ? name!.characters.first.toUpperCase()
+                              : 'N',
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            height: 1,
+                          ),
+                        ),
+                        CustomPaint(
+                          size: const Size(20, 6),
+                          painter: _MiniWavePainter(),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  GlassPressable(
+                    onTap: () => context.push('/auth'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.30),
+                          width: 0.5,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x66FFFFFF),
+                            offset: Offset(0, 1),
+                            blurRadius: 0,
+                            spreadRadius: -0.5,
+                            blurStyle: BlurStyle.inner,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.login_rounded,
+                              size: 18, color: Colors.white),
+                          const SizedBox(width: 6),
+                          Text(
+                            l.login,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
-            )
-          else
-            TextButton.icon(
-              onPressed: () => context.push('/auth'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: Colors.white.withValues(alpha: 0.18),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              icon: const Icon(Icons.login_rounded, size: 20, color: Colors.white),
-              label: Text(
-                l.login,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _BigActionCard extends StatelessWidget {
-  const _BigActionCard({
+/// Circular translucent badge in the hero's top-right (mockup: "N" + wave).
+class _HeroGlassBadge extends StatelessWidget {
+  const _HeroGlassBadge({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: 0.14),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.35),
+          width: 0.5,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// The two decorative voice-wave strokes along the hero's bottom edge.
+class _WavePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final p1 = Paint()
+      ..color = Colors.white.withValues(alpha: 0.22)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final p2 = Paint()
+      ..color = Colors.white.withValues(alpha: 0.12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    Path wave(double y) {
+      final path = Path()..moveTo(0, y);
+      path.quadraticBezierTo(w * 0.25, y - 30, w * 0.5, y);
+      path.quadraticBezierTo(w * 0.75, y + 30, w, y);
+      return path;
+    }
+
+    canvas.drawPath(wave(40), p1);
+    canvas.drawPath(wave(56), p2);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _MiniWavePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    final path = Path()..moveTo(0, size.height / 2);
+    path.quadraticBezierTo(
+        size.width * 0.25, 0, size.width * 0.5, size.height / 2);
+    path.quadraticBezierTo(
+        size.width * 0.75, size.height, size.width, size.height / 2);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ───────────────────────── Speech action card ─────────────────────────
+
+class _SpeechCard extends StatelessWidget {
+  const _SpeechCard({
     required this.title,
     required this.subtitle,
-    required this.icon,
-    required this.gradient,
     required this.onTap,
   });
   final String title;
   final String subtitle;
-  final IconData icon;
-  final Gradient gradient;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+
+    return GlassPressable(
       onTap: onTap,
-      child: Container(
-        height: 132,
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: (gradient.colors.first).withValues(alpha: 0.30),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
+      child: GlassContainer(
+        padding: const EdgeInsets.all(18),
         child: Row(
           children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: AppColors.wineGradient,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.wine.withValues(alpha: 0.35),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child:
+                  const Icon(Icons.mic_rounded, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
+                    style: TextStyle(
+                      fontSize: 15.5,
                       fontWeight: FontWeight.w800,
+                      color: textColor,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(color: Colors.white70, height: 1.3),
+                    style: TextStyle(fontSize: 12, color: mutedColor),
                   ),
                 ],
               ),
             ),
+            Icon(Icons.chevron_right_rounded, color: mutedColor, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────── Sections grid ─────────────────────────
+
+class _SectionsGrid extends ConsumerWidget {
+  const _SectionsGrid({this.onChangeTab});
+  final ValueChanged<int>? onChangeTab;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final items = [
+      (
+        icon: Icons.play_circle_fill_rounded,
+        color: AppColors.wine,
+        title: l.videoLessons,
+        subtitle: l.tabCourses,
+        onTap: () => onChangeTab?.call(1),
+      ),
+      (
+        icon: Icons.headphones_rounded,
+        color: AppColors.blue,
+        title: l.audiobooks,
+        subtitle: l.tabBooks,
+        onTap: () => onChangeTab?.call(2),
+      ),
+      (
+        icon: Icons.psychology_rounded,
+        color: AppColors.orange,
+        title: l.psychologyTest,
+        subtitle: l.psychologyAnalysis,
+        onTap: () => context.push('/psychology'),
+      ),
+      (
+        icon: Icons.visibility_rounded,
+        color: AppColors.success,
+        title: l.homeActionObservation,
+        subtitle: l.homeActionObservationSub,
+        onTap: () => context.push('/observation'),
+      ),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1.25,
+      ),
+      itemCount: items.length,
+      itemBuilder: (context, i) {
+        final item = items[i];
+        return GlassEntrance(
+          delay: GlassMotion.entranceStep * (3 + i),
+          child: _SectionCard(
+            icon: item.icon,
+            color: item.color,
+            title: item.title,
+            subtitle: item.subtitle,
+            onTap: item.onTap,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+
+    return GlassPressable(
+      onTap: onTap,
+      child: GlassContainer(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Container(
-              width: 60,
-              height: 60,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: Colors.white, size: 30),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const Spacer(),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w800,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11.5, color: mutedColor),
             ),
           ],
         ),
@@ -241,53 +521,249 @@ class _BigActionCard extends StatelessWidget {
   }
 }
 
-class _MiniCard extends StatelessWidget {
-  const _MiniCard(
-      {required this.icon,
-      required this.title,
-      required this.color,
-      this.onTap});
-  final IconData icon;
-  final String title;
-  final Color color;
-  final VoidCallback? onTap;
+// ───────────────────────── Recommended ─────────────────────────
+
+class _RecommendedSection extends ConsumerWidget {
+  const _RecommendedSection({
+    required this.textColor,
+    required this.mutedColor,
+  });
+  final Color textColor;
+  final Color mutedColor;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final courses = ref.watch(coursesProvider).valueOrNull;
+    final books = ref.watch(audiobooksProvider).valueOrNull;
+    final course = (courses != null && courses.isNotEmpty) ? courses.first : null;
+    final book = (books != null && books.isNotEmpty) ? books.first : null;
+    if (course == null && book == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
+          child: Text(
+            l.homeRecommended,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: textColor,
+            ),
+          ),
+        ),
+        if (course != null) ...[
+          GlassEntrance(
+            delay: GlassMotion.entranceStep * 7,
+            child: _CourseCard(course: course),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (book != null)
+          GlassEntrance(
+            delay: GlassMotion.entranceStep * 8,
+            child: _AudiobookRow(book: book),
+          ),
+      ],
+    );
+  }
+}
+
+class _CourseCard extends ConsumerWidget {
+  const _CourseCard({required this.course});
+  final Course course;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+    final coverUrl = course.coverUrl == null
+        ? null
+        : ref.read(apiClientProvider).resolveMediaUrl(course.coverUrl!);
+
+    return GlassPressable(
+      onTap: () => context.push('/courses/${course.id}'),
+      child: GlassContainer(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: SizedBox(
+                height: 110,
+                width: double.infinity,
+                child: coverUrl != null
+                    ? Image.network(
+                        coverUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const _CoverFallback(),
+                      )
+                    : const _CoverFallback(),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(6, 12, 6, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          course.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: textColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          l.lessonsShort(course.lessons.length),
+                          style: TextStyle(fontSize: 12, color: mutedColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      gradient: course.isFree ? null : AppColors.wineGradient,
+                      color: course.isFree
+                          ? AppColors.success.withValues(alpha: 0.12)
+                          : null,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: course.isFree
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: AppColors.wine.withValues(alpha: 0.30),
+                                blurRadius: 14,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                    ),
+                    child: Text(
+                      course.isFree
+                          ? l.free
+                          : l.sumPrice(course.price.toStringAsFixed(0)),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color:
+                            course.isFree ? AppColors.success : Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CoverFallback extends StatelessWidget {
+  const _CoverFallback();
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.line),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    return Container(
+      color: AppColors.wine.withValues(alpha: 0.08),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.play_circle_outline_rounded,
+        size: 40,
+        color: AppColors.wine.withValues(alpha: 0.4),
+      ),
+    );
+  }
+}
+
+class _AudiobookRow extends StatelessWidget {
+  const _AudiobookRow({required this.book});
+  final Audiobook book;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
+
+    return GlassPressable(
+      onTap: () => context.push('/audiobooks/${book.id}'),
+      child: GlassContainer(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.blue.withValues(alpha: 0.18),
+              ),
+              child: const Icon(Icons.play_arrow_rounded,
+                  color: AppColors.blue, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    book.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    [
+                      if (book.author?.isNotEmpty ?? false) book.author!,
+                      l.audiobooks,
+                    ].join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: mutedColor),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            if (book.isFree)
               Container(
-                padding: const EdgeInsets.all(10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
+                  color: AppColors.success.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                child: Icon(icon, color: color),
-              ),
-              const SizedBox(height: 14),
-              Text(title,
+                child: Text(
+                  l.free,
                   style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 15)),
-              const SizedBox(height: 2),
-              Text(
-                AppLocalizations.of(context).openFromMenu,
-                style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.success,
+                  ),
+                ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );

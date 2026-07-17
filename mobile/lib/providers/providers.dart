@@ -52,6 +52,39 @@ final pendingPsychologyAttemptProvider =
 /// and requests AI analysis immediately after returning from auth.
 final autoRequestAiAfterAuthProvider = StateProvider<bool>((ref) => false);
 
+/// User-chosen theme mode ('light' | 'dark' | unset = follow system).
+/// Persisted straight in SharedPreferences; toggled from the profile tab.
+final themeModeProvider =
+    StateNotifierProvider<ThemeModeController, ThemeMode>(
+        (ref) => ThemeModeController(ref));
+
+class ThemeModeController extends StateNotifier<ThemeMode> {
+  ThemeModeController(this._ref) : super(_initial(_ref));
+
+  static const _prefsKey = 'theme_mode';
+  final Ref _ref;
+
+  static ThemeMode _initial(Ref ref) {
+    final saved = ref.read(sharedPreferencesProvider).getString(_prefsKey);
+    return switch (saved) {
+      'dark' => ThemeMode.dark,
+      'light' => ThemeMode.light,
+      _ => ThemeMode.system,
+    };
+  }
+
+  Future<void> setMode(ThemeMode mode) async {
+    state = mode;
+    final prefs = _ref.read(sharedPreferencesProvider);
+    if (mode == ThemeMode.system) {
+      await prefs.remove(_prefsKey);
+    } else {
+      await prefs.setString(
+          _prefsKey, mode == ThemeMode.dark ? 'dark' : 'light');
+    }
+  }
+}
+
 class LocaleController extends StateNotifier<Locale> {
   LocaleController(this._ref) : super(_initial(_ref));
 

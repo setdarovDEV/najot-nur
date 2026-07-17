@@ -132,6 +132,7 @@
   "homeActionObservation": "Проверить наблюдательность",
   "homeActionObservationSub": "10 тестов: психология и язык тела",
   "homeFeatures": "Возможности",
+  "homeRecommended": "Рекомендуем",
   "free": "Бесплатно",
   "forSale": "Продаётся",
   "lessonsShort": "{count} ур.",
@@ -332,15 +333,18 @@
   "listenExpert": "Послушайте эксперта",
   "playAudio": "Слушать",
   "stopAudio": "Стоп",
-
   "continueCourse": "Продолжить",
   "courseInProgress": "В процессе",
   "courseCompleted": "Курс завершён",
   "lessonsCompleted": "{completed}/{total} уроков выполнено",
   "@lessonsCompleted": {
     "placeholders": {
-      "completed": { "type": "int" },
-      "total": { "type": "int" }
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "lesson": "Урок",
@@ -357,7 +361,9 @@
   "lessonCompletedWithScore": "Урок завершён! Балл: {score}%",
   "@lessonCompletedWithScore": {
     "placeholders": {
-      "score": { "type": "int" }
+      "score": {
+        "type": "int"
+      }
     }
   },
   "videoOpenError": "Не удалось открыть видео",
@@ -365,7 +371,9 @@
   "quizLessonSubtitle": "{count} вопросов",
   "@quizLessonSubtitle": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "quizAnswerAll": "Ответьте на все вопросы",
@@ -375,8 +383,12 @@
   "quizCorrectCount": "{correct}/{total} правильно",
   "@quizCorrectCount": {
     "placeholders": {
-      "correct": { "type": "int" },
-      "total": { "type": "int" }
+      "correct": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "homeworkTitle": "Домашнее задание",
@@ -398,7 +410,6 @@
   "updateRequiredMessage": "Доступна новая версия NotiqAI. Пожалуйста, обновите приложение, чтобы продолжить.",
   "updateNow": "Обновить",
   "updateLater": "Позже",
-
   "permissionGateTitle": "Нужны разрешения",
   "permissionGateMessage": "Предоставьте разрешения ниже, чтобы приложение работало полноценно:",
   "permissionMicrophone": "Микрофон",
@@ -407,7 +418,6 @@
   "permissionGrant": "Предоставить доступ",
   "permissionOpenSettings": "Открыть настройки",
   "permissionLater": "Позже",
-
   "gradeTitleExcellent": "Отличный результат!",
   "gradeTitleGood": "Хороший результат!",
   "gradeTitleAverage": "Средний результат",
@@ -426,7 +436,9 @@
   "gradePronunciationNeedsWork": "В {count} словах найдены ошибки.",
   "@gradePronunciationNeedsWork": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "perfectPronunciation": "Отлично! Все слова произнесены правильно.",
@@ -437,5 +449,12 @@
   "quizBadSubtitle": "Продолжайте стараться!",
   "quizMetricScore": "Общий балл",
   "quizMetricCorrect": "Правильные ответы",
-  "tryAgain": "Попробовать снова"
+  "tryAgain": "Попробовать снова",
+  "levelBeginner": "Начальный",
+  "levelIntermediate": "Средний",
+  "levelAdvanced": "Продвинутый",
+  "filterAll": "Все",
+  "searchCoursesHint": "Поиск курсов…",
+  "coursesCount": "{count} курсов",
+  "priceLabel": "Цена"
 }

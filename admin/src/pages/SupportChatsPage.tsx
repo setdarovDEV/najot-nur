@@ -15,6 +15,7 @@ import type {
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
+import { GlassTextarea } from "../components/glass";
 
 function mapMessage(raw: WsNewMessage["message"]): SupportMessage {
   return {
@@ -312,7 +313,7 @@ export function SupportChatsPage() {
             <div className="flex items-center gap-3 border-b border-line bg-card px-4 py-3 md:px-6">
               <button
                 onClick={() => setSelectedUserId(null)}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-line text-muted hover:border-wine/30 hover:text-wine md:hidden"
+                className="press grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line text-muted hover:border-wine/30 hover:text-wine md:hidden"
               >
                 <ArrowLeft size={16} />
               </button>
@@ -373,7 +374,7 @@ export function SupportChatsPage() {
             {/* Reply input */}
             <div className="border-t border-line bg-card px-6 py-3">
               <div className="flex items-end gap-3">
-                <textarea
+                <GlassTextarea
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   onKeyDown={(e) => {
@@ -384,12 +385,12 @@ export function SupportChatsPage() {
                   }}
                   placeholder={`${t.supportChats.typeMessage} (Enter — ${t.supportChats.send})`}
                   rows={2}
-                  className="flex-1 resize-none rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink placeholder:text-muted outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+                  className="flex-1 resize-none"
                 />
                 <button
                   onClick={handleSend}
                   disabled={!reply.trim() || sendReply.isPending}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-wine text-white transition hover:bg-wine-dark disabled:opacity-40"
+                  className="press flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-wine text-white transition hover:bg-wine-dark disabled:opacity-40"
                 >
                   {sendReply.isPending ? (
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

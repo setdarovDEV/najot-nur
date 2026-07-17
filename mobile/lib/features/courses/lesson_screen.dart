@@ -64,9 +64,11 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final lessonAsync = ref.watch(lessonDetailProvider(widget.lessonId));
+    final progressAsync = ref.watch(courseProgressProvider(widget.courseId));
     final dark = Theme.of(context).brightness == Brightness.dark;
     final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
     final topInset = MediaQuery.of(context).padding.top;
+    final isEnrolled = progressAsync.valueOrNull?.enrolled ?? false;
 
     // Paid video content — screenshots/recording blocked only here.
     return SecureScreen(
@@ -109,18 +111,19 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                       ),
                     ),
                     const SizedBox(height: 12),
-                    GlassEntrance(
-                      delay: GlassMotion.entranceStep,
-                      child: _SegmentPicker(
-                        labels: [
-                          l.lessonTabVideo,
-                          l.lessonTabQuiz,
-                          l.lessonTabHomework,
-                        ],
-                        index: _tabs.index,
-                        onSelect: (i) => _tabs.animateTo(i),
+                    if (isEnrolled)
+                      GlassEntrance(
+                        delay: GlassMotion.entranceStep,
+                        child: _SegmentPicker(
+                          labels: [
+                            l.lessonTabVideo,
+                            l.lessonTabQuiz,
+                            l.lessonTabHomework,
+                          ],
+                          index: _tabs.index,
+                          onSelect: (i) => _tabs.animateTo(i),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -132,49 +135,55 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                     onRetry: () =>
                         ref.invalidate(lessonDetailProvider(widget.lessonId)),
                   ),
-                  data: (lesson) => TabBarView(
-                    controller: _tabs,
-                    children: [
-                      // ── Tab 1: Video + Description ──
-                      _VideoTab(
-                        lesson: lesson,
-                        courseId: widget.courseId,
-                        onOpenVideo: _openVideo,
-                        onComplete: () async {
-                          await ref
-                              .read(learningRepositoryProvider)
-                              .completeLesson(widget.lessonId);
-                          ref.invalidate(
-                              lessonDetailProvider(widget.lessonId));
-                          ref.invalidate(
-                              courseProgressProvider(widget.courseId));
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(l.lessonCompleted)),
-                            );
-                          }
-                        },
-                      ),
-
-                      // ── Tab 2: Quiz ──
-                      lesson.hasQuiz
-                          ? _QuizTab(
+                  data: (lesson) => isEnrolled
+                      ? TabBarView(
+                          controller: _tabs,
+                          children: [
+                            // ── Tab 1: Video + Description ──
+                            _VideoTab(
                               lesson: lesson,
                               courseId: widget.courseId,
-                              lessonId: widget.lessonId,
-                            )
-                          : EmptyView(
-                              icon: Icons.quiz_outlined,
-                              message: l.noQuizForLesson,
+                              onOpenVideo: _openVideo,
+                              onComplete: () async {
+                                await ref
+                                    .read(learningRepositoryProvider)
+                                    .completeLesson(widget.lessonId);
+                                ref.invalidate(
+                                    lessonDetailProvider(widget.lessonId));
+                                ref.invalidate(
+                                    courseProgressProvider(widget.courseId));
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(l.lessonCompleted)),
+                                  );
+                                }
+                              },
                             ),
 
-                      // ── Tab 3: Homework ──
-                      _HomeworkTab(
-                        lessonId: widget.lessonId,
-                        courseId: widget.courseId,
-                      ),
-                    ],
-                  ),
+                            // ── Tab 2: Quiz ──
+                            lesson.hasQuiz
+                                ? _QuizTab(
+                                    lesson: lesson,
+                                    courseId: widget.courseId,
+                                    lessonId: widget.lessonId,
+                                  )
+                                : EmptyView(
+                                    icon: Icons.quiz_outlined,
+                                    message: l.noQuizForLesson,
+                                  ),
+
+                            // ── Tab 3: Homework ──
+                            _HomeworkTab(
+                              lessonId: widget.lessonId,
+                              courseId: widget.courseId,
+                            ),
+                          ],
+                        )
+                      : _VideoTab(
+                          lesson: lesson,
+                          courseId: widget.courseId,
+                          onOpenVideo: _openVideo,
+                        ),
                 ),
               ),
             ],
@@ -376,12 +385,12 @@ class _VideoTab extends ConsumerWidget {
     required this.lesson,
     required this.courseId,
     required this.onOpenVideo,
-    required this.onComplete,
+    this.onComplete,
   });
   final LessonDetail lesson;
   final String courseId;
   final Future<void> Function(String) onOpenVideo;
-  final Future<void> Function() onComplete;
+  final Future<void> Function()? onComplete;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -612,7 +621,7 @@ class _VideoTab extends ConsumerWidget {
           ],
 
           // Mark as complete button (if no quiz and not yet completed)
-          if (!lesson.hasQuiz && !lesson.isCompleted)
+          if (onComplete != null && !lesson.hasQuiz && !lesson.isCompleted)
             GlassEntrance(
               delay: GlassMotion.entranceStep * 3,
               child: _PrimaryCta(

@@ -7,6 +7,7 @@ import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
+import { GlassInput, GlassSelect, GlassTextarea, PrimaryButton, Reveal, SegmentedControl, StatusPill } from "../components/glass";
 
 type Audience = "all" | "course" | "user" | "city";
 
@@ -152,38 +153,34 @@ export function NotificationsPage() {
         <div className="rounded-2xl border border-line bg-card p-6">
           <h2 className="mb-4 font-bold">Yangi xabar</h2>
 
-          <div className="mb-3 flex gap-2">
-            {(["all", "course", "user", "city"] as Audience[]).map((a) => (
-              <button
-                key={a}
-                type="button"
-                onClick={() => {
-                  setAudience(a);
-                  setTargetId("");
-                  setTargetCity("");
-                }}
-                className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                  audience === a
-                    ? "border-wine bg-wine text-white"
-                    : "border-line bg-card text-ink hover:border-wine/40"
-                }`}
-              >
-                {a === "all"
-                  ? "Hammaga"
-                  : a === "course"
-                    ? "Kursga"
-                    : a === "city"
-                      ? "Shaharga"
-                      : "Foydalanuvchiga"}
-              </button>
-            ))}
+          <div className="mb-3">
+            <SegmentedControl
+              className="w-full"
+              value={audience}
+              onChange={(a) => {
+                setAudience(a);
+                setTargetId("");
+                setTargetCity("");
+              }}
+              options={(["all", "course", "user", "city"] as Audience[]).map((a) => ({
+                value: a,
+                label:
+                  a === "all"
+                    ? "Hammaga"
+                    : a === "course"
+                      ? "Kursga"
+                      : a === "city"
+                        ? "Shaharga"
+                        : "Foydalanuvchiga",
+              }))}
+            />
           </div>
 
           {audience === "course" && (
-            <select
+            <GlassSelect
               value={targetId}
               onChange={(e) => setTargetId(e.target.value)}
-              className="mb-3 w-full rounded-lg border border-line px-4 py-2.5 outline-none focus:border-wine"
+              className="mb-3"
             >
               <option value="">— Kursni tanlang —</option>
               {courses.map((c) => (
@@ -191,14 +188,14 @@ export function NotificationsPage() {
                   {c.title}
                 </option>
               ))}
-            </select>
+            </GlassSelect>
           )}
 
           {audience === "city" && (
-            <select
+            <GlassSelect
               value={targetCity}
               onChange={(e) => setTargetCity(e.target.value)}
-              className="mb-3 w-full rounded-lg border border-line px-4 py-2.5 outline-none focus:border-wine"
+              className="mb-3"
             >
               <option value="">— Shaharni tanlang —</option>
               {cities.map((city) => (
@@ -206,21 +203,19 @@ export function NotificationsPage() {
                   {city}
                 </option>
               ))}
-            </select>
+            </GlassSelect>
           )}
 
           {audience === "user" && (
             <div className="mb-3 space-y-2">
-              <input
+              <GlassInput
                 value={userQuery}
                 onChange={(e) => setUserQuery(e.target.value)}
                 placeholder="Telefon, ism yoki email boʻyicha qidirish…"
-                className="w-full rounded-lg border border-line px-4 py-2.5 outline-none focus:border-wine"
               />
-              <select
+              <GlassSelect
                 value={targetId}
                 onChange={(e) => setTargetId(e.target.value)}
-                className="w-full rounded-lg border border-line px-4 py-2.5 outline-none focus:border-wine"
               >
                 <option value="">— Foydalanuvchini tanlang —</option>
                 {users.map((u) => (
@@ -229,27 +224,28 @@ export function NotificationsPage() {
                     {u.phone ? ` · ${u.phone}` : ""}
                   </option>
                 ))}
-              </select>
+              </GlassSelect>
             </div>
           )}
 
-          <input
+          <GlassInput
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t.notifications.titleField}
-            className="mb-3 w-full rounded-lg border border-line bg-card px-4 py-2.5 text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20]"
+            className="mb-3"
           />
-          <textarea
+          <GlassTextarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={t.notifications.body}
             rows={5}
-            className="mb-4 w-full rounded-lg border border-line bg-card px-4 py-2.5 text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20]"
+            className="mb-4"
           />
-          <button
+          <PrimaryButton
             disabled={!ready}
+            loading={send.isPending}
             onClick={handleSend}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-wine py-3 font-bold text-white hover:bg-wine-dark disabled:opacity-60"
+            className="w-full py-3"
           >
             {send.isPending ? (
               <Loader2 size={16} className="animate-spin" />
@@ -263,7 +259,7 @@ export function NotificationsPage() {
                 : audience === "course"
                   ? "Kursga yuborish"
                   : "Yuborish"}
-          </button>
+          </PrimaryButton>
           {send.isError && (
             <p className="mt-2 text-sm text-red-600">{apiError(send.error)}</p>
           )}
@@ -280,25 +276,24 @@ export function NotificationsPage() {
             {data?.length === 0 && (
               <p className="text-muted">Hali xabar yuborilmagan.</p>
             )}
-            {data?.map((n) => (
-              <div
-                key={n.id}
-                className="rounded-xl border border-line p-4"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-semibold text-ink">{n.title}</h3>
-                  <span className="shrink-0 rounded-full bg-wine/10 px-2 py-0.5 text-[10px] font-bold text-wine dark:bg-wine/15 dark:text-wine-300">
-                    {audienceLabel(n.audience)}
-                  </span>
+            {data?.map((n, i) => (
+              <Reveal key={n.id} index={i}>
+                <div className="rounded-xl border border-line p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-semibold text-ink">{n.title}</h3>
+                    <StatusPill tone="neutral" className="shrink-0">
+                      {audienceLabel(n.audience)}
+                    </StatusPill>
+                  </div>
+                  <p className="mt-1 text-sm text-muted">{n.body}</p>
+                  <div className="mt-2 flex items-center justify-between text-xs text-muted">
+                    <span>{n.delivered_count ?? 0} ta qurilmaga yetib borgan</span>
+                    <span>
+                      {n.sent_at ? new Date(n.sent_at).toLocaleString() : "—"}
+                    </span>
+                  </div>
                 </div>
-                <p className="mt-1 text-sm text-muted">{n.body}</p>
-                <div className="mt-2 flex items-center justify-between text-xs text-muted">
-                  <span>{n.delivered_count ?? 0} ta qurilmaga yetib borgan</span>
-                  <span>
-                    {n.sent_at ? new Date(n.sent_at).toLocaleString() : "—"}
-                  </span>
-                </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -386,7 +381,7 @@ function FcmStatusBanner({
         type="button"
         disabled={testing || status.registered_tokens === 0}
         onClick={onTestPush}
-        className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition disabled:opacity-50 ${
+        className={`press flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition disabled:opacity-50 ${
           ok
             ? "bg-green-600 text-white hover:bg-green-700"
             : "bg-amber-600 text-white hover:bg-amber-700"

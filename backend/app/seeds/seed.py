@@ -272,11 +272,11 @@ async def _course(db: AsyncSession) -> None:
     await db.flush()
 
     lessons = [
-        ("Kirish: notiqlik nima?", False),
-        ("Ovoz mashqlari", True),
-        ("Nutq tuzilishi", False),
+        ("Kirish: notiqlik nima?", False, True),
+        ("Ovoz mashqlari", True, False),
+        ("Nutq tuzilishi", False, False),
     ]
-    for idx, (title, is_voice) in enumerate(lessons):
+    for idx, (title, is_voice, is_demo) in enumerate(lessons):
         lesson = Lesson(
             course_id=course.id,
             title=title,
@@ -288,6 +288,7 @@ async def _course(db: AsyncSession) -> None:
                 if is_voice
                 else None
             ),
+            is_demo=is_demo,
         )
         db.add(lesson)
         await db.flush()

@@ -11,6 +11,7 @@ import {
 import { useAuth } from "../lib/auth";
 import { apiError } from "../lib/api";
 import { useLang } from "../lib/i18n";
+import { AmbientOrbs, GlassInput, PrimaryButton } from "../components/glass";
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -81,20 +82,24 @@ export function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-wine via-wine-dark to-wine-deep p-4 sm:p-6">
-      <div className="w-full max-w-sm">
+    <div className="relative grid min-h-screen place-items-center p-4 sm:p-6">
+      <AmbientOrbs />
+      <div className="animate-fade-rise w-full max-w-sm">
         {/* Brand */}
-        <div className="mb-6 flex items-center gap-3 text-white">
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 text-lg font-black shadow-inner">
+        <div className="mb-6 flex items-center gap-3">
+          <div
+            className="grid h-12 w-12 place-items-center rounded-2xl text-lg font-black text-white shadow-lg shadow-wine/30"
+            style={{ backgroundImage: "linear-gradient(160deg, #8A1538, #5E0E25)" }}
+          >
             NN
           </div>
           <div>
-            <div className="text-xl font-extrabold leading-none">{t.login.title}</div>
-            <div className="mt-1 text-sm text-white/70">{t.login.subtitle}</div>
+            <div className="text-xl font-extrabold leading-none tracking-tight text-ink">{t.login.title}</div>
+            <div className="mt-1 text-sm text-muted">{t.login.subtitle}</div>
           </div>
         </div>
 
-        <div className="rounded-3xl bg-card p-6 shadow-2xl sm:p-8">
+        <div className="glass-chrome rounded-3xl border p-6 shadow-2xl shadow-wine-deep/10 sm:p-8">
           <form onSubmit={onSubmit} className="space-y-4" autoComplete="off" noValidate>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-ink">
@@ -105,7 +110,7 @@ export function LoginPage() {
                   size={16}
                   className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
                 />
-                <input
+                <GlassInput
                   ref={emailRef}
                   type="email"
                   name="user_login_email"
@@ -117,7 +122,7 @@ export function LoginPage() {
                   data-form-type="other"
                   spellCheck={false}
                   disabled={loading}
-                  className="w-full rounded-xl border border-line bg-card py-3 pl-10 pr-4 text-ink outline-none transition focus:border-wine focus:ring-2 focus:ring-wine/20 disabled:opacity-60 dark:bg-[#251d20]"
+                  className="py-3 pl-10 pr-4"
                   placeholder="name@example.com"
                 />
               </div>
@@ -132,21 +137,21 @@ export function LoginPage() {
                   size={16}
                   className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
                 />
-                <input
+                <GlassInput
                   type={showPassword ? "text" : "password"}
                   name="user_login_password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   disabled={loading}
-                  className="w-full rounded-xl border border-line bg-card py-3 pl-10 pr-12 text-ink outline-none transition focus:border-wine focus:ring-2 focus:ring-wine/20 disabled:opacity-60 dark:bg-[#251d20]"
+                  className="py-3 pl-10 pr-12"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
                   disabled={loading}
-                  className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-muted transition hover:bg-surface hover:text-ink disabled:opacity-50"
+                  className="press absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted transition hover:bg-surface hover:text-ink disabled:opacity-50"
                   title={showPassword ? t.login.hidePassword : t.login.showPassword}
                   aria-label={showPassword ? t.login.hidePassword : t.login.showPassword}
                 >
@@ -156,20 +161,16 @@ export function LoginPage() {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+              <div className="status-pill-danger flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm">
                 <AlertCircle size={15} className="mt-0.5 shrink-0" />
-                <span className="flex-1 break-words">{error}</span>
+                <span className="flex-1 break-words font-semibold">{error}</span>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-wine py-3 font-bold text-white transition hover:bg-wine-dark disabled:cursor-not-allowed disabled:opacity-60"
-            >
+            <PrimaryButton type="submit" disabled={loading} className="w-full py-3">
               {loading && <Loader2 size={16} className="animate-spin" />}
               {loading ? t.login.loggingIn : t.login.loginBtn}
-            </button>
+            </PrimaryButton>
           </form>
         </div>
       </div>

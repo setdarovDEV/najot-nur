@@ -23,6 +23,14 @@ import {
   ModalHeader,
   ModalSubmitButton,
 } from "../components/Modal";
+import {
+  Reveal,
+  PrimaryButton,
+  GlassInput,
+  GlassTextarea,
+  GlassSelect,
+  StatusPill,
+} from "../components/glass";
 
 interface Reference {
   id: string;
@@ -65,13 +73,10 @@ export function ReferencesPage() {
         title={r.title}
         subtitle={r.subtitle}
         actions={
-          <button
-            onClick={() => { setShowCreate((v) => !v); setEditing(null); }}
-            className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark"
-          >
+          <PrimaryButton onClick={() => { setShowCreate((v) => !v); setEditing(null); }}>
             <Plus size={16} />
             {r.addBtn}
-          </button>
+          </PrimaryButton>
         }
       />
 
@@ -90,21 +95,22 @@ export function ReferencesPage() {
             {r.noRefs}
           </p>
         )}
-        {data?.map((ref) => (
-          <ReferenceCard
-            key={ref.id}
-            ref_={ref}
-            onEdit={() => { setEditing(ref); setShowCreate(false); }}
-            onDelete={async () => {
-              const ok = await confirm({
-                title: r.deleteConfirm(ref.title),
-                description: t.modal.deleteDesc("matn", ref.title),
-                variant: "danger",
-                confirmText: t.modal.delete,
-              });
-              if (ok) deleteMutation.mutate(ref.id);
-            }}
-          />
+        {data?.map((ref, i) => (
+          <Reveal key={ref.id} index={i}>
+            <ReferenceCard
+              ref_={ref}
+              onEdit={() => { setEditing(ref); setShowCreate(false); }}
+              onDelete={async () => {
+                const ok = await confirm({
+                  title: r.deleteConfirm(ref.title),
+                  description: t.modal.deleteDesc("matn", ref.title),
+                  variant: "danger",
+                  confirmText: t.modal.delete,
+                });
+                if (ok) deleteMutation.mutate(ref.id);
+              }}
+            />
+          </Reveal>
         ))}
       </div>
     </div>
@@ -154,20 +160,20 @@ function ReferenceCard({
     <div className="rounded-2xl border border-line bg-card p-6">
       <div className="flex flex-wrap items-start gap-4">
         {/* Icon */}
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-wine/10">
-          <Mic size={22} className="text-wine" />
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-wine/10 dark:bg-wine/15">
+          <Mic size={22} className="text-wine dark:text-wine-300" />
         </div>
 
         {/* Main info */}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-extrabold text-ink">{ref_.title}</h3>
-            <span className="rounded-full bg-wine/10 px-2.5 py-0.5 text-[11px] font-bold uppercase text-wine">
+            <StatusPill tone="neutral" className="uppercase">
               {diffLabel[ref_.difficulty] ?? ref_.difficulty}
-            </span>
-            <span className="rounded-full bg-line px-2.5 py-0.5 text-[11px] font-bold uppercase text-muted">
+            </StatusPill>
+            <StatusPill tone="neutral" className="uppercase">
               {ref_.language.toUpperCase()}
-            </span>
+            </StatusPill>
           </div>
           <p className="mt-2 line-clamp-3 text-sm text-inkSoft leading-relaxed">
             {ref_.text}
@@ -178,14 +184,14 @@ function ReferenceCard({
         <div className="flex shrink-0 items-center gap-2">
           <button
             onClick={onEdit}
-            className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-semibold text-ink hover:border-wine/30 hover:text-wine"
+            className="press flex items-center gap-1.5 rounded-full border border-line px-3 py-2 text-xs font-semibold text-ink hover:border-wine/30 hover:text-wine dark:hover:text-wine-300"
           >
             <Pencil size={14} />
             {t.common.edit}
           </button>
           <button
             onClick={onDelete}
-            className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-semibold text-red-500 hover:border-red-200 hover:bg-red-50"
+            className="press flex items-center gap-1.5 rounded-full border border-line px-3 py-2 text-xs font-semibold text-red-500 hover:border-red-200 hover:bg-red-50 dark:hover:border-red-800 dark:hover:bg-red-900/20"
           >
             <Trash2 size={14} />
             {t.common.delete}
@@ -197,7 +203,7 @@ function ReferenceCard({
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
         {fullAudioUrl ? (
           <>
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600 dark:text-green-400">
               <CheckCircle2 size={14} />
               {r.hasAudio}
             </span>
@@ -208,7 +214,7 @@ function ReferenceCard({
                   else audioRef.current.pause();
                 }
               }}
-              className="flex items-center gap-1.5 rounded-xl bg-wine/10 px-3 py-1.5 text-xs font-semibold text-wine hover:bg-wine/20"
+              className="press flex items-center gap-1.5 rounded-full bg-wine/10 px-3 py-1.5 text-xs font-semibold text-wine hover:bg-wine/20 dark:bg-wine/15 dark:text-wine-300 dark:hover:bg-wine/25"
             >
               <Play size={13} />
               Tinglash
@@ -217,7 +223,7 @@ function ReferenceCard({
             <button
               onClick={() => fileRef.current?.click()}
               disabled={audioMutation.isPending}
-              className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine"
+              className="press flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine"
             >
               <Upload size={13} />
               {audioMutation.isPending ? "Yuklanmoqda…" : r.replaceAudio}
@@ -232,7 +238,7 @@ function ReferenceCard({
             <button
               onClick={() => fileRef.current?.click()}
               disabled={audioMutation.isPending}
-              className="flex items-center gap-1.5 rounded-xl bg-wine px-3 py-1.5 text-xs font-bold text-white hover:bg-wine-dark"
+              className="press flex items-center gap-1.5 rounded-full bg-wine px-3 py-1.5 text-xs font-bold text-white hover:bg-wine-dark"
             >
               <Upload size={13} />
               {audioMutation.isPending ? "Yuklanmoqda…" : r.uploadAudio}
@@ -340,10 +346,9 @@ function ReferenceModal({
             <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
               {r.titleField}
             </label>
-            <input
+            <GlassInput
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
               placeholder="Masalan: Kirish so'zi"
             />
           </div>
@@ -353,11 +358,10 @@ function ReferenceModal({
             <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
               {r.textField}
             </label>
-            <textarea
+            <GlassTextarea
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={4}
-              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
               placeholder="Foydalanuvchilar o'qishi kerak bo'lgan matn..."
             />
           </div>
@@ -367,15 +371,14 @@ function ReferenceModal({
             <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
               {r.difficulty}
             </label>
-            <select
+            <GlassSelect
               value={difficulty}
               onChange={(e) => setDifficulty(e.target.value)}
-              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40"
             >
               <option value="easy">{r.easy}</option>
               <option value="medium">{r.medium}</option>
               <option value="hard">{r.hard}</option>
-            </select>
+            </GlassSelect>
           </div>
 
           {/* Language */}
@@ -383,15 +386,14 @@ function ReferenceModal({
             <label className="mb-1 block text-xs font-bold text-muted uppercase tracking-wide">
               {r.language}
             </label>
-            <select
+            <GlassSelect
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40"
             >
               <option value="uz">O'zbek</option>
               <option value="ru">Русский</option>
               <option value="en">English</option>
-            </select>
+            </GlassSelect>
           </div>
 
           {/* Audio upload */}
@@ -403,7 +405,7 @@ function ReferenceModal({
               <Mic size={18} className="shrink-0 text-wine" />
               <span className="text-sm text-muted">
                 {audioFile ? (
-                  <span className="font-semibold text-green-600">
+                  <span className="font-semibold text-green-600 dark:text-green-400">
                     ✓ {audioFile.name}
                   </span>
                 ) : (

@@ -30,6 +30,7 @@ class LessonRead(BaseModel):
     duration_sec: int
     is_voice_exercise: bool
     voice_exercise_prompt: str | None
+    is_demo: bool
 
 
 class CourseRead(BaseModel):

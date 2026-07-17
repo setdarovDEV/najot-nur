@@ -16,6 +16,7 @@ import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
 import { Modal, ModalFooter } from "../components/Modal";
+import { PrimaryButton, GlassInput, StatusPill, Reveal } from "../components/glass";
 
 
 export function CuratorsPage() {
@@ -57,13 +58,10 @@ export function CuratorsPage() {
         title={t.curators.title}
         subtitle={t.curators.subtitle}
         actions={
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark"
-          >
+          <PrimaryButton onClick={() => setShowCreate(true)}>
             <Plus size={16} />
             {t.curators.addBtn}
-          </button>
+          </PrimaryButton>
         }
       />
 
@@ -98,98 +96,93 @@ export function CuratorsPage() {
       )}
 
       <div className="space-y-3">
-        {data?.map((c) => (
-          <div
-            key={c.id}
-            className={`flex items-center gap-4 rounded-2xl border bg-card p-4 ${
-              c.is_active ? "border-line" : "border-red-200 bg-red-50/30"
-            }`}
-          >
+        {data?.map((c, i) => (
+          <Reveal key={c.id} index={i}>
             <div
-              className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-black ${
-                c.is_active
-                  ? "bg-wine text-white"
-                  : "bg-gray-200 text-gray-500"
+              className={`flex items-center gap-4 rounded-2xl border bg-card p-4 ${
+                c.is_active ? "border-line" : "border-red-200 bg-red-50/30"
               }`}
             >
-              <UserCog size={20} />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-ink truncate">
-                  {c.full_name ?? "Nomsiz kurator"}
-                </span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                    c.is_active
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                  }`}
-                >
-                  {c.is_active ? "Faol" : "Bloklangan"}
-                </span>
-              </div>
-              <div className="mt-0.5 flex items-center gap-1 text-xs text-muted">
-                <Mail size={12} />
-                {c.email}
-              </div>
-              <div className="mt-0.5 text-xs text-muted">
-                Qo'shilgan: {new Date(c.created_at).toLocaleDateString()}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                title={t.common.edit}
-                onClick={() => setEditing(c)}
-                className="rounded-lg p-2 text-muted hover:bg-wine-50 dark:hover:bg-wine-900/20"
-              >
-                <Edit3 size={15} />
-              </button>
-              <button
-                title={c.is_active ? t.curators.block : t.curators.activate}
-                onClick={async () => {
-                  const ok = await confirm({
-                    title: c.is_active
-                      ? t.curators.confirmBlock(c.full_name ?? c.email ?? "")
-                      : t.curators.confirmActivate(c.full_name ?? c.email ?? ""),
-                    variant: c.is_active ? "warning" : "primary",
-                    confirmText: c.is_active ? t.modal.block : t.modal.activate,
-                  });
-                  if (ok)
-                    toggleActive.mutate({ id: c.id, is_active: !c.is_active });
-                }}
-                disabled={toggleActive.isPending}
-                className={`rounded-lg p-2 hover:bg-wine-50 dark:hover:bg-wine-900/20 disabled:opacity-50 ${
-                  c.is_active ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"
+              <div
+                className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-black ${
+                  c.is_active
+                    ? "bg-wine text-white"
+                    : "bg-gray-200 text-gray-500"
                 }`}
               >
-                <Power size={15} />
-              </button>
-              <button
-                title={t.common.delete}
-                onClick={async () => {
-                  const ok = await confirm({
-                    title: t.curators.confirmDelete(
-                      c.full_name ?? c.email ?? "",
-                    ),
-                    description: t.modal.deleteDesc(
-                      "kurator",
-                      c.full_name ?? c.email ?? "",
-                    ),
-                    variant: "danger",
-                    confirmText: t.modal.delete,
-                  });
-                  if (ok) hardDelete.mutate(c.id);
-                }}
-                disabled={hardDelete.isPending}
-                className="rounded-lg p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
-              >
-                <Trash2 size={15} />
-              </button>
+                <UserCog size={20} />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-ink truncate">
+                    {c.full_name ?? "Nomsiz kurator"}
+                  </span>
+                  <StatusPill tone={c.is_active ? "success" : "danger"}>
+                    {c.is_active ? "Faol" : "Bloklangan"}
+                  </StatusPill>
+                </div>
+                <div className="mt-0.5 flex items-center gap-1 text-xs text-muted">
+                  <Mail size={12} />
+                  {c.email}
+                </div>
+                <div className="mt-0.5 text-xs text-muted">
+                  Qo'shilgan: {new Date(c.created_at).toLocaleDateString()}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  title={t.common.edit}
+                  onClick={() => setEditing(c)}
+                  className="press rounded-full p-2 text-muted hover:bg-wine-50 dark:hover:bg-wine-900/20"
+                >
+                  <Edit3 size={15} />
+                </button>
+                <button
+                  title={c.is_active ? t.curators.block : t.curators.activate}
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: c.is_active
+                        ? t.curators.confirmBlock(c.full_name ?? c.email ?? "")
+                        : t.curators.confirmActivate(c.full_name ?? c.email ?? ""),
+                      variant: c.is_active ? "warning" : "primary",
+                      confirmText: c.is_active ? t.modal.block : t.modal.activate,
+                    });
+                    if (ok)
+                      toggleActive.mutate({ id: c.id, is_active: !c.is_active });
+                  }}
+                  disabled={toggleActive.isPending}
+                  className={`press rounded-full p-2 hover:bg-wine-50 dark:hover:bg-wine-900/20 disabled:opacity-50 ${
+                    c.is_active ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"
+                  }`}
+                >
+                  <Power size={15} />
+                </button>
+                <button
+                  title={t.common.delete}
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: t.curators.confirmDelete(
+                        c.full_name ?? c.email ?? "",
+                      ),
+                      description: t.modal.deleteDesc(
+                        "kurator",
+                        c.full_name ?? c.email ?? "",
+                      ),
+                      variant: "danger",
+                      confirmText: t.modal.delete,
+                    });
+                    if (ok) hardDelete.mutate(c.id);
+                  }}
+                  disabled={hardDelete.isPending}
+                  className="press rounded-full p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             </div>
-          </div>
+          </Reveal>
         ))}
       </div>
     </div>
@@ -266,25 +259,22 @@ function CreateCuratorForm({
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             F.I.O. *
           </label>
-          <input
+          <GlassInput
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Masalan: Aliyev Ali"
-            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             Email *
           </label>
-          <input
+          <GlassInput
             type="email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setEmailError(null); }}
             placeholder="curator@najotnur.uz"
-            className={`w-full rounded-xl border bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10 ${
-              emailError ? "border-red-400" : "border-line"
-            }`}
+            className={emailError ? "border-red-400" : ""}
           />
           {emailError && (
             <p className="mt-1 text-xs text-red-600 dark:text-red-400">
@@ -296,13 +286,12 @@ function CreateCuratorForm({
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             Parol (kamida 6 belgi) *
           </label>
-          <input
+          <GlassInput
             type="password"
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
         </div>
         {create.isError && (
@@ -392,20 +381,19 @@ function EditCuratorForm({
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             F.I.O. *
           </label>
-          <input
+          <GlassInput
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             Email
           </label>
-          <input
+          <GlassInput
             disabled
             value={curator?.email ?? ""}
-            className="w-full cursor-not-allowed rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-muted"
+            className="cursor-not-allowed bg-surface"
           />
         </div>
         <div className="sm:col-span-2">
@@ -413,13 +401,12 @@ function EditCuratorForm({
             <Lock size={12} />
             Yangi parol (ixtiyoriy)
           </label>
-          <input
+          <GlassInput
             type="password"
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="O'zgartirmasangiz bo'sh qoldiring"
-            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
         </div>
         <label className="flex cursor-pointer items-center gap-3 sm:col-span-2">

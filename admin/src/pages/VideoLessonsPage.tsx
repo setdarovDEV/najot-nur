@@ -17,6 +17,7 @@ import { useToast } from "../lib/toast";
 import type { AdminCourse } from "../lib/types";
 import { CourseContentModal } from "../components/CourseContentModal";
 import { Modal, ModalFooter } from "../components/Modal";
+import { Reveal, PrimaryButton, GlassInput, GlassTextarea, GlassSelect, StatusPill } from "../components/glass";
 
 // ─── API helpers ────────────────────────────────────────────────────────────
 
@@ -69,15 +70,12 @@ export function VideoLessonsPage() {
         }
         actions={
           canEdit ? (
-            <button
-              onClick={() => setCreating(true)}
-              className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-semibold text-white hover:bg-wine/90"
-            >
+            <PrimaryButton onClick={() => setCreating(true)}>
               <Plus size={16} />
               Kurs yaratish
-            </button>
+            </PrimaryButton>
           ) : (
-            <span className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2 text-xs font-semibold text-muted">
+            <span className="flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-xs font-semibold text-muted">
               <Lock size={14} />
               Faqat ko'rish
             </span>
@@ -105,9 +103,9 @@ export function VideoLessonsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {courses.map((c) => (
+          {courses.map((c, i) => (
+            <Reveal key={c.id} index={i}>
             <div
-              key={c.id}
               className="overflow-hidden rounded-2xl border border-line bg-card"
             >
               <div className="flex items-center gap-4 p-4">
@@ -126,15 +124,9 @@ export function VideoLessonsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-ink truncate">{c.title}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        c.is_published
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                      }`}
-                    >
+                    <StatusPill tone={c.is_published ? "success" : "warning"}>
                       {c.is_published ? "Chiqarilgan" : "Qoralama"}
-                    </span>
+                    </StatusPill>
                   </div>
                   <div className="mt-0.5 text-xs text-muted">
                     {c.lesson_count} ta dars · {c.level} ·{" "}
@@ -148,7 +140,7 @@ export function VideoLessonsPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => setManagingCourse(c)}
-                      className="flex items-center gap-1.5 rounded-xl bg-wine px-2 py-2 text-xs font-bold text-white hover:bg-wine/90 sm:px-3"
+                      className="press flex items-center gap-1.5 rounded-full bg-wine px-2 py-2 text-xs font-bold text-white hover:bg-wine/90 sm:px-3"
                       title="Kurs kontentini boshqarish"
                     >
                       <Settings2 size={14} />
@@ -172,7 +164,7 @@ export function VideoLessonsPage() {
                             value: !c.is_published,
                           });
                       }}
-                      className="rounded-lg p-2 text-muted hover:bg-surface"
+                      className="press rounded-full p-2 text-muted hover:bg-surface"
                     >
                       {c.is_published ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -187,7 +179,7 @@ export function VideoLessonsPage() {
                         });
                         if (ok) deleteCourse.mutate(c.id);
                       }}
-                      className="rounded-lg p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      className="press rounded-full p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -195,6 +187,7 @@ export function VideoLessonsPage() {
                 )}
               </div>
             </div>
+            </Reveal>
           ))}
         </div>
       )}
@@ -281,52 +274,48 @@ function CreateCourseForm({
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             Kurs nomi *
           </label>
-          <input
+          <GlassInput
             required
             placeholder="Masalan: Nutq san'ati"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
         </div>
         <div className="sm:col-span-2">
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             Tavsif
           </label>
-          <textarea
+          <GlassTextarea
             placeholder="Kurs haqida qisqacha..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             Narxi (so'm)
           </label>
-          <input
+          <GlassInput
             type="number"
             min="0"
             placeholder="0"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             Daraja
           </label>
-          <select
+          <GlassSelect
             value={level}
             onChange={(e) => setLevel(e.target.value)}
-            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 pr-9 text-sm text-ink outline-none transition focus:border-wine/40"
           >
             <option value="beginner">Boshlang'ich</option>
             <option value="intermediate">O'rta</option>
             <option value="advanced">Yuqori</option>
-          </select>
+          </GlassSelect>
         </div>
       </div>
     </Modal>

@@ -7,6 +7,13 @@ import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
+import { GlassCard, GlassInput, Reveal, SegmentedControl, StatusPill } from "../components/glass";
+
+const STATUS_TONE: Record<Order["status"], "success" | "danger" | "warning"> = {
+  pending: "warning",
+  approved: "success",
+  rejected: "danger",
+};
 
 // ─── Label maps ───────────────────────────────────────────────────────────────
 
@@ -105,37 +112,27 @@ export function OrdersPage() {
       <PageHeader title={t.orders.title} subtitle={t.orders.subtitle} />
 
       {/* Status filter */}
-      <div className="mb-3 flex flex-wrap gap-2">
-        {(["pending", "approved", "rejected", "all"] as StatusFilter[]).map((s) => (
-          <button
-            key={s}
-            onClick={() => { setStatusFilter(s); setPage(1); }}
-            className={`rounded-xl px-4 py-1.5 text-sm font-semibold transition ${
-              statusFilter === s
-                ? "bg-wine text-white"
-                : "border border-line bg-card text-muted hover:border-wine/40 hover:text-ink"
-            }`}
-          >
-            {s === "all" ? "Barchasi" : STATUS_STYLES[s as Order["status"]].label}
-          </button>
-        ))}
+      <div className="mb-3">
+        <SegmentedControl
+          value={statusFilter}
+          onChange={(s) => { setStatusFilter(s); setPage(1); }}
+          options={(["pending", "approved", "rejected", "all"] as StatusFilter[]).map((s) => ({
+            value: s,
+            label: s === "all" ? "Barchasi" : STATUS_STYLES[s as Order["status"]].label,
+          }))}
+        />
       </div>
 
       {/* Method filter */}
-      <div className="mb-5 flex flex-wrap gap-2">
-        {(["all", "uzum", "uzum_nasiya", "cash"] as MethodFilter[]).map((m) => (
-          <button
-            key={m}
-            onClick={() => { setMethodFilter(m); setPage(1); }}
-            className={`rounded-xl px-3 py-1 text-xs font-semibold transition ${
-              methodFilter === m
-                ? "bg-ink text-card"
-                : "border border-line bg-card text-muted hover:border-ink/30 hover:text-ink"
-            }`}
-          >
-            {m === "all" ? "Barcha usul" : METHOD_LABELS[m as Order["payment_method"]]}
-          </button>
-        ))}
+      <div className="mb-5">
+        <SegmentedControl
+          value={methodFilter}
+          onChange={(m) => { setMethodFilter(m); setPage(1); }}
+          options={(["all", "uzum", "uzum_nasiya", "cash"] as MethodFilter[]).map((m) => ({
+            value: m,
+            label: m === "all" ? "Barcha usul" : METHOD_LABELS[m as Order["payment_method"]],
+          }))}
+        />
       </div>
 
       {isLoading && <p className="text-sm text-muted">Yuklanmoqda…</p>}
@@ -149,7 +146,7 @@ export function OrdersPage() {
             </p>
           )}
 
-          {data.items.map((order) => {
+          {data.items.map((order, i) => {
             const st = STATUS_STYLES[order.status];
             const note = actionNote[order.id] ?? "";
             const isPending = order.status === "pending";
@@ -157,17 +154,13 @@ export function OrdersPage() {
               approve.isPending || reject.isPending;
 
             return (
-              <div
-                key={order.id}
-                className="rounded-2xl border border-line bg-card p-5 shadow-sm"
-              >
+              <Reveal key={order.id} index={i}>
+              <GlassCard className="p-5 shadow-sm">
                 {/* Header row */}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${st.classes}`}>
-                      {st.label}
-                    </span>
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${METHOD_STYLES[order.payment_method]}`}>
+                    <StatusPill tone={STATUS_TONE[order.status]}>{st.label}</StatusPill>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${METHOD_STYLES[order.payment_method]}`}>
                       {order.payment_method === "cash" ? "💵 Naqd pul" : METHOD_LABELS[order.payment_method]}
                     </span>
                   </div>
@@ -229,19 +222,19 @@ export function OrdersPage() {
                 {/* Action area (only for pending orders) */}
                 {isPending && (
                   <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3">
-                    <input
+                    <GlassInput
                       type="text"
                       placeholder="Admin izohi (ixtiyoriy)"
                       value={note}
                       onChange={(e) =>
                         setActionNote((prev) => ({ ...prev, [order.id]: e.target.value }))
                       }
-                      className="min-w-0 flex-1 rounded-xl border border-line px-3 py-1.5 text-sm text-ink placeholder:text-muted focus:border-wine/60 focus:outline-none"
+                      className="min-w-0 flex-1 py-1.5"
                     />
                     <button
                       disabled={busy}
                       onClick={() => handleApprove(order.id, note)}
-                      className="flex items-center gap-1.5 rounded-xl bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                      className="press flex items-center gap-1.5 rounded-full bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
                     >
                       <Check size={14} />
                       Tasdiqlash
@@ -249,14 +242,15 @@ export function OrdersPage() {
                     <button
                       disabled={busy}
                       onClick={() => handleReject(order.id, note)}
-                      className="flex items-center gap-1.5 rounded-xl bg-red-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                      className="press flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                     >
                       <X size={14} />
                       Rad etish
                     </button>
                   </div>
                 )}
-              </div>
+              </GlassCard>
+              </Reveal>
             );
           })}
         </div>
@@ -272,7 +266,7 @@ export function OrdersPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:border-wine/40 hover:text-ink disabled:opacity-40"
+              className="press flex h-8 w-8 items-center justify-center rounded-full border border-line text-muted hover:border-wine/40 hover:text-ink disabled:opacity-40"
             >
               <ChevronLeft size={16} />
             </button>
@@ -282,7 +276,7 @@ export function OrdersPage() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:border-wine/40 hover:text-ink disabled:opacity-40"
+              className="press flex h-8 w-8 items-center justify-center rounded-full border border-line text-muted hover:border-wine/40 hover:text-ink disabled:opacity-40"
             >
               <ChevronRight size={16} />
             </button>

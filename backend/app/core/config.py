@@ -154,6 +154,18 @@ class Settings(BaseSettings):
     # (https://merchants-api.uzumnasiya.uz).
     uzum_nasiya_api_key: str = ""
     uzum_nasiya_base_url: str = "https://merchants-api.uzumnasiya.uz"
+    # Auto-reconcile pending Uzum Nasiya contracts. The mobile app is still
+    # responsible for the happy-path confirm call, but this background-style
+    # safety net catches cases where the app loses connectivity or the user
+    # kills it after Uzum has already signed the contract.
+    uzum_nasiya_auto_reconcile: bool = True
+    # How long to wait after payment creation before polling Uzum (gives the
+    # buyer time to type the OTP in the WebView).
+    uzum_nasiya_reconcile_after_seconds: int = 60
+    # How long a pending Nasiya payment may stay stuck before we cancel it.
+    uzum_nasiya_reconcile_timeout_seconds: int = 1800
+    # Polling interval used by the reconcile runner.
+    uzum_nasiya_reconcile_interval_seconds: int = 120
     atmos_store_id: str = ""
     atmos_consumer_key: str = ""
     atmos_consumer_secret: str = ""

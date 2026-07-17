@@ -44,13 +44,14 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 p-4 pt-10 backdrop-blur-sm sm:pt-16"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-10 backdrop-blur-[18px] sm:pt-16"
+      style={{ background: "rgba(63,9,24,0.30)" }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className={`w-full ${SIZE_CLASS[size]} overflow-hidden rounded-2xl border border-line bg-card text-ink shadow-2xl ring-1 ring-black/5`}
+        className={`animate-sheet-in w-full ${SIZE_CLASS[size]} overflow-hidden rounded-3xl border border-line bg-card text-ink shadow-2xl`}
       >
         <div className="flex items-start justify-between gap-3 border-b border-line px-6 py-4">
           <div className="min-w-0">
@@ -62,7 +63,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line text-muted transition hover:border-wine/30 hover:text-wine"
+            className="press grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-muted transition hover:border-wine/30 hover:text-wine"
             aria-label="Yopish"
           >
             <X size={17} />
@@ -100,14 +101,14 @@ export function ModalFooter({
 }) {
   const submitColor =
     variant === "danger"
-      ? "bg-red-600 hover:bg-red-700"
-      : "bg-wine hover:bg-wine-dark";
+      ? "bg-danger hover:brightness-110"
+      : "btn-primary";
   return (
     <>
       <button
         type="button"
         onClick={onClose}
-        className="rounded-xl border border-line bg-card px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
+        className="press rounded-full border border-line bg-card px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
       >
         Bekor qilish
       </button>
@@ -116,7 +117,7 @@ export function ModalFooter({
           type="button"
           onClick={onSubmit}
           disabled={saving || submitDisabled}
-          className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition disabled:opacity-60 ${submitColor}`}
+          className={`press flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white transition disabled:opacity-60 ${submitColor}`}
         >
           {saving ? "Saqlanmoqda…" : submitLabel}
         </button>

@@ -158,7 +158,10 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
                           const SizedBox(height: 12),
                           GlassEntrance(
                             delay: GlassMotion.entranceStep * 3,
-                            child: _LessonsCard(lessons: c.lessons),
+                            child: _LessonsCard(
+                              lessons: c.lessons,
+                              courseId: c.id,
+                            ),
                           ),
                         ],
                       ),
@@ -442,8 +445,9 @@ class _EnrolledBanner extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _LessonsCard extends StatelessWidget {
-  const _LessonsCard({required this.lessons});
+  const _LessonsCard({required this.lessons, required this.courseId});
   final List<Lesson> lessons;
+  final String courseId;
 
   @override
   Widget build(BuildContext context) {
@@ -455,6 +459,7 @@ class _LessonsCard extends StatelessWidget {
             _LessonTile(
               index: i + 1,
               lesson: lessons[i],
+              courseId: courseId,
               isLast: i == lessons.length - 1,
             ),
         ],
@@ -467,10 +472,12 @@ class _LessonTile extends StatefulWidget {
   const _LessonTile({
     required this.index,
     required this.lesson,
+    required this.courseId,
     required this.isLast,
   });
   final int index;
   final Lesson lesson;
+  final String courseId;
   final bool isLast;
 
   @override
@@ -489,6 +496,12 @@ class _LessonTileState extends State<_LessonTile> {
     return '${speed}x';
   }
 
+  void _openDemoLesson(BuildContext context) {
+    context.push(
+      '/courses/${widget.courseId}/lessons/${widget.lesson.id}',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -496,12 +509,16 @@ class _LessonTileState extends State<_LessonTile> {
     final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.muted;
     final lineColor = dark ? AppColors.lineDark : AppColors.line;
+    final accent = dark ? AppColors.wine300 : AppColors.wine;
     final mins = (widget.lesson.durationSec / 60).round();
+    final isDemo = widget.lesson.isDemo;
 
     return Column(
       children: [
         InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
+          onTap: isDemo
+              ? () => _openDemoLesson(context)
+              : () => setState(() => _expanded = !_expanded),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 13),
             child: Row(
@@ -510,20 +527,25 @@ class _LessonTileState extends State<_LessonTile> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: dark
-                        ? AppColors.wine300.withValues(alpha: 0.16)
-                        : AppColors.wine100,
+                    color: isDemo
+                        ? AppColors.orange.withValues(alpha: 0.14)
+                        : (dark
+                            ? AppColors.wine300.withValues(alpha: 0.16)
+                            : AppColors.wine100),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: Text(
-                      '${widget.index}',
-                      style: TextStyle(
-                        color: dark ? AppColors.wine300 : AppColors.wine,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                      ),
-                    ),
+                    child: isDemo
+                        ? const Icon(Icons.play_arrow_rounded,
+                            color: AppColors.orange, size: 20)
+                        : Text(
+                            '${widget.index}',
+                            style: TextStyle(
+                              color: dark ? AppColors.wine300 : AppColors.wine,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -544,25 +566,31 @@ class _LessonTileState extends State<_LessonTile> {
                         [
                           l.minutesShort(mins),
                           if (widget.lesson.isVoiceExercise) l.aiExercise,
+                          if (isDemo) l.demoLabel,
                         ].join(' · '),
-                        style:
-                            TextStyle(fontSize: 11, color: mutedColor),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDemo ? AppColors.orange : mutedColor,
+                          fontWeight: isDemo ? FontWeight.w800 : FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Icon(
-                  _expanded
-                      ? Icons.expand_less_rounded
-                      : Icons.lock_outline_rounded,
-                  color: mutedColor,
+                  isDemo
+                      ? Icons.play_circle_outline_rounded
+                      : (_expanded
+                          ? Icons.expand_less_rounded
+                          : Icons.lock_outline_rounded),
+                  color: isDemo ? accent : mutedColor,
                   size: 20,
                 ),
               ],
             ),
           ),
         ),
-        if (_expanded)
+        if (_expanded && !isDemo)
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
             child: Column(

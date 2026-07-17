@@ -25,6 +25,7 @@ import { RecentClients, SkeletonList } from "./RecentClients";
 import { RecentHomeworks } from "./RecentHomeworks";
 import { RecentPayments } from "./RecentPayments";
 import { ScoreBadge } from "./ScoreBadge";
+import { Reveal, StatusPill } from "../glass";
 import type { ClientRow, Homework, Payment, PaymentStatus } from "../../lib/types";
 
 const PAYMENT_COLORS: Record<PaymentStatus, string> = {
@@ -266,33 +267,35 @@ export function AdminDashboard() {
             <ol className="space-y-2">
               {topPerformers.map((c, idx) => (
                 <li key={c.id}>
-                  <Link
-                    to={`/clients/${c.id}`}
-                    className="flex items-center gap-3 rounded-xl border border-line/60 p-3 transition hover:border-wine/30 hover:bg-wine-50/50 dark:hover:bg-wine-900/20"
-                  >
-                    <span
-                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-black ${
-                        idx === 0
-                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                          : idx === 1
-                            ? "bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300"
-                            : idx === 2
-                              ? "bg-orange/15 text-orange dark:bg-orange/20 dark:text-orange"
-                              : "bg-line/60 text-muted dark:bg-line/30"
-                      }`}
+                  <Reveal index={idx}>
+                    <Link
+                      to={`/clients/${c.id}`}
+                      className="flex items-center gap-3 rounded-xl border border-line/60 p-3 transition hover:border-wine/30 hover:bg-wine-50/50 dark:hover:bg-wine-900/20"
                     >
-                      {idx + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-bold text-ink">
-                        {c.full_name ?? t.clients.unnamed}
+                      <span
+                        className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${
+                          idx === 0
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            : idx === 1
+                              ? "bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300"
+                              : idx === 2
+                                ? "bg-orange/15 text-orange dark:bg-orange/20 dark:text-orange"
+                                : "bg-line/60 text-muted dark:bg-line/30"
+                        }`}
+                      >
+                        {idx + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-bold text-ink">
+                          {c.full_name ?? t.clients.unnamed}
+                        </div>
+                        <div className="truncate text-xs text-muted">
+                          {c.phone ?? c.email ?? "—"}
+                        </div>
                       </div>
-                      <div className="truncate text-xs text-muted">
-                        {c.phone ?? c.email ?? "—"}
-                      </div>
-                    </div>
-                    <ScoreBadge score={c.last_speech_score} />
-                  </Link>
+                      <ScoreBadge score={c.last_speech_score} />
+                    </Link>
+                  </Reveal>
                 </li>
               ))}
             </ol>
@@ -306,7 +309,7 @@ export function AdminDashboard() {
           action={
             <Link
               to="/curators"
-              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
+              className="press inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
             >
               {t.dashboard.manageBtn} <ChevronRight size={12} />
             </Link>
@@ -320,37 +323,30 @@ export function AdminDashboard() {
             </p>
           ) : (
             <ul className="space-y-2">
-              {curatorsQ.data?.slice(0, 5).map((c) => (
-                <li
-                  key={c.id}
-                  className="flex items-center gap-3 rounded-xl p-2"
-                >
-                  <div
-                    className={`grid h-9 w-9 place-items-center rounded-lg text-xs font-black ${
-                      c.is_active
-                        ? "bg-wine text-white"
-                        : "bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
-                    }`}
-                  >
-                    KR
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-bold text-ink">
-                      {c.full_name ?? t.curators.title}
+              {curatorsQ.data?.slice(0, 5).map((c, i) => (
+                <li key={c.id}>
+                  <Reveal index={i} className="flex items-center gap-3 rounded-xl p-2">
+                    <div
+                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-black ${
+                        c.is_active
+                          ? "bg-wine text-white"
+                          : "bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                      }`}
+                    >
+                      KR
                     </div>
-                    <div className="truncate text-xs text-muted">
-                      {c.email}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-bold text-ink">
+                        {c.full_name ?? t.curators.title}
+                      </div>
+                      <div className="truncate text-xs text-muted">
+                        {c.email}
+                      </div>
                     </div>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                      c.is_active
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                    }`}
-                  >
-                    {c.is_active ? t.common.active : t.common.inactive}
-                  </span>
+                    <StatusPill tone={c.is_active ? "success" : "danger"} className="shrink-0">
+                      {c.is_active ? t.common.active : t.common.inactive}
+                    </StatusPill>
+                  </Reveal>
                 </li>
               ))}
             </ul>

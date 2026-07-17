@@ -1,7 +1,7 @@
 export function ScoreBadge({ score }: { score: number | null | undefined }) {
   if (score == null) {
     return (
-      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
         —
       </span>
     );

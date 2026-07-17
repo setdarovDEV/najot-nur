@@ -392,6 +392,25 @@ class _LessonRow extends StatelessWidget {
                               ),
                             ),
                           ],
+                          if (lesson.isDemo) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.orange.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                l.demoLabel,
+                                style: const TextStyle(
+                                  color: AppColors.orange,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
                           if (isCompleted && autoScore != null) ...[
                             const SizedBox(width: 8),
                             Container(

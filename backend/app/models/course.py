@@ -52,6 +52,8 @@ class Lesson(UUIDMixin, TimestampMixin, Base):
     # voice-exercise lessons trigger the AI practice flow after watching
     is_voice_exercise: Mapped[bool] = mapped_column(Boolean, default=False)
     voice_exercise_prompt: Mapped[str | None] = mapped_column(Text)
+    # demo lessons are visible and watchable before purchase
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
     course: Mapped["Course"] = relationship(back_populates="lessons")
     questions: Mapped[list["LessonQuestion"]] = relationship(

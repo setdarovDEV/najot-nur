@@ -182,6 +182,7 @@
   "homeFeatures": "Imkoniyatlar",
   "homeRecommended": "Tavsiya etamiz",
   "free": "Bepul",
+  "demoLabel": "Demo",
   "forSale": "Sotuvda",
   "lessonsShort": "{count} dars",
   "@lessonsShort": {

@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 import type { ClientRow, Page } from "../lib/types";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
+import { GlassInput, StatusPill } from "../components/glass";
 
 export function ClientsPage() {
   const [q, setQ] = useState("");
@@ -36,19 +37,19 @@ export function ClientsPage() {
           <>
             <Link
               to="/clients/map"
-              className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-wine-50 dark:hover:bg-wine-900/20"
+              className="press flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-wine-50 dark:hover:bg-wine-900/20"
             >
               <MapPin size={16} />
               {t.clients.mapTitle}
             </Link>
-            <input
+            <GlassInput
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
                 setPage(1);
               }}
               placeholder={t.clients.searchPlaceholder}
-              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20] sm:w-72"
+              className="sm:w-72"
             />
           </>
         }
@@ -96,13 +97,9 @@ export function ClientsPage() {
                 </td>
                 <td className="px-5 py-3">
                   {c.is_verified ? (
-                    <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                      {t.common.verified}
-                    </span>
+                    <StatusPill tone="success">{t.common.verified}</StatusPill>
                   ) : (
-                    <span className="rounded-full bg-line px-2.5 py-1 text-xs font-semibold text-muted">
-                      {t.common.unverified}
-                    </span>
+                    <StatusPill tone="neutral">{t.common.unverified}</StatusPill>
                   )}
                 </td>
               </tr>
@@ -127,14 +124,14 @@ export function ClientsPage() {
           <button
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
-            className="rounded-lg border border-line px-4 py-2 text-ink disabled:opacity-50 hover:bg-wine-50 dark:hover:bg-wine-900/20"
+            className="press rounded-full border border-line px-4 py-2 text-ink disabled:opacity-50 hover:bg-wine-50 dark:hover:bg-wine-900/20"
           >
             ←
           </button>
           <button
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded-lg border border-line px-4 py-2 text-ink disabled:opacity-50 hover:bg-wine-50 dark:hover:bg-wine-900/20"
+            className="press rounded-full border border-line px-4 py-2 text-ink disabled:opacity-50 hover:bg-wine-50 dark:hover:bg-wine-900/20"
           >
             →
           </button>

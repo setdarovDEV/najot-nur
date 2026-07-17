@@ -441,6 +441,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get free => 'Бесплатно';
 
   @override
+  String get demoLabel => 'Демо';
+
+  @override
   String get forSale => 'Продаётся';
 
   @override

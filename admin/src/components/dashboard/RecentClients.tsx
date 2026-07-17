@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Users } from "lucide-react";
 import { Panel } from "./Panel";
 import { ScoreBadge } from "./ScoreBadge";
+import { Reveal } from "../glass";
 import type { ClientRow } from "../../lib/types";
 
 function timeAgo(iso: string): string {
@@ -32,7 +33,7 @@ export function RecentClients({ rows, loading }: { rows: ClientRow[]; loading: b
       action={
         <Link
           to="/clients"
-          className="rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
+          className="press rounded-full px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
         >
           Barchasi →
         </Link>
@@ -46,25 +47,27 @@ export function RecentClients({ rows, loading }: { rows: ClientRow[]; loading: b
         </p>
       ) : (
         <ul className="space-y-2.5">
-          {rows.map((c) => (
+          {rows.map((c, i) => (
             <li key={c.id}>
-              <Link
-                to={`/clients/${c.id}`}
-                className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-wine-50 dark:hover:bg-wine-900/20"
-              >
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-wine/10 text-xs font-black text-wine dark:bg-wine/15 dark:text-wine-300">
-                  {initials(c.full_name)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-bold text-ink">
-                    {c.full_name ?? "Ismsiz mijoz"}
+              <Reveal index={i}>
+                <Link
+                  to={`/clients/${c.id}`}
+                  className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-wine-50 dark:hover:bg-wine-900/20"
+                >
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-wine/10 text-xs font-black text-wine dark:bg-wine/15 dark:text-wine-300">
+                    {initials(c.full_name)}
                   </div>
-                  <div className="truncate text-xs text-muted">
-                    {c.phone ?? c.email ?? "—"} · {timeAgo(c.created_at)}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-bold text-ink">
+                      {c.full_name ?? "Ismsiz mijoz"}
+                    </div>
+                    <div className="truncate text-xs text-muted">
+                      {c.phone ?? c.email ?? "—"} · {timeAgo(c.created_at)}
+                    </div>
                   </div>
-                </div>
-                <ScoreBadge score={c.last_speech_score} />
-              </Link>
+                  <ScoreBadge score={c.last_speech_score} />
+                </Link>
+              </Reveal>
             </li>
           ))}
         </ul>

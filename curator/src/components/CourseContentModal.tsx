@@ -27,6 +27,7 @@ import { useToast } from "../lib/toast";
 import { useConfirm } from "../lib/confirm";
 import { useLang } from "../lib/i18n";
 import type { AdminCourseDetail, AdminLesson, LessonQuestion } from "../lib/types";
+import { Reveal, PrimaryButton, SecondaryButton, GlassInput, GlassTextarea, StatusPill } from "./glass";
 
 // ─── props ─────────────────────────────────────────────────────────────────
 
@@ -90,7 +91,7 @@ export function CourseContentModal({ courseId, courseTitle, onClose }: Props) {
         </h2>
         <button
           onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-xl border border-line text-muted transition hover:border-wine/30 hover:text-wine"
+          className="press flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted transition hover:border-wine/30 hover:text-wine"
         >
           <X size={18} />
         </button>
@@ -110,7 +111,7 @@ export function CourseContentModal({ courseId, courseTitle, onClose }: Props) {
             </span>
             <button
               onClick={() => setAddingLesson((v) => !v)}
-              className="flex items-center gap-1 rounded-lg bg-wine px-2.5 py-1 text-[11px] font-bold text-white hover:bg-wine/90"
+              className="press flex items-center gap-1 rounded-full bg-wine px-2.5 py-1 text-[11px] font-bold text-white hover:bg-wine/90"
             >
               <Plus size={12} />
               Dars
@@ -144,14 +145,15 @@ export function CourseContentModal({ courseId, courseTitle, onClose }: Props) {
               </div>
             )}
             {lessons.map((l, i) => (
-              <LessonSidebarItem
-                key={l.id}
-                lesson={l}
-                index={i + 1}
-                isActive={l.id === selectedId}
-                onSelect={() => setSelectedId(l.id)}
-                onDelete={() => handleDeleteLesson(l)}
-              />
+              <Reveal key={l.id} index={i}>
+                <LessonSidebarItem
+                  lesson={l}
+                  index={i + 1}
+                  isActive={l.id === selectedId}
+                  onSelect={() => setSelectedId(l.id)}
+                  onDelete={() => handleDeleteLesson(l)}
+                />
+              </Reveal>
             ))}
             {!isLoading && lessons.length === 0 && (
               <p className="px-4 py-6 text-center text-sm text-muted">
@@ -212,8 +214,8 @@ function LessonSidebarItem({
       }`}
     >
       <span
-        className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-black ${
-          isActive ? "bg-wine text-white" : "bg-wine/10 text-wine"
+        className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${
+          isActive ? "bg-wine text-white" : "bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300"
         }`}
       >
         {index}
@@ -242,7 +244,7 @@ function LessonSidebarItem({
       </div>
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-lg text-red-400 hover:bg-red-50 group-hover:flex dark:hover:bg-red-900/20"
+        className="press hidden h-6 w-6 shrink-0 items-center justify-center rounded-full text-red-400 hover:bg-red-50 group-hover:flex dark:hover:bg-red-900/20"
       >
         <Trash2 size={12} />
       </button>
@@ -284,8 +286,8 @@ function AddLessonInline({
   }
 
   return (
-    <div className="mx-3 mb-2 rounded-xl border border-wine/30 bg-surface p-3">
-      <input
+    <div className="mx-3 mb-2 rounded-2xl border border-wine/30 bg-surface p-3">
+      <GlassInput
         autoFocus
         placeholder="Dars nomi…"
         value={title}
@@ -294,22 +296,20 @@ function AddLessonInline({
           if (e.key === "Enter" && title.trim()) handleCreate();
           if (e.key === "Escape") onCancel();
         }}
-        className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine"
+        className="py-2 text-sm"
       />
       <div className="mt-2 flex gap-2">
-        <button
+        <PrimaryButton
           onClick={handleCreate}
-          disabled={mut.isPending || !title.trim()}
-          className="rounded-lg bg-wine px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+          loading={mut.isPending}
+          disabled={!title.trim()}
+          className="px-3 py-1.5 text-xs"
         >
           {mut.isPending ? "…" : "Qo'shish"}
-        </button>
-        <button
-          onClick={onCancel}
-          className="rounded-lg border border-line px-3 py-1.5 text-xs text-muted"
-        >
+        </PrimaryButton>
+        <SecondaryButton onClick={onCancel} className="px-3 py-1.5 text-xs">
           Bekor
-        </button>
+        </SecondaryButton>
       </div>
     </div>
   );
@@ -406,7 +406,7 @@ function LessonTitleEditor({
         <h3 className="text-lg font-extrabold text-ink group-hover:text-wine sm:text-xl">
           {lesson.title}
         </h3>
-        <span className="rounded-md border border-line px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted opacity-0 transition group-hover:opacity-100">
+        <span className="rounded-full border border-line px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted opacity-0 transition group-hover:opacity-100">
           Tahrirlash
         </span>
       </button>
@@ -415,7 +415,7 @@ function LessonTitleEditor({
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row">
-      <input
+      <GlassInput
         autoFocus
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -423,21 +423,15 @@ function LessonTitleEditor({
           if (e.key === "Enter" && title.trim()) handleSave();
           if (e.key === "Escape") setEditing(false);
         }}
-        className="flex-1 rounded-xl border border-wine/40 bg-card px-4 py-2 text-base font-bold text-ink outline-none focus:ring-2 focus:ring-wine/10 sm:text-lg"
+        className="flex-1 text-base font-bold sm:text-lg"
       />
       <div className="flex gap-2">
-        <button
-          onClick={handleSave}
-          className="flex-1 rounded-xl bg-wine px-4 py-2 text-sm font-bold text-white sm:flex-none"
-        >
+        <PrimaryButton onClick={handleSave} className="flex-1 px-4 py-2 sm:flex-none">
           Saqlash
-        </button>
-        <button
-          onClick={() => setEditing(false)}
-          className="flex-1 rounded-xl border border-line px-4 py-2 text-sm text-muted sm:flex-none"
-        >
+        </PrimaryButton>
+        <SecondaryButton onClick={() => setEditing(false)} className="flex-1 px-4 py-2 sm:flex-none">
           Bekor
-        </button>
+        </SecondaryButton>
       </div>
     </div>
   );
@@ -511,7 +505,7 @@ function VideoSection({
           <button
             onClick={() => inputRef.current?.click()}
             disabled={progress !== null}
-            className="flex items-center gap-2 rounded-xl border border-wine/40 px-4 py-2 text-sm font-semibold text-wine hover:bg-wine/5 disabled:opacity-50"
+            className="press flex items-center gap-2 rounded-full border border-wine/40 px-4 py-2 text-sm font-semibold text-wine hover:bg-wine/5 disabled:opacity-50"
           >
             <Upload size={14} />
             Videoni almashtirish
@@ -595,12 +589,13 @@ function TestSection({
     >
       <div className="flex flex-col gap-3">
         {lesson.questions.map((q, i) => (
-          <QuestionCard
-            key={q.id}
-            q={q}
-            index={i + 1}
-            onDelete={() => handleDelete(q)}
-          />
+          <Reveal key={q.id} index={i}>
+            <QuestionCard
+              q={q}
+              index={i + 1}
+              onDelete={() => handleDelete(q)}
+            />
+          </Reveal>
         ))}
 
         {showForm ? (
@@ -612,7 +607,7 @@ function TestSection({
         ) : (
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 rounded-xl border border-dashed border-wine/40 px-4 py-3 text-sm font-semibold text-wine hover:bg-wine/5"
+            className="press flex items-center gap-2 rounded-2xl border border-dashed border-wine/40 px-4 py-3 text-sm font-semibold text-wine hover:bg-wine/5"
           >
             <Plus size={15} />
             Savol qo'shish
@@ -633,17 +628,17 @@ function QuestionCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-line bg-surface p-4">
+    <div className="rounded-2xl border border-line bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2">
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-wine/10 text-xs font-black text-wine">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-wine/10 text-xs font-black text-wine dark:bg-wine/15 dark:text-wine-300">
             {index}
           </span>
           <p className="text-sm font-semibold text-ink">{q.question}</p>
         </div>
         <button
           onClick={onDelete}
-          className="shrink-0 rounded-lg p-1 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+          className="press shrink-0 rounded-full p-1 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
         >
           <Trash2 size={13} />
         </button>
@@ -652,7 +647,7 @@ function QuestionCard({
         {q.options.map((opt, i) => (
           <div
             key={i}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
               i === q.correct_index
                 ? "bg-green-100 text-green-700 ring-1 ring-green-300 dark:bg-green-900/30 dark:text-green-400"
                 : "bg-card text-muted ring-1 ring-line"
@@ -712,16 +707,16 @@ function AddQuestionForm({
   }
 
   return (
-    <div className="rounded-xl border border-wine/20 bg-wine/5 p-4">
+    <div className="rounded-2xl border border-wine/20 bg-wine/5 p-4">
       <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
         Yangi savol
       </p>
-      <textarea
+      <GlassTextarea
         placeholder="Savol matni…"
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
         rows={2}
-        className="w-full rounded-xl border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine/40"
+        className="w-full"
       />
       <p className="mb-2 mt-3 text-xs font-semibold text-muted">
         Javob variantlari (to'g'ri javobni belgilang):
@@ -736,7 +731,7 @@ function AddQuestionForm({
               onChange={() => setCorrectIndex(i)}
               className="accent-wine"
             />
-            <input
+            <GlassInput
               placeholder={`${i + 1}-variant`}
               value={opt}
               onChange={(e) => {
@@ -744,26 +739,19 @@ function AddQuestionForm({
                 next[i] = e.target.value;
                 setOptions(next);
               }}
-              className="flex-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-sm text-ink outline-none focus:border-wine/40"
+              className="flex-1 py-1.5"
             />
           </label>
         ))}
       </div>
       <div className="mt-3 flex gap-2">
-        <button
-          onClick={handleAdd}
-          disabled={mut.isPending || !canSubmit}
-          className="flex items-center gap-1.5 rounded-xl bg-wine px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-        >
+        <PrimaryButton onClick={handleAdd} loading={mut.isPending} disabled={!canSubmit} className="px-4 py-2">
           {mut.isPending ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
           Qo'shish
-        </button>
-        <button
-          onClick={onCancel}
-          className="rounded-xl border border-line px-4 py-2 text-sm text-muted"
-        >
+        </PrimaryButton>
+        <SecondaryButton onClick={onCancel} className="px-4 py-2">
           Bekor
-        </button>
+        </SecondaryButton>
       </div>
     </div>
   );
@@ -832,35 +820,32 @@ function VoiceSection({
             <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">
               Mashq matni / ko'rsatma
             </label>
-            <textarea
+            <GlassTextarea
               value={prompt}
               onChange={(e) => { setPrompt(e.target.value); setDirty(true); }}
               rows={4}
               placeholder="Masalan: Quyidagi gapni baland ovozda va aniq talaffuz qilib o'qing…"
-              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+              className="w-full"
             />
           </div>
         )}
 
         {dirty && (
           <div className="flex gap-2">
-            <button
-              onClick={handleSave}
-              className="flex items-center gap-1.5 rounded-xl bg-wine px-4 py-2 text-sm font-bold text-white"
-            >
+            <PrimaryButton onClick={handleSave} className="px-4 py-2">
               <CheckCircle2 size={14} />
               Saqlash
-            </button>
-            <button
+            </PrimaryButton>
+            <SecondaryButton
               onClick={() => {
                 setEnabled(lesson.is_voice_exercise);
                 setPrompt(lesson.voice_exercise_prompt ?? "");
                 setDirty(false);
               }}
-              className="rounded-xl border border-line px-4 py-2 text-sm text-muted"
+              className="px-4 py-2"
             >
               Bekor
-            </button>
+            </SecondaryButton>
           </div>
         )}
       </div>
@@ -913,15 +898,9 @@ function StatusBadge({
   children: React.ReactNode;
 }) {
   return (
-    <span
-      className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-        ok
-          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-          : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500"
-      }`}
-    >
+    <StatusPill tone={ok ? "success" : "warning"} className="shrink-0">
       {children}
-    </span>
+    </StatusPill>
   );
 }
 

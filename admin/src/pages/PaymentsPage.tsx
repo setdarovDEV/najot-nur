@@ -5,6 +5,7 @@ import { api, apiError } from "../lib/api";
 import type { Page, Payment } from "../lib/types";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
+import { SegmentedControl, StatusPill } from "../components/glass";
 
 const PROVIDER_LABELS: Record<Payment["provider"], string> = {
   uzum: "Uzum",
@@ -20,11 +21,11 @@ export function PaymentsPage() {
   const { t } = useLang();
   const size = 20;
 
-  const STATUS_STYLES: Record<Payment["status"], { label: string; classes: string }> = {
-    pending: { label: t.payments.pending, classes: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
-    paid: { label: t.payments.paid, classes: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
-    failed: { label: t.payments.failed, classes: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" },
-    refunded: { label: t.payments.refunded, classes: "bg-line text-muted" },
+  const STATUS_STYLES: Record<Payment["status"], { label: string; tone: "success" | "danger" | "warning" | "neutral" }> = {
+    pending: { label: t.payments.pending, tone: "warning" },
+    paid: { label: t.payments.paid, tone: "success" },
+    failed: { label: t.payments.failed, tone: "danger" },
+    refunded: { label: t.payments.refunded, tone: "neutral" },
   };
 
   const PURPOSE_LABELS: Record<Payment["purpose"], string> = {
@@ -48,20 +49,15 @@ export function PaymentsPage() {
     <div className="p-4 sm:p-6 md:p-8">
       <PageHeader title={t.payments.title} subtitle={t.payments.subtitle} />
 
-      <div className="mb-5 flex flex-wrap gap-2">
-        {(["all", "pending", "paid", "failed", "refunded"] as StatusFilter[]).map((s) => (
-          <button
-            key={s}
-            onClick={() => { setStatusFilter(s); setPage(1); }}
-            className={`rounded-xl px-4 py-1.5 text-sm font-semibold transition ${
-              statusFilter === s
-                ? "bg-wine text-white"
-                : "border border-line bg-card text-muted hover:border-wine/40 hover:text-ink"
-            }`}
-          >
-            {s === "all" ? t.common.all : STATUS_STYLES[s as Payment["status"]].label}
-          </button>
-        ))}
+      <div className="mb-5">
+        <SegmentedControl
+          options={(["all", "pending", "paid", "failed", "refunded"] as StatusFilter[]).map((s) => ({
+            value: s,
+            label: s === "all" ? t.common.all : STATUS_STYLES[s as Payment["status"]].label,
+          }))}
+          value={statusFilter}
+          onChange={(s) => { setStatusFilter(s); setPage(1); }}
+        />
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-line bg-card">
@@ -87,10 +83,14 @@ export function PaymentsPage() {
                   </td>
                 </tr>
               )}
-              {data.items.map((payment) => {
+              {data.items.map((payment, i) => {
                 const status = STATUS_STYLES[payment.status];
                 return (
-                  <tr key={payment.id} className="border-b border-line last:border-none hover:bg-wine-50 dark:hover:bg-wine-900/20">
+                  <tr
+                    key={payment.id}
+                    className="animate-fade-rise border-b border-line last:border-none hover:bg-wine-50 dark:hover:bg-wine-900/20"
+                    style={{ animationDelay: `${Math.min(i, 12) * 55}ms` }}
+                  >
                     <td className="px-5 py-3 text-muted">{formatDate(payment.created_at)}</td>
                     <td className="px-5 py-3 font-mono text-xs text-ink">{payment.user_id.slice(0, 8)}…</td>
                     <td className="px-5 py-3 text-right font-semibold text-ink">
@@ -99,9 +99,7 @@ export function PaymentsPage() {
                     <td className="px-5 py-3 text-ink">{PROVIDER_LABELS[payment.provider]}</td>
                     <td className="px-5 py-3 text-ink">{PURPOSE_LABELS[payment.purpose]}</td>
                     <td className="px-5 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.classes}`}>
-                        {status.label}
-                      </span>
+                      <StatusPill tone={status.tone}>{status.label}</StatusPill>
                     </td>
                   </tr>
                 );
@@ -120,7 +118,7 @@ export function PaymentsPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:border-wine/40 hover:text-ink disabled:opacity-40"
+              className="press flex h-8 w-8 items-center justify-center rounded-full border border-line text-muted hover:border-wine/40 hover:text-ink disabled:opacity-40"
             >
               <ChevronLeft size={16} />
             </button>
@@ -128,7 +126,7 @@ export function PaymentsPage() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:border-wine/40 hover:text-ink disabled:opacity-40"
+              className="press flex h-8 w-8 items-center justify-center rounded-full border border-line text-muted hover:border-wine/40 hover:text-ink disabled:opacity-40"
             >
               <ChevronRight size={16} />
             </button>

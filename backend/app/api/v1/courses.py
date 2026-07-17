@@ -346,7 +346,7 @@ async def get_lesson(
             )
         )
     ).scalar_one_or_none()
-    if enrollment is None:
+    if enrollment is None and not lesson.is_demo:
         raise ForbiddenError("Bu kursga yozilmagansiz.")
 
     progress = (
@@ -356,7 +356,7 @@ async def get_lesson(
                 LessonProgress.lesson_id == lesson_id,
             )
         )
-    ).scalar_one_or_none()
+    ).scalar_one_or_none() if enrollment else None
 
     return {
         "id": str(lesson.id),
@@ -366,6 +366,7 @@ async def get_lesson(
         "duration_sec": lesson.duration_sec,
         "is_voice_exercise": lesson.is_voice_exercise,
         "voice_exercise_prompt": lesson.voice_exercise_prompt,
+        "is_demo": lesson.is_demo,
         "is_completed": progress.is_completed if progress else False,
         "auto_score": progress.auto_score if progress else None,
         "questions": [

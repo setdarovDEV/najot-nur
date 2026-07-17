@@ -12,7 +12,7 @@ import hmac
 import time
 import uuid
 from collections import deque
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -682,6 +682,80 @@ async def uzum_nasiya_contract_status(payment: Payment) -> dict[str, Any]:
             status_code=502,
         )
     return data["data"]  # type: ignore[no-any-return]
+
+async def auto_reconcile_uzum_nasiya(db: AsyncSession) -> dict[str, int]:
+    """Poll Uzum Nasiya for pending contracts and confirm or cancel them.
+
+    This is a safety net: the mobile app is supposed to call
+    /payments/uzum-nasiya/confirm once the WebView returns to the callback,
+    but if the app loses connectivity or is killed we can still catch the
+    contract here. We only act after Uzum tells us the buyer has signed the
+    contract (is_signed=True), so we never confirm prematurely.
+
+    Returns a small summary dict: {confirmed, cancelled, already_paid, errors}.
+    """
+    summary = {"confirmed": 0, "cancelled": 0, "already_paid": 0, "errors": 0}
+
+    if not settings.uzum_nasiya_api_key or not settings.uzum_nasiya_auto_reconcile:
+        log.info("uzum_nasiya.reconcile_skipped", auto_reconcile=settings.uzum_nasiya_auto_reconcile)
+        return summary
+
+    cutoff = datetime.now(UTC) - timedelta(seconds=settings.uzum_nasiya_reconcile_after_seconds)
+    timeout = datetime.now(UTC) - timedelta(seconds=settings.uzum_nasiya_reconcile_timeout_seconds)
+
+    stmt = (
+        select(Payment)
+        .where(Payment.provider == PaymentProvider.uzum_nasiya)
+        .where(Payment.status == PaymentStatus.pending)
+        .where(Payment.created_at <= cutoff)
+        .where(Payment.external_id.isnot(None))
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+
+    for payment in rows:
+        # Skip mock/pending-registration placeholders; only real contracts.
+        if not payment.external_id or payment.external_id.startswith(
+            (_NASIYA_PENDING_PREFIX, _NASIYA_MOCK_PREFIX)
+        ):
+            continue
+
+        try:
+            # If the mobile app already confirmed it in parallel, skip.
+            await db.refresh(payment)
+            if payment.status != PaymentStatus.pending:
+                summary["already_paid"] += 1
+                continue
+
+            status_data = await uzum_nasiya_contract_status(payment)
+            log.info(
+                "uzum_nasiya.reconcile_poll",
+                payment_id=str(payment.id),
+                contract_status=status_data.get("contract_status"),
+                is_signed=status_data.get("is_signed"),
+                status=status_data.get("status"),
+            )
+
+            # Buyer has signed in the WebView — partner can now confirm.
+            if status_data.get("is_signed") is True:
+                await uzum_nasiya_confirm(db, payment_id=payment.id)
+                summary["confirmed"] += 1
+                continue
+
+            # Stuck too long without buyer signature — cancel to free the limit.
+            if payment.created_at <= timeout:
+                await uzum_nasiya_cancel(db, payment_id=payment.id)
+                summary["cancelled"] += 1
+
+        except Exception as exc:
+            summary["errors"] += 1
+            log.error(
+                "uzum_nasiya.reconcile_error",
+                payment_id=str(payment.id),
+                error=str(exc),
+            )
+
+    log.info("uzum_nasiya.reconcile_done", summary=summary)
+    return summary
 
 
 # ──────────────────────────────────────────────

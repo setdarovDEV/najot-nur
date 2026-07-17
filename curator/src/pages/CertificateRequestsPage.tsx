@@ -6,6 +6,13 @@ import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
+import {
+  PrimaryButton,
+  GlassInput,
+  StatusPill,
+  SegmentedControl,
+  Reveal,
+} from "../components/glass";
 
 type StatusFilter = "pending" | "approved" | "rejected" | "";
 
@@ -56,27 +63,21 @@ export function CertificateRequestsPage() {
         title={cr.title}
         subtitle={cr.subtitle}
         actions={
-          <>
-            {(["pending", "approved", "rejected", ""] as const).map((f) => (
-              <button
-                key={f || "all"}
-                onClick={() => setFilter(f)}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold ${
-                  filter === f
-                    ? "bg-wine text-white"
-                    : "border border-line bg-card text-ink hover:bg-wine-50"
-                }`}
-              >
-                {f === "pending"
+          <SegmentedControl
+            options={(["pending", "approved", "rejected", ""] as const).map((f) => ({
+              value: f,
+              label:
+                f === "pending"
                   ? cr.pending
                   : f === "approved"
                     ? cr.approved
                     : f === "rejected"
                       ? cr.rejected
-                      : cr.all}
-              </button>
-            ))}
-          </>
+                      : cr.all,
+            }))}
+            value={filter}
+            onChange={setFilter}
+          />
         }
       />
 
@@ -88,27 +89,28 @@ export function CertificateRequestsPage() {
       )}
 
       <div className="space-y-4">
-        {data?.map((req) => (
-          <CertRequestCard
-            key={req.id}
-            req={req}
-            onApprove={async () => {
-              const ok = await confirm({
-                title: cr.confirmApprove(req.full_name),
-                variant: "primary",
-                confirmText: t.modal.approve,
-              });
-              if (ok) approve.mutate(req.id);
-            }}
-            onReject={async (reason) => {
-              const ok = await confirm({
-                title: cr.confirmReject,
-                variant: "danger",
-                confirmText: t.modal.reject,
-              });
-              if (ok) reject.mutate({ id: req.id, reason });
-            }}
-          />
+        {data?.map((req, i) => (
+          <Reveal key={req.id} index={i}>
+            <CertRequestCard
+              req={req}
+              onApprove={async () => {
+                const ok = await confirm({
+                  title: cr.confirmApprove(req.full_name),
+                  variant: "primary",
+                  confirmText: t.modal.approve,
+                });
+                if (ok) approve.mutate(req.id);
+              }}
+              onReject={async (reason) => {
+                const ok = await confirm({
+                  title: cr.confirmReject,
+                  variant: "danger",
+                  confirmText: t.modal.reject,
+                });
+                if (ok) reject.mutate({ id: req.id, reason });
+              }}
+            />
+          </Reveal>
         ))}
       </div>
     </div>
@@ -141,12 +143,12 @@ function CertRequestCard({
     staleTime: 60_000,
   });
 
-  const statusColor =
+  const statusTone: "success" | "danger" | "warning" =
     req.status === "approved"
-      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+      ? "success"
       : req.status === "rejected"
-        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+        ? "danger"
+        : "warning";
 
   const statusLabel =
     req.status === "approved"
@@ -182,9 +184,7 @@ function CertRequestCard({
               </p>
             )}
           </div>
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusColor}`}>
-            {statusLabel}
-          </span>
+          <StatusPill tone={statusTone}>{statusLabel}</StatusPill>
         </div>
 
         {/* ── Actions ── */}
@@ -192,7 +192,7 @@ function CertRequestCard({
           {/* View stats toggle */}
           <button
             onClick={() => setShowStats((v) => !v)}
-            className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-semibold text-ink hover:bg-line/40"
+            className="press flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm font-semibold text-ink hover:bg-line/40"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -203,24 +203,21 @@ function CertRequestCard({
 
           {req.status === "pending" && (
             <>
-              <input
+              <GlassInput
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder={cr.reasonPlaceholder}
-                className="flex-1 rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20]"
+                className="flex-1"
               />
               <button
                 onClick={() => onReject(reason)}
-                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                className="press rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
               >
                 {cr.reject}
               </button>
-              <button
-                onClick={onApprove}
-                className="rounded-lg bg-wine px-5 py-2 text-sm font-bold text-white hover:bg-wine-dark"
-              >
+              <PrimaryButton onClick={onApprove}>
                 {cr.approve}
-              </button>
+              </PrimaryButton>
             </>
           )}
         </div>
@@ -320,21 +317,23 @@ function StudentStatsPanel({ stats }: { stats: StudentStats }) {
                 {cr.audiobooksCount(stats.audiobooks.length)}
               </p>
               {stats.audiobooks.map((ab, i) => (
-                <div key={i} className="rounded-lg border border-line bg-card p-2.5">
-                  <p className="text-xs font-semibold text-ink truncate">{ab.title}</p>
-                  {ab.author && <p className="text-xs text-muted">{ab.author}</p>}
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
-                      <div
-                        className="h-full rounded-full bg-wine"
-                        style={{ width: ab.total_pages > 0 ? `${Math.min(100, (ab.current_page / ab.total_pages) * 100)}%` : "0%" }}
-                      />
+                <Reveal key={i} index={i}>
+                  <div className="rounded-lg border border-line bg-card p-2.5">
+                    <p className="text-xs font-semibold text-ink truncate">{ab.title}</p>
+                    {ab.author && <p className="text-xs text-muted">{ab.author}</p>}
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
+                        <div
+                          className="h-full rounded-full bg-wine"
+                          style={{ width: ab.total_pages > 0 ? `${Math.min(100, (ab.current_page / ab.total_pages) * 100)}%` : "0%" }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted shrink-0">
+                        {cr.pageProgress(ab.current_page, ab.total_pages)}
+                      </span>
                     </div>
-                    <span className="text-xs text-muted shrink-0">
-                      {cr.pageProgress(ab.current_page, ab.total_pages)}
-                    </span>
                   </div>
-                </div>
+                </Reveal>
               ))}
             </div>
           )}
@@ -350,18 +349,20 @@ function StudentStatsPanel({ stats }: { stats: StudentStats }) {
           ) : (
             <div className="space-y-2">
               {stats.practicums.map((p, i) => (
-                <div key={i} className="flex items-center justify-between rounded-lg border border-line bg-card px-3 py-2">
-                  <span className="text-xs text-ink truncate mr-2">{p.title}</span>
-                  {p.score != null ? (
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
-                      p.score >= 70 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-                    }`}>
-                      {p.score}%
-                    </span>
-                  ) : (
-                    <span className="shrink-0 text-xs text-muted">—</span>
-                  )}
-                </div>
+                <Reveal key={i} index={i}>
+                  <div className="flex items-center justify-between rounded-lg border border-line bg-card px-3 py-2">
+                    <span className="text-xs text-ink truncate mr-2">{p.title}</span>
+                    {p.score != null ? (
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
+                        p.score >= 70 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                      }`}>
+                        {p.score}%
+                      </span>
+                    ) : (
+                      <span className="shrink-0 text-xs text-muted">—</span>
+                    )}
+                  </div>
+                </Reveal>
               ))}
             </div>
           )}
@@ -378,19 +379,21 @@ function StudentStatsPanel({ stats }: { stats: StudentStats }) {
         ) : (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {stats.speech_analyses.map((s, i) => (
-              <div key={i} className="rounded-lg border border-line bg-card p-3">
-                <p className="mb-2 text-xs text-muted">
-                  {new Date(s.created_at).toLocaleDateString()}
-                </p>
-                <div className="flex gap-3">
-                  <ScoreBadge label={cr.overall} value={s.overall_score} primary />
-                  <ScoreBadge label={cr.meaning} value={s.meaning_score} />
-                  <ScoreBadge label={cr.fluency} value={s.fluency_score} />
+              <Reveal key={i} index={i}>
+                <div className="rounded-lg border border-line bg-card p-3">
+                  <p className="mb-2 text-xs text-muted">
+                    {new Date(s.created_at).toLocaleDateString()}
+                  </p>
+                  <div className="flex gap-3">
+                    <ScoreBadge label={cr.overall} value={s.overall_score} primary />
+                    <ScoreBadge label={cr.meaning} value={s.meaning_score} />
+                    <ScoreBadge label={cr.fluency} value={s.fluency_score} />
+                  </div>
+                  {s.summary && (
+                    <p className="mt-2 text-xs text-muted line-clamp-2">{s.summary}</p>
+                  )}
                 </div>
-                {s.summary && (
-                  <p className="mt-2 text-xs text-muted line-clamp-2">{s.summary}</p>
-                )}
-              </div>
+              </Reveal>
             ))}
           </div>
         )}

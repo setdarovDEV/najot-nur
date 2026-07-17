@@ -14,6 +14,7 @@ import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
 import { Modal, ModalFooter } from "../components/Modal";
 import type { AdminCourse, ClientEnrollment, ClientHomework } from "../lib/types";
+import { Reveal, GlassInput, GlassSelect } from "../components/glass";
 
 const markerIconInstance = L.icon({
   iconUrl: markerIcon,
@@ -88,7 +89,7 @@ export function ClientDetailPage() {
               </div>
               <button
                 onClick={() => setGiftOpen(true)}
-                className="flex shrink-0 items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/25"
+                className="press flex shrink-0 items-center gap-2 rounded-full bg-white/15 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/25"
               >
                 <Gift size={16} />
                 {t.clients.giftCourse}
@@ -142,26 +143,28 @@ export function ClientDetailPage() {
             </p>
           ) : (
             <div className="space-y-3">
-              {data.enrollments.map((e) => (
-                <div key={e.id} className="rounded-2xl border border-line bg-card p-5">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="font-semibold text-ink">{e.course_title}</span>
-                    <span className="text-xs text-muted">
-                      {new Date(e.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-line/50">
-                      <div
-                        className="h-full rounded-full bg-wine"
-                        style={{ width: `${Math.min(100, Math.max(0, e.progress_pct))}%` }}
-                      />
+              {data.enrollments.map((e, i) => (
+                <Reveal key={e.id} index={i}>
+                  <div className="rounded-2xl border border-line bg-card p-5">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-semibold text-ink">{e.course_title}</span>
+                      <span className="text-xs text-muted">
+                        {new Date(e.created_at).toLocaleDateString()}
+                      </span>
                     </div>
-                    <span className="text-xs font-semibold text-muted">
-                      {e.progress_pct}%
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-line/50">
+                        <div
+                          className="h-full rounded-full bg-wine"
+                          style={{ width: `${Math.min(100, Math.max(0, e.progress_pct))}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-muted">
+                        {e.progress_pct}%
+                      </span>
+                    </div>
                   </div>
-                </div>
+                </Reveal>
               ))}
             </div>
           )}
@@ -173,37 +176,39 @@ export function ClientDetailPage() {
             </p>
           ) : (
             <div className="space-y-3">
-              {data.homeworks.map((hw) => (
-                <div key={hw.id} className="rounded-2xl border border-line bg-card p-5">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="font-semibold text-ink">
-                      <span className="text-wine">{hw.course_title}</span> › {hw.lesson_title}
-                    </span>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        hw.status === "reviewed"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : hw.status === "returned"
-                            ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                      }`}
-                    >
-                      {hw.status === "reviewed"
-                        ? t.homeworks.reviewed
-                        : hw.status === "returned"
-                          ? t.homeworks.returned
-                          : t.homeworks.new_}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-muted">
-                    <span>{hw.curator_feedback ?? "—"}</span>
-                    {hw.curator_score != null && (
+              {data.homeworks.map((hw, i) => (
+                <Reveal key={hw.id} index={i}>
+                  <div className="rounded-2xl border border-line bg-card p-5">
+                    <div className="mb-2 flex items-center justify-between">
                       <span className="font-semibold text-ink">
-                        {t.homeworks.score}: {hw.curator_score}
+                        <span className="text-wine">{hw.course_title}</span> › {hw.lesson_title}
                       </span>
-                    )}
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                          hw.status === "reviewed"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : hw.status === "returned"
+                              ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                        }`}
+                      >
+                        {hw.status === "reviewed"
+                          ? t.homeworks.reviewed
+                          : hw.status === "returned"
+                            ? t.homeworks.returned
+                            : t.homeworks.new_}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-muted">
+                      <span>{hw.curator_feedback ?? "—"}</span>
+                      {hw.curator_score != null && (
+                        <span className="font-semibold text-ink">
+                          {t.homeworks.score}: {hw.curator_score}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </Reveal>
               ))}
             </div>
           )}
@@ -215,25 +220,24 @@ export function ClientDetailPage() {
             </p>
           ) : (
             <div className="space-y-3">
-              {data.speech_analyses.map((s) => (
-                <div
-                  key={s.id}
-                  className="rounded-2xl border border-line bg-card p-5"
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    {s.overall_score != null ? (
-                      <ScoreBadge score={s.overall_score} />
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                    <span className="text-xs text-muted">
-                      {new Date(s.created_at).toLocaleString()}
-                    </span>
+              {data.speech_analyses.map((s, i) => (
+                <Reveal key={s.id} index={i}>
+                  <div className="rounded-2xl border border-line bg-card p-5">
+                    <div className="mb-2 flex items-center justify-between">
+                      {s.overall_score != null ? (
+                        <ScoreBadge score={s.overall_score} />
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                      <span className="text-xs text-muted">
+                        {new Date(s.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-relaxed text-ink">
+                      {s.summary ?? "—"}
+                    </p>
                   </div>
-                  <p className="text-sm leading-relaxed text-ink">
-                    {s.summary ?? "—"}
-                  </p>
-                </div>
+                </Reveal>
               ))}
             </div>
           )}
@@ -317,10 +321,9 @@ function GiftCourseModal({
           <span className="mb-1 block font-semibold text-ink">
             {t.clients.selectCourse}
           </span>
-          <select
+          <GlassSelect
             value={courseId}
             onChange={(e) => setCourseId(e.target.value)}
-            className="w-full rounded-lg border border-line bg-card px-3 py-2 text-ink outline-none focus:border-wine dark:bg-[#251d20]"
           >
             <option value="">—</option>
             {availableCourses.map((c) => (
@@ -328,14 +331,13 @@ function GiftCourseModal({
                 {c.title}
               </option>
             ))}
-          </select>
+          </GlassSelect>
         </label>
         <label className="block text-sm">
           <span className="mb-1 block font-semibold text-ink">{t.clients.giftNote}</span>
-          <input
+          <GlassInput
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="w-full rounded-lg border border-line bg-card px-3 py-2 text-ink outline-none focus:border-wine dark:bg-[#251d20]"
           />
         </label>
       </div>

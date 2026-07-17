@@ -25,24 +25,24 @@ const VARIANT_STYLES: Record<
   { ring: string; bg: string; fg: string; btn: string; Icon: typeof AlertTriangle }
 > = {
   danger: {
-    ring: "border-red-200 dark:border-red-900/40",
-    bg: "bg-red-50 dark:bg-red-900/20",
-    fg: "text-red-600 dark:text-red-400",
-    btn: "bg-red-600 hover:bg-red-700",
+    ring: "border-danger/20",
+    bg: "bg-danger/10",
+    fg: "text-danger",
+    btn: "bg-danger hover:brightness-110",
     Icon: AlertTriangle,
   },
   primary: {
     ring: "border-wine/20",
     bg: "bg-wine/10 dark:bg-wine/15",
     fg: "text-wine dark:text-wine-300",
-    btn: "bg-wine hover:bg-wine-dark",
+    btn: "btn-primary",
     Icon: CheckCircle2,
   },
   warning: {
-    ring: "border-amber-200 dark:border-amber-900/40",
-    bg: "bg-amber-50 dark:bg-amber-900/20",
-    fg: "text-amber-600 dark:text-amber-400",
-    btn: "bg-amber-500 hover:bg-amber-600",
+    ring: "border-warning/25",
+    bg: "bg-warning/12",
+    fg: "text-warning",
+    btn: "bg-warning hover:brightness-105",
     Icon: Info,
   },
 };
@@ -98,7 +98,8 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-[toast-in_180ms_ease-out]"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-[18px] animate-[toast-in_180ms_ease-out]"
+      style={{ background: "rgba(63,9,24,0.30)" }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && !busy) onClose();
       }}
@@ -106,7 +107,7 @@ export function ConfirmDialog({
       <div
         role="dialog"
         aria-modal="true"
-        className={`w-full max-w-md overflow-hidden rounded-2xl border ${s.ring} bg-card shadow-2xl`}
+        className={`animate-sheet-in w-full max-w-md overflow-hidden rounded-3xl border ${s.ring} bg-card shadow-2xl`}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-4 p-5">
@@ -126,7 +127,7 @@ export function ConfirmDialog({
           <button
             onClick={onClose}
             disabled={busy}
-            className="shrink-0 rounded-md p-1 text-muted hover:bg-surface disabled:opacity-50"
+            className="press shrink-0 rounded-full p-1 text-muted hover:bg-surface disabled:opacity-50"
             aria-label="Yopish"
           >
             <X size={16} />
@@ -136,14 +137,14 @@ export function ConfirmDialog({
           <button
             onClick={onClose}
             disabled={busy}
-            className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-card disabled:opacity-50"
+            className="press rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-card disabled:opacity-50"
           >
             {cancelText}
           </button>
           <button
             onClick={handleConfirm}
             disabled={busy}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white ${s.btn} disabled:opacity-50`}
+            className={`press flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-white ${s.btn} disabled:opacity-50`}
           >
             {busy && <Loader2 size={14} className="animate-spin" />}
             {confirmText}

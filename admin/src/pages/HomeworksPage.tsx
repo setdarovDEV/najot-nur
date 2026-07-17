@@ -5,6 +5,7 @@ import type { Homework } from "../lib/types";
 import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
+import { GlassInput, PrimaryButton, Reveal, SegmentedControl, StatusPill } from "../components/glass";
 
 export function HomeworksPage() {
   const qc = useQueryClient();
@@ -41,25 +42,19 @@ export function HomeworksPage() {
         title={t.homeworks.title}
         subtitle={t.homeworks.subtitle}
         actions={
-          <>
-            {(["submitted", "reviewed", ""] as const).map((f) => (
-              <button
-                key={f || "all"}
-                onClick={() => setFilter(f)}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold ${
-                  filter === f
-                    ? "bg-wine text-white"
-                    : "border border-line bg-card text-ink hover:bg-wine-50 dark:hover:bg-wine-900/20"
-                }`}
-              >
-                {f === "submitted"
+          <SegmentedControl
+            value={filter}
+            onChange={setFilter}
+            options={(["submitted", "reviewed", ""] as const).map((f) => ({
+              value: f,
+              label:
+                f === "submitted"
                   ? t.homeworks.new_
                   : f === "reviewed"
                     ? t.homeworks.reviewed
-                    : t.homeworks.all}
-              </button>
-            ))}
-          </>
+                    : t.homeworks.all,
+            }))}
+          />
         }
       />
 
@@ -71,14 +66,15 @@ export function HomeworksPage() {
       )}
 
       <div className="space-y-4">
-        {data?.map((hw) => (
-          <HomeworkCard
-            key={hw.id}
-            hw={hw}
-            onGrade={(score, feedback) =>
-              grade.mutateAsync({ id: hw.id, score, feedback })
-            }
-          />
+        {data?.map((hw, i) => (
+          <Reveal key={hw.id} index={i}>
+            <HomeworkCard
+              hw={hw}
+              onGrade={(score, feedback) =>
+                grade.mutateAsync({ id: hw.id, score, feedback })
+              }
+            />
+          </Reveal>
         ))}
       </div>
       {grade.isError && (
@@ -133,15 +129,9 @@ function HomeworkCard({
             {new Date(hw.created_at).toLocaleString()}
           </span>
         </div>
-        <span
-          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
-            hw.status === "reviewed"
-              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-          }`}
-        >
+        <StatusPill tone={hw.status === "reviewed" ? "success" : "warning"} className="shrink-0">
           {hw.status === "reviewed" ? t.homeworks.reviewed : t.homeworks.new_}
-        </span>
+        </StatusPill>
       </div>
       <p className="mb-4 rounded-xl bg-surface/60 p-3 text-sm text-ink">
         {t.homeworks.answer}: {hw.submission_text ?? hw.submission_url ?? "—"}
@@ -150,26 +140,26 @@ function HomeworkCard({
       <div className="flex flex-wrap items-end gap-3">
         <label className="text-sm">
           <span className="mb-1 block font-semibold text-ink">{t.homeworks.score} (0-100)</span>
-          <input
+          <GlassInput
             type="number"
             min={0}
             max={100}
             value={score}
             onChange={(e) => setScore(Number(e.target.value))}
-            className="w-24 rounded-lg border border-line bg-card px-3 py-2 text-ink outline-none focus:border-wine dark:bg-[#251d20]"
+            className="w-24"
           />
         </label>
         <label className="flex-1 text-sm">
           <span className="mb-1 block font-semibold text-ink">{t.homeworks.feedback}</span>
-          <input
+          <GlassInput
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             placeholder="..."
-            className="w-full rounded-lg border border-line bg-card px-3 py-2 text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20]"
           />
         </label>
-        <button
+        <PrimaryButton
           disabled={saving}
+          loading={saving}
           onClick={async () => {
             setSaving(true);
             try {
@@ -178,10 +168,9 @@ function HomeworkCard({
               setSaving(false);
             }
           }}
-          className="rounded-lg bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark disabled:opacity-60"
         >
           {saving ? t.common.saving : t.homeworks.grade}
-        </button>
+        </PrimaryButton>
       </div>
     </div>
   );

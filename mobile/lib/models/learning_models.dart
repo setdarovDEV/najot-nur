@@ -8,6 +8,7 @@ class Lesson {
     required this.durationSec,
     required this.isVoiceExercise,
     this.voiceExercisePrompt,
+    this.isDemo = false,
   });
 
   final String id;
@@ -18,6 +19,7 @@ class Lesson {
   final int durationSec;
   final bool isVoiceExercise;
   final String? voiceExercisePrompt;
+  final bool isDemo;
 
   factory Lesson.fromJson(Map<String, dynamic> j) => Lesson(
         id: j['id'] as String,
@@ -28,6 +30,7 @@ class Lesson {
         durationSec: j['duration_sec'] as int? ?? 0,
         isVoiceExercise: j['is_voice_exercise'] as bool? ?? false,
         voiceExercisePrompt: j['voice_exercise_prompt'] as String?,
+        isDemo: j['is_demo'] as bool? ?? false,
       );
 }
 
@@ -102,6 +105,7 @@ class LessonDetail {
     required this.durationSec,
     required this.isVoiceExercise,
     this.voiceExercisePrompt,
+    this.isDemo = false,
     required this.isCompleted,
     this.autoScore,
     this.questions = const [],
@@ -113,6 +117,7 @@ class LessonDetail {
   final int durationSec;
   final bool isVoiceExercise;
   final String? voiceExercisePrompt;
+  final bool isDemo;
   final bool isCompleted;
   final int? autoScore;
   final List<LessonQuizQuestion> questions;
@@ -127,6 +132,7 @@ class LessonDetail {
         durationSec: j['duration_sec'] as int? ?? 0,
         isVoiceExercise: j['is_voice_exercise'] as bool? ?? false,
         voiceExercisePrompt: j['voice_exercise_prompt'] as String?,
+        isDemo: j['is_demo'] as bool? ?? false,
         isCompleted: j['is_completed'] as bool? ?? false,
         autoScore: j['auto_score'] as int?,
         questions: ((j['questions'] as List?) ?? [])

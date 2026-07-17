@@ -284,3 +284,23 @@ async def get_payment(
     if payment is None:
         raise NotFoundError("To'lov topilmadi.")
     return payment
+
+
+@admin_router.post("/payments/uzum-nasiya/reconcile", response_model=Message)
+async def admin_reconcile_uzum_nasiya(_: AdminUser, db: DbSession) -> Message:
+    """Manually trigger Uzum Nasiya pending-contract reconciliation.
+
+    This is normally run automatically by a cron/scheduler. The endpoint is
+    useful for one-off runs or when the operator wants to unblock stuck
+    contracts immediately.
+    """
+    summary = await payment_service.auto_reconcile_uzum_nasiya(db)
+    return Message(
+        message=(
+            f"Reconcile done: "
+            f"confirmed={summary['confirmed']}, "
+            f"cancelled={summary['cancelled']}, "
+            f"already_paid={summary['already_paid']}, "
+            f"errors={summary['errors']}"
+        )
+    )

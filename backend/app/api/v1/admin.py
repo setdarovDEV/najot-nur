@@ -1009,6 +1009,7 @@ async def get_course_admin(course_id: uuid.UUID, _: CuratorUser, db: DbSession) 
                 "duration_sec": l.duration_sec,
                 "is_voice_exercise": l.is_voice_exercise,
                 "voice_exercise_prompt": l.voice_exercise_prompt,
+                "is_demo": l.is_demo,
                 "questions": [
                     {
                         "id": str(q.id),
@@ -1088,10 +1089,17 @@ async def add_lesson(course_id: uuid.UUID, payload: dict, _: CuratorUser, db: Db
         order_index=max_order + 1,
         is_voice_exercise=bool(payload.get("is_voice_exercise", False)),
         voice_exercise_prompt=payload.get("voice_exercise_prompt"),
+        is_demo=bool(payload.get("is_demo", False)),
     )
     db.add(lesson)
     await db.flush()
-    return {"id": str(lesson.id), "title": lesson.title, "order_index": lesson.order_index, "video_url": None}
+    return {
+        "id": str(lesson.id),
+        "title": lesson.title,
+        "order_index": lesson.order_index,
+        "video_url": None,
+        "is_demo": lesson.is_demo,
+    }
 
 
 @router.post("/lessons/{lesson_id}/video")
@@ -1134,7 +1142,13 @@ async def update_lesson(lesson_id: uuid.UUID, payload: dict, _: CuratorUser, db:
     lesson = await db.get(Lesson, lesson_id)
     if lesson is None:
         raise NotFoundError("Dars topilmadi.")
-    for field in ("title", "description", "is_voice_exercise", "voice_exercise_prompt"):
+    for field in (
+        "title",
+        "description",
+        "is_voice_exercise",
+        "voice_exercise_prompt",
+        "is_demo",
+    ):
         if field in payload:
             setattr(lesson, field, payload[field])
     await db.flush()
@@ -1144,6 +1158,7 @@ async def update_lesson(lesson_id: uuid.UUID, payload: dict, _: CuratorUser, db:
         "description": lesson.description,
         "is_voice_exercise": lesson.is_voice_exercise,
         "voice_exercise_prompt": lesson.voice_exercise_prompt,
+        "is_demo": lesson.is_demo,
     }
 
 

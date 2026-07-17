@@ -19,6 +19,13 @@ import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
 import { Modal, ModalFooter } from "../components/Modal";
+import { GlassInput, GlassTextarea, PrimaryButton, Reveal, SegmentedControl, StatusPill } from "../components/glass";
+
+const STATUS_TONE: Record<Practicum["status"], "success" | "danger" | "warning"> = {
+  draft: "warning",
+  approved: "success",
+  rejected: "danger",
+};
 
 interface Practicum {
   id: string;
@@ -34,12 +41,6 @@ interface Practicum {
 }
 
 type FilterKey = "all" | "draft" | "approved" | "rejected";
-
-const STATUS_COLOR: Record<string, string> = {
-  draft: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  approved: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-};
 
 export function PracticumsPage() {
   const { role } = useAuth();
@@ -153,13 +154,10 @@ export function PracticumsPage() {
             : p.subtitle
         }
         actions={
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 rounded-xl bg-wine px-4 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark"
-          >
+          <PrimaryButton onClick={() => setShowCreate(true)}>
             <Plus size={16} />
             {p.addBtn}
-          </button>
+          </PrimaryButton>
         }
       />
 
@@ -174,20 +172,12 @@ export function PracticumsPage() {
 
       {/* Filter bar */}
       {!loading && practicums.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          {filters.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
-                filter === f.key
-                  ? "bg-wine text-white shadow-sm"
-                  : "border border-line bg-card text-muted hover:border-wine/30 hover:text-wine"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="mb-4">
+          <SegmentedControl
+            value={filter}
+            onChange={setFilter}
+            options={filters.map((f) => ({ value: f.key, label: f.label }))}
+          />
         </div>
       )}
 
@@ -207,23 +197,24 @@ export function PracticumsPage() {
         />
       ) : (
         <div className="space-y-3">
-          {filtered.map((pr) => (
-            <PracticumCard
-              key={pr.id}
-              practicum={pr}
-              isAdmin={isAdmin}
-              isExpanded={expandedId === pr.id}
-              onToggle={() => setExpandedId(expandedId === pr.id ? null : pr.id)}
-              onApprove={() => approve(pr)}
-              onReject={() => reject(pr)}
-              onEdit={() => setEditTarget(pr)}
-              onDelete={() => deletePracticum(pr)}
-              onAudioUploaded={(updated) =>
-                setPracticums((prev) =>
-                  prev.map((x) => x.id === updated.id ? updated : x)
-                )
-              }
-            />
+          {filtered.map((pr, i) => (
+            <Reveal key={pr.id} index={i}>
+              <PracticumCard
+                practicum={pr}
+                isAdmin={isAdmin}
+                isExpanded={expandedId === pr.id}
+                onToggle={() => setExpandedId(expandedId === pr.id ? null : pr.id)}
+                onApprove={() => approve(pr)}
+                onReject={() => reject(pr)}
+                onEdit={() => setEditTarget(pr)}
+                onDelete={() => deletePracticum(pr)}
+                onAudioUploaded={(updated) =>
+                  setPracticums((prev) =>
+                    prev.map((x) => x.id === updated.id ? updated : x)
+                  )
+                }
+              />
+            </Reveal>
           ))}
         </div>
       )}
@@ -294,12 +285,9 @@ function EmptyState({
         <p className="text-sm font-semibold">{isEmpty ? p.noPracticums : "Bu filtr bo'yicha ma'lumot yo'q"}</p>
       </div>
       {!isAdmin && isEmpty && (
-        <button
-          onClick={onAdd}
-          className="rounded-xl bg-wine px-4 py-2 text-xs font-bold text-white hover:bg-wine-dark"
-        >
+        <PrimaryButton onClick={onAdd} className="px-4 py-2 text-xs">
           Birinchi praktikumni yarating
-        </button>
+        </PrimaryButton>
       )}
     </div>
   );
@@ -370,12 +358,8 @@ function PracticumCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold text-ink">{practicum.title}</span>
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_COLOR[practicum.status]}`}>
-              {p[practicum.status]}
-            </span>
-            <span className="rounded-full bg-wine/10 px-2 py-0.5 text-[11px] font-bold text-wine dark:bg-wine/20 dark:text-wine-300">
-              {p.free}
-            </span>
+            <StatusPill tone={STATUS_TONE[practicum.status]}>{p[practicum.status]}</StatusPill>
+            <StatusPill tone="neutral">{p.free}</StatusPill>
           </div>
           {practicum.category && (
             <div className="mt-1 text-xs text-muted">{practicum.category}</div>
@@ -394,7 +378,7 @@ function PracticumCard({
               <button
                 onClick={onApprove}
                 title="Tasdiqlash"
-                className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
+                className="press flex items-center gap-1 rounded-full bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
               >
                 <Check size={13} />
                 Tasdiqlash
@@ -402,7 +386,7 @@ function PracticumCard({
               <button
                 onClick={onReject}
                 title="Rad etish"
-                className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+                className="press flex items-center gap-1 rounded-full bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
               >
                 <X size={13} />
                 Rad etish
@@ -413,21 +397,21 @@ function PracticumCard({
           <button
             onClick={onEdit}
             title="Tahrirlash"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted transition hover:border-wine/30 hover:text-wine"
+            className="press flex h-8 w-8 items-center justify-center rounded-full border border-line text-muted transition hover:border-wine/30 hover:text-wine"
           >
             <Edit2 size={14} />
           </button>
           <button
             onClick={onDelete}
             title="O'chirish"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted transition hover:border-red-300 hover:text-red-500 dark:hover:border-red-700 dark:hover:text-red-400"
+            className="press flex h-8 w-8 items-center justify-center rounded-full border border-line text-muted transition hover:border-red-300 hover:text-red-500 dark:hover:border-red-700 dark:hover:text-red-400"
           >
             <Trash2 size={14} />
           </button>
 
           <button
             onClick={onToggle}
-            className="flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine"
+            className="press flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine"
           >
             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             Ko'rish
@@ -462,7 +446,7 @@ function PracticumCard({
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={toggleAudio}
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${
+                  className={`press flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition ${
                     playing
                       ? "bg-wine text-white"
                       : "bg-wine/10 text-wine hover:bg-wine/20 dark:bg-wine/15 dark:text-wine-300 dark:hover:bg-wine/25"
@@ -480,7 +464,7 @@ function PracticumCard({
                 <button
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine disabled:opacity-50"
+                  className="press flex items-center gap-1.5 rounded-full border border-line px-3 py-2 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine disabled:opacity-50"
                 >
                   <Upload size={13} />
                   {uploading ? "Yuklanmoqda…" : p.replaceAudio}
@@ -489,14 +473,14 @@ function PracticumCard({
             ) : (
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm text-muted">{p.noAudio}</span>
-                <button
+                <PrimaryButton
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="flex items-center gap-1.5 rounded-xl bg-wine px-3 py-2 text-xs font-bold text-white hover:bg-wine-dark disabled:opacity-50"
+                  className="px-3 py-2 text-xs"
                 >
                   <Upload size={13} />
                   {uploading ? "Yuklanmoqda…" : p.uploadAudio}
-                </button>
+                </PrimaryButton>
               </div>
             )}
 
@@ -738,8 +722,6 @@ function FormBody({
   error: string;
   p: ReturnType<typeof useLang>["t"]["practicums"];
 }) {
-  const inputCls = "w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10";
-
   return (
     <div className="space-y-4 p-6">
       {error && (
@@ -749,40 +731,37 @@ function FormBody({
       )}
 
       <Field label={`${p.titleField} *`}>
-        <input
+        <GlassInput
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Praktikum sarlavhasi"
-          className={inputCls}
         />
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
         <Field label={p.categoryField}>
-          <input
+          <GlassInput
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             placeholder="Nutq, Psixologiya…"
-            className={inputCls}
           />
         </Field>
         <Field label={p.descField}>
-          <input
+          <GlassInput
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Qisqacha tavsif"
-            className={inputCls}
           />
         </Field>
       </div>
 
       <Field label={p.textField}>
-        <textarea
+        <GlassTextarea
           value={expertText}
           onChange={(e) => setExpertText(e.target.value)}
           rows={5}
           placeholder="Ekspert tomonidan yozilgan matn..."
-          className={`${inputCls} resize-none`}
+          className="resize-none"
         />
       </Field>
 

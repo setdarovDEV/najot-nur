@@ -18,6 +18,7 @@ import { BarChart } from "./BarChart";
 import { DashboardHero } from "./DashboardHero";
 import { RecentHomeworks } from "./RecentHomeworks";
 import { ScoreBadge } from "./ScoreBadge";
+import { Reveal, StatusPill } from "../glass";
 import type { ClientRow } from "../../lib/types";
 
 export function CuratorDashboard() {
@@ -184,16 +185,19 @@ export function CuratorDashboard() {
             <ol className="space-y-2">
               {topPerformers.map((c, idx) => (
                 <li key={c.id}>
-                  <div className="flex items-center gap-3 rounded-xl border border-line/60 p-3">
+                  <Reveal
+                    index={idx}
+                    className="flex items-center gap-3 rounded-xl border border-line/60 p-3 transition hover:border-wine/30 hover:bg-wine-50/50 dark:hover:bg-wine-900/20"
+                  >
                     <span
-                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-black ${
+                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${
                         idx === 0
-                          ? "bg-amber-100 text-amber-700"
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                           : idx === 1
                             ? "bg-wine/10 text-wine dark:bg-wine/15 dark:text-wine-300"
                             : idx === 2
-                              ? "bg-orange/15 text-orange dark:bg-orange/15 dark:text-orange"
-                              : "bg-line/60 text-muted dark:bg-line/20 dark:text-muted"
+                              ? "bg-orange/15 text-orange dark:bg-orange/20 dark:text-orange"
+                              : "bg-line/60 text-muted dark:bg-line/30"
                       }`}
                     >
                       {idx + 1}
@@ -207,7 +211,7 @@ export function CuratorDashboard() {
                       </div>
                     </div>
                     <ScoreBadge score={c.last_speech_score} />
-                  </div>
+                  </Reveal>
                 </li>
               ))}
             </ol>
@@ -221,7 +225,7 @@ export function CuratorDashboard() {
           action={
             <Link
               to="/video-lessons"
-              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
+              className="press inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold text-wine hover:bg-wine/5 dark:text-wine-300"
             >
               {t.dashboard.coursesLink} <ChevronRight size={12} />
             </Link>
@@ -239,31 +243,27 @@ export function CuratorDashboard() {
             </p>
           ) : (
             <ul className="space-y-2">
-              {coursesQ.data?.slice(0, 5).map((c) => (
-                <li
-                  key={c.id}
-                  className="flex items-center gap-3 rounded-xl p-2"
-                >
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-wine/10 text-xs font-black text-wine dark:bg-wine/15 dark:text-wine-300">
-                    <Headphones size={16} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-bold text-ink">
-                      {c.title}
-                    </div>
-                    <div className="truncate text-xs text-muted">
-                      {c.lesson_count} ta dars · {c.level}
-                    </div>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                      c.is_published
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                    }`}
+              {coursesQ.data?.slice(0, 5).map((c, i) => (
+                <li key={c.id}>
+                  <Reveal
+                    index={i}
+                    className="flex items-center gap-3 rounded-xl p-2"
                   >
-                    {c.is_published ? t.videoLessons.published : t.videoLessons.draft}
-                  </span>
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-wine/10 text-xs font-black text-wine dark:bg-wine/15 dark:text-wine-300">
+                      <Headphones size={16} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-bold text-ink">
+                        {c.title}
+                      </div>
+                      <div className="truncate text-xs text-muted">
+                        {c.lesson_count} ta dars · {c.level}
+                      </div>
+                    </div>
+                    <StatusPill tone={c.is_published ? "success" : "warning"} className="shrink-0">
+                      {c.is_published ? t.videoLessons.published : t.videoLessons.draft}
+                    </StatusPill>
+                  </Reveal>
                 </li>
               ))}
             </ul>

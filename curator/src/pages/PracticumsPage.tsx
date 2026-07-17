@@ -17,11 +17,12 @@ import {
 import { api, apiError, mediaUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { PageHeader } from "../components/Layout";
-import { Modal, ModalBody, ModalHeader } from "../components/Modal";
+import { Modal, ModalBody, ModalHeader, ModalFooter, ModalCancelButton, ModalSubmitButton } from "../components/Modal";
 import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
 import type { PracticumSubmission } from "../lib/types";
+import { GlassInput, GlassTextarea, PrimaryButton, Reveal, SegmentedControl, StatusPill } from "../components/glass";
 
 interface Practicum {
   id: string;
@@ -38,10 +39,10 @@ interface Practicum {
 
 type FilterKey = "all" | "draft" | "approved" | "rejected";
 
-const STATUS_COLOR: Record<string, string> = {
-  draft: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  approved: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+const STATUS_TONE: Record<Practicum["status"], "success" | "danger" | "warning"> = {
+  draft: "warning",
+  approved: "success",
+  rejected: "danger",
 };
 
 
@@ -160,13 +161,10 @@ export function PracticumsPage() {
         }
         actions={
           !isAdmin && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 rounded-xl bg-wine px-4 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark"
-            >
+            <PrimaryButton onClick={() => setShowCreate(true)}>
               <Plus size={16} />
               {p.addBtn}
-            </button>
+            </PrimaryButton>
           )
         }
       />
@@ -182,20 +180,12 @@ export function PracticumsPage() {
 
       {/* Filter bar */}
       {!loading && practicums.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          {filters.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
-                filter === f.key
-                  ? "bg-wine text-white shadow-sm"
-                  : "border border-line bg-card text-muted hover:border-wine/30 hover:text-wine"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="mb-4">
+          <SegmentedControl
+            value={filter}
+            onChange={setFilter}
+            options={filters.map((f) => ({ value: f.key, label: f.label }))}
+          />
         </div>
       )}
 
@@ -215,24 +205,25 @@ export function PracticumsPage() {
         />
       ) : (
         <div className="space-y-3">
-          {filtered.map((pr) => (
-            <PracticumCard
-              key={pr.id}
-              practicum={pr}
-              isAdmin={isAdmin}
-              isExpanded={expandedId === pr.id}
-              onToggle={() => setExpandedId(expandedId === pr.id ? null : pr.id)}
-              onApprove={() => approve(pr)}
-              onReject={() => reject(pr)}
-              onEdit={() => setEditTarget(pr)}
-              onDelete={() => deletePracticum(pr)}
-              onAudioUploaded={(updated) =>
-                setPracticums((prev) =>
-                  prev.map((x) => x.id === updated.id ? updated : x)
-                )
-              }
-              onOpenSubmission={(sub) => setOpenSubmission(sub)}
-            />
+          {filtered.map((pr, i) => (
+            <Reveal key={pr.id} index={i}>
+              <PracticumCard
+                practicum={pr}
+                isAdmin={isAdmin}
+                isExpanded={expandedId === pr.id}
+                onToggle={() => setExpandedId(expandedId === pr.id ? null : pr.id)}
+                onApprove={() => approve(pr)}
+                onReject={() => reject(pr)}
+                onEdit={() => setEditTarget(pr)}
+                onDelete={() => deletePracticum(pr)}
+                onAudioUploaded={(updated) =>
+                  setPracticums((prev) =>
+                    prev.map((x) => x.id === updated.id ? updated : x)
+                  )
+                }
+                onOpenSubmission={(sub) => setOpenSubmission(sub)}
+              />
+            </Reveal>
           ))}
         </div>
       )}
@@ -310,12 +301,9 @@ function EmptyState({
         <p className="text-sm font-semibold">{isEmpty ? p.noPracticums : "Bu filtr bo'yicha ma'lumot yo'q"}</p>
       </div>
       {!isAdmin && isEmpty && (
-        <button
-          onClick={onAdd}
-          className="rounded-xl bg-wine px-4 py-2 text-xs font-bold text-white hover:bg-wine-dark"
-        >
+        <PrimaryButton onClick={onAdd} className="px-4 py-2 text-xs">
           Birinchi praktikumni yarating
-        </button>
+        </PrimaryButton>
       )}
     </div>
   );
@@ -381,19 +369,15 @@ function PracticumCard({
     <div className="overflow-hidden rounded-2xl border border-line bg-card transition-shadow hover:shadow-sm">
       {/* Header row */}
       <div className="flex items-center gap-4 p-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-wine/10">
-          <Headphones size={20} className="text-wine" />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-wine/10 dark:bg-wine/15">
+          <Headphones size={20} className="text-wine dark:text-wine-300" />
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold text-ink">{practicum.title}</span>
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_COLOR[practicum.status]}`}>
-              {p[practicum.status]}
-            </span>
-            <span className="rounded-full bg-wine/10 px-2 py-0.5 text-[11px] font-bold text-wine dark:bg-wine/20 dark:text-wine-300">
-              {p.free}
-            </span>
+            <StatusPill tone={STATUS_TONE[practicum.status]}>{p[practicum.status]}</StatusPill>
+            <StatusPill tone="neutral">{p.free}</StatusPill>
           </div>
           {practicum.category && (
             <div className="mt-1 text-xs text-muted">{practicum.category}</div>
@@ -412,7 +396,7 @@ function PracticumCard({
               <button
                 onClick={onApprove}
                 title="Tasdiqlash"
-                className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
+                className="press flex items-center gap-1 rounded-full bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
               >
                 <Check size={13} />
                 Tasdiqlash
@@ -420,7 +404,7 @@ function PracticumCard({
               <button
                 onClick={onReject}
                 title="Rad etish"
-                className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+                className="press flex items-center gap-1 rounded-full bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
               >
                 <X size={13} />
                 Rad etish
@@ -433,14 +417,14 @@ function PracticumCard({
               <button
                 onClick={onEdit}
                 title="Tahrirlash"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted transition hover:border-wine/30 hover:text-wine"
+                className="press flex h-8 w-8 items-center justify-center rounded-full border border-line text-muted transition hover:border-wine/30 hover:text-wine"
               >
                 <Edit2 size={14} />
               </button>
               <button
                 onClick={onDelete}
                 title="O'chirish"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted transition hover:border-red-300 hover:text-red-500"
+                className="press flex h-8 w-8 items-center justify-center rounded-full border border-line text-muted transition hover:border-red-300 hover:text-red-500 dark:hover:border-red-700 dark:hover:text-red-400"
               >
                 <Trash2 size={14} />
               </button>
@@ -449,7 +433,7 @@ function PracticumCard({
 
           <button
             onClick={onToggle}
-            className="flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine"
+            className="press flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine"
           >
             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             Ko'rish
@@ -484,10 +468,10 @@ function PracticumCard({
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={toggleAudio}
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${
+                  className={`press flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition ${
                     playing
                       ? "bg-wine text-white"
-                      : "bg-wine/10 text-wine hover:bg-wine/20"
+                      : "bg-wine/10 text-wine hover:bg-wine/20 dark:bg-wine/15 dark:text-wine-300 dark:hover:bg-wine/25"
                   }`}
                 >
                   <Play size={14} className={playing ? "fill-white" : "fill-wine"} />
@@ -503,7 +487,7 @@ function PracticumCard({
                   <button
                     onClick={() => fileRef.current?.click()}
                     disabled={uploading}
-                    className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine disabled:opacity-50"
+                    className="press flex items-center gap-1.5 rounded-full border border-line px-3 py-2 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine disabled:opacity-50"
                   >
                     <Upload size={13} />
                     {uploading ? "Yuklanmoqda…" : p.replaceAudio}
@@ -514,14 +498,14 @@ function PracticumCard({
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm text-muted">{p.noAudio}</span>
                 {!isAdmin && (
-                  <button
+                  <PrimaryButton
                     onClick={() => fileRef.current?.click()}
                     disabled={uploading}
-                    className="flex items-center gap-1.5 rounded-xl bg-wine px-3 py-2 text-xs font-bold text-white hover:bg-wine-dark disabled:opacity-50"
+                    className="px-3 py-2 text-xs"
                   >
                     <Upload size={13} />
                     {uploading ? "Yuklanmoqda…" : p.uploadAudio}
-                  </button>
+                  </PrimaryButton>
                 )}
               </div>
             )}
@@ -594,7 +578,7 @@ function SubmissionsSection({
           {p.submissions}
         </p>
         {data && data.length > 0 && (
-          <span className="rounded-full bg-wine/10 px-2 py-0.5 text-[11px] font-bold text-wine">
+          <span className="rounded-full bg-wine/10 px-2 py-0.5 text-[11px] font-bold text-wine dark:bg-wine/20 dark:text-wine-300">
             {p.submissionCount(data.length)}
           </span>
         )}
@@ -634,9 +618,9 @@ function SubmissionsSection({
                 <button
                   type="button"
                   onClick={() => onOpenSubmission(sub)}
-                  className="flex w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 text-left transition hover:border-wine/40 hover:bg-wine/5"
+                  className="press flex w-full items-center gap-3 rounded-xl border border-line bg-surface p-3 text-left transition hover:border-wine/40 hover:bg-wine/5"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-wine/10 text-xs font-bold text-wine">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-wine/10 text-xs font-bold text-wine dark:bg-wine/15 dark:text-wine-300">
                     {(displayName[0] ?? "?").toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -731,18 +715,24 @@ function CreatePracticumModal({
   };
 
   return (
-    <ModalShell title={p.addBtn} onClose={onClose}>
-      <FormBody
-        title={title} setTitle={setTitle}
-        description={description} setDescription={setDescription}
-        category={category} setCategory={setCategory}
-        expertText={expertText} setExpertText={setExpertText}
-        audioFile={audioFile} setAudioFile={setAudioFile}
-        error={error}
-        p={p}
-      />
-      <ModalFooter onClose={onClose} onSubmit={submit} saving={saving} label="Yuborish" />
-    </ModalShell>
+    <Modal open onClose={onClose} size="lg">
+      <ModalHeader title={p.addBtn} onClose={onClose} />
+      <ModalBody>
+        <FormBody
+          title={title} setTitle={setTitle}
+          description={description} setDescription={setDescription}
+          category={category} setCategory={setCategory}
+          expertText={expertText} setExpertText={setExpertText}
+          audioFile={audioFile} setAudioFile={setAudioFile}
+          error={error}
+          p={p}
+        />
+      </ModalBody>
+      <ModalFooter>
+        <ModalCancelButton onClick={onClose}>Bekor qilish</ModalCancelButton>
+        <ModalSubmitButton onClick={submit} loading={saving}>Yuborish</ModalSubmitButton>
+      </ModalFooter>
+    </Modal>
   );
 }
 
@@ -809,72 +799,24 @@ function EditPracticumModal({
   };
 
   return (
-    <ModalShell title="Praktikumni tahrirlash" onClose={onClose}>
-      <FormBody
-        title={title} setTitle={setTitle}
-        description={description} setDescription={setDescription}
-        category={category} setCategory={setCategory}
-        expertText={expertText} setExpertText={setExpertText}
-        audioFile={audioFile} setAudioFile={setAudioFile}
-        error={error}
-        p={p}
-      />
-      <ModalFooter onClose={onClose} onSubmit={submit} saving={saving} label="Saqlash" />
-    </ModalShell>
-  );
-}
-
-function ModalShell({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10">
-      <div className="w-full max-w-xl rounded-2xl border border-line bg-card shadow-2xl">
-        <div className="flex items-center justify-between border-b border-line px-6 py-4">
-          <h2 className="text-lg font-extrabold text-ink">{title}</h2>
-          <button onClick={onClose} className="text-muted hover:text-wine">
-            <X size={20} />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function ModalFooter({
-  onClose,
-  onSubmit,
-  saving,
-  label,
-}: {
-  onClose: () => void;
-  onSubmit: () => void;
-  saving: boolean;
-  label: string;
-}) {
-  return (
-    <div className="flex items-center justify-end gap-3 border-t border-line px-6 py-4">
-      <button
-        onClick={onClose}
-        className="rounded-xl border border-line px-5 py-2.5 text-sm font-semibold text-ink hover:bg-surface"
-      >
-        Bekor qilish
-      </button>
-      <button
-        onClick={onSubmit}
-        disabled={saving}
-        className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark disabled:opacity-60"
-      >
-        {saving ? "Saqlanmoqda…" : label}
-      </button>
-    </div>
+    <Modal open onClose={onClose} size="lg">
+      <ModalHeader title="Praktikumni tahrirlash" onClose={onClose} />
+      <ModalBody>
+        <FormBody
+          title={title} setTitle={setTitle}
+          description={description} setDescription={setDescription}
+          category={category} setCategory={setCategory}
+          expertText={expertText} setExpertText={setExpertText}
+          audioFile={audioFile} setAudioFile={setAudioFile}
+          error={error}
+          p={p}
+        />
+      </ModalBody>
+      <ModalFooter>
+        <ModalCancelButton onClick={onClose}>Bekor qilish</ModalCancelButton>
+        <ModalSubmitButton onClick={submit} loading={saving}>Saqlash</ModalSubmitButton>
+      </ModalFooter>
+    </Modal>
   );
 }
 
@@ -895,51 +837,46 @@ function FormBody({
   error: string;
   p: ReturnType<typeof useLang>["t"]["practicums"];
 }) {
-  const inputCls = "w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10";
-
   return (
-    <div className="space-y-4 p-6">
+    <div className="space-y-4">
       {error && (
-        <div className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+        <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:bg-red-900/20 dark:text-red-400">
           {error}
         </div>
       )}
 
       <Field label={`${p.titleField} *`}>
-        <input
+        <GlassInput
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Praktikum sarlavhasi"
-          className={inputCls}
         />
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
         <Field label={p.categoryField}>
-          <input
+          <GlassInput
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             placeholder="Nutq, Psixologiya…"
-            className={inputCls}
           />
         </Field>
         <Field label={p.descField}>
-          <input
+          <GlassInput
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Qisqacha tavsif"
-            className={inputCls}
           />
         </Field>
       </div>
 
       <Field label={p.textField}>
-        <textarea
+        <GlassTextarea
           value={expertText}
           onChange={(e) => setExpertText(e.target.value)}
           rows={5}
           placeholder="Ekspert tomonidan yozilgan matn..."
-          className={`${inputCls} resize-none`}
+          className="resize-none"
         />
       </Field>
 
@@ -949,7 +886,7 @@ function FormBody({
           <Mic size={18} className="shrink-0 text-wine" />
           <span className="text-sm text-muted">
             {audioFile ? (
-              <span className="font-semibold text-green-600">✓ {audioFile.name}</span>
+              <span className="font-semibold text-green-600 dark:text-green-400">✓ {audioFile.name}</span>
             ) : (
               p.uploadAudio
             )}

@@ -449,6 +449,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get free => 'Bepul';
 
   @override
+  String get demoLabel => 'Demo';
+
+  @override
   String get forSale => 'Sotuvda';
 
   @override

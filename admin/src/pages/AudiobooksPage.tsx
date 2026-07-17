@@ -19,6 +19,7 @@ import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
 import { useConfirm } from "../lib/confirm";
 import { Modal, ModalFooter } from "../components/Modal";
+import { PrimaryButton, GlassInput, GlassTextarea, StatusPill, Reveal } from "../components/glass";
 
 // ─── AudiobooksPage ────────────────────────────────────────────────────────────
 
@@ -75,15 +76,12 @@ export function AudiobooksPage() {
         }
         actions={
           canEdit ? (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white hover:bg-wine-dark"
-            >
+            <PrimaryButton onClick={() => setShowCreate(true)}>
               <Plus size={16} />
               Yangi audiokitob
-            </button>
+            </PrimaryButton>
           ) : (
-            <span className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2 text-xs font-semibold text-muted">
+            <span className="flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-xs font-semibold text-muted">
               <Lock size={14} />
               Faqat ko'rish
             </span>
@@ -96,8 +94,9 @@ export function AudiobooksPage() {
       {isLoading && <p className="text-muted">Yuklanmoqda…</p>}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {data?.map((b) => (
-          <div key={b.id}>
+        {data?.map((b, i) => (
+          <Reveal key={b.id} index={i}>
+            <div>
             {/* Card */}
             <div className="rounded-2xl border border-line bg-card p-5">
               {/* Cover */}
@@ -118,15 +117,9 @@ export function AudiobooksPage() {
 
               <div className="mt-3 flex items-center justify-between">
                 <span className="text-xs text-muted">{b.total_pages} sahifa</span>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    b.is_free
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-wine-100 text-wine dark:bg-wine-900/20 dark:text-wine-300"
-                  }`}
-                >
+                <StatusPill tone={b.is_free ? "success" : "neutral"}>
                   {b.is_free ? "Bepul" : "Sotuvda"}
-                </span>
+                </StatusPill>
               </div>
 
               {/* Action buttons */}
@@ -142,7 +135,7 @@ export function AudiobooksPage() {
                 {canEdit && (
                   <button
                     onClick={() => togglePages(b.id)}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-line py-2 text-sm font-semibold text-ink hover:bg-surface"
+                    className="press flex w-full items-center justify-center gap-2 rounded-full border border-line py-2 text-sm font-semibold text-ink hover:bg-surface"
                   >
                     <BookOpen size={15} />
                     Sahifalarni boshqarish
@@ -158,7 +151,7 @@ export function AudiobooksPage() {
                   <div className="flex gap-2">
                     {canPublish ? (
                       b.is_published ? (
-                        <div className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 py-2 text-sm font-semibold text-green-700">
+                        <div className="flex flex-1 items-center justify-center gap-2 rounded-full border border-green-200 bg-green-50 py-2 text-sm font-semibold text-green-700">
                           <CheckCircle2 size={14} />
                           Nashr qilingan
                         </div>
@@ -173,7 +166,7 @@ export function AudiobooksPage() {
                             if (ok) publishMutation.mutate(b.id);
                           }}
                           disabled={publishMutation.isPending}
-                          className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-wine py-2 text-sm font-semibold text-wine transition hover:bg-wine hover:text-white disabled:opacity-60"
+                          className="press flex flex-1 items-center justify-center gap-2 rounded-full border border-wine py-2 text-sm font-semibold text-wine transition hover:bg-wine hover:text-white disabled:opacity-60"
                         >
                           {publishingId === b.id && publishMutation.isPending ? (
                             <>
@@ -189,7 +182,7 @@ export function AudiobooksPage() {
                         </button>
                       )
                     ) : (
-                      <div className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-line bg-surface py-2 text-xs font-semibold text-muted">
+                      <div className="flex flex-1 items-center justify-center gap-2 rounded-full border border-line bg-surface py-2 text-xs font-semibold text-muted">
                         <Lock size={12} />
                         Nashr faqat admin uchun
                       </div>
@@ -209,7 +202,7 @@ export function AudiobooksPage() {
                           if (ok) deleteMutation.mutate(b.id);
                         }}
                         disabled={deleteMutation.isPending}
-                        className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                        className="press rounded-full border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -227,7 +220,8 @@ export function AudiobooksPage() {
 
             {/* Inline pages panel */}
             {canEdit && expandedId === b.id && <PagesPanel audiobookId={b.id} />}
-          </div>
+            </div>
+          </Reveal>
         ))}
       </div>
 
@@ -327,22 +321,20 @@ function CreateForm({ open, onClose }: { open: boolean; onClose: () => void }) {
             <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
               Kitob nomi *
             </label>
-            <input
+            <GlassInput
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Kitob nomi"
-              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
             />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
               Muallif
             </label>
-            <input
+            <GlassInput
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
               placeholder="Muallif"
-              className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
             />
           </div>
         </div>
@@ -351,12 +343,11 @@ function CreateForm({ open, onClose }: { open: boolean; onClose: () => void }) {
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             Tavsif (ixtiyoriy)
           </label>
-          <textarea
+          <GlassTextarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Kitob haqida qisqacha..."
             rows={3}
-            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
         </div>
 
@@ -369,7 +360,7 @@ function CreateForm({ open, onClose }: { open: boolean; onClose: () => void }) {
             <button
               type="button"
               onClick={() => setIsFree(true)}
-              className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition ${
+              className={`press flex-1 rounded-full border py-2.5 text-sm font-bold transition ${
                 isFree
                   ? "border-green-400 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
                   : "border-line bg-card text-muted hover:border-wine/30"
@@ -380,7 +371,7 @@ function CreateForm({ open, onClose }: { open: boolean; onClose: () => void }) {
             <button
               type="button"
               onClick={() => setIsFree(false)}
-              className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition ${
+              className={`press flex-1 rounded-full border py-2.5 text-sm font-bold transition ${
                 !isFree
                   ? "border-purple-400 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400"
                   : "border-line bg-card text-muted hover:border-wine/30"
@@ -390,12 +381,12 @@ function CreateForm({ open, onClose }: { open: boolean; onClose: () => void }) {
             </button>
           </div>
           {!isFree && (
-            <input
+            <GlassInput
               type="number"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder="Narxi (so'm)"
-              className="mt-3 w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10 sm:w-1/2"
+              className="mt-3 sm:w-1/2"
             />
           )}
         </div>
@@ -409,7 +400,7 @@ function CreateForm({ open, onClose }: { open: boolean; onClose: () => void }) {
             <button
               type="button"
               onClick={() => coverRef.current?.click()}
-              className="flex w-full items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
+              className="press flex w-full items-center gap-2 rounded-full border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
             >
               <Upload size={14} />
               <span className="truncate text-left">
@@ -432,7 +423,7 @@ function CreateForm({ open, onClose }: { open: boolean; onClose: () => void }) {
             <button
               type="button"
               onClick={() => audioRef.current?.click()}
-              className={`flex w-full items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+              className={`press flex w-full items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
                 audioFile
                   ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-400"
                   : "border-dashed border-wine/60 bg-wine text-white hover:bg-wine-dark"
@@ -488,7 +479,7 @@ function PagesPanel({ audiobookId }: { audiobookId: string }) {
         <h4 className="font-bold text-ink">Sahifalar</h4>
         <button
           onClick={() => setEditingPage("new")}
-          className="flex items-center gap-1.5 rounded-lg bg-wine px-3 py-1.5 text-xs font-bold text-white hover:bg-wine-dark"
+          className="press flex items-center gap-1.5 rounded-full bg-wine px-3 py-1.5 text-xs font-bold text-white hover:bg-wine-dark"
         >
           <Plus size={13} />
           Sahifa qo'shish
@@ -507,9 +498,9 @@ function PagesPanel({ audiobookId }: { audiobookId: string }) {
             <button
               key={page.id}
               onClick={() => setEditingPage(page)}
-              className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 text-left text-sm text-ink transition hover:border-wine/40"
+              className="press flex w-full items-center gap-3 rounded-full border border-line bg-card px-4 py-3 text-left text-sm text-ink transition hover:border-wine/40"
             >
-              <span className="w-8 shrink-0 rounded-lg bg-wine/10 py-0.5 text-center text-xs font-bold text-wine dark:bg-wine/15 dark:text-wine-300">
+              <span className="w-8 shrink-0 rounded-full bg-wine/10 py-0.5 text-center text-xs font-bold text-wine dark:bg-wine/15 dark:text-wine-300">
                 {page.page_number}
               </span>
               <span className="flex-1 truncate text-muted">
@@ -629,7 +620,7 @@ function PageEditor({
               type="button"
               onClick={handleDelete}
               disabled={deletePage.isPending}
-              className="mr-auto flex items-center gap-1.5 rounded-xl border border-red-200 bg-card px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60 dark:border-red-800/60 dark:text-red-400 dark:hover:bg-red-900/20"
+              className="press mr-auto flex items-center gap-1.5 rounded-full border border-red-200 bg-card px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60 dark:border-red-800/60 dark:text-red-400 dark:hover:bg-red-900/20"
             >
               <Trash2 size={13} />
               Sahifani o'chirish
@@ -649,11 +640,11 @@ function PageEditor({
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             Sahifa raqami
           </label>
-          <input
+          <GlassInput
             type="number"
             value={pageNumber}
             onChange={(e) => setPageNumber(Number(e.target.value))}
-            className="w-32 rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
+            className="w-32"
           />
         </div>
 
@@ -661,12 +652,11 @@ function PageEditor({
           <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
             Matn
           </label>
-          <textarea
+          <GlassTextarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={8}
             placeholder="Sahifa matni…"
-            className="w-full rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
           />
         </div>
 
@@ -717,7 +707,7 @@ function AudioUploadRow({
 
   return (
     <label
-      className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm transition ${
+      className={`press flex cursor-pointer items-center justify-between rounded-full border px-3 py-2 text-sm transition ${
         audioUrl
           ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-400"
           : "border-wine bg-wine text-white hover:bg-wine-dark"

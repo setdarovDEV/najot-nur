@@ -26,6 +26,14 @@ import {
   ModalHeader,
   ModalSubmitButton,
 } from "../components/Modal";
+import {
+  Reveal,
+  PrimaryButton,
+  GlassInput,
+  GlassTextarea,
+  GlassSelect,
+  StatusPill,
+} from "../components/glass";
 
 // ─── API helpers ────────────────────────────────────────────────────────────
 
@@ -79,15 +87,12 @@ export function VideoLessonsPage() {
         }
         actions={
           canEdit ? (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-semibold text-white hover:bg-wine/90"
-            >
+            <PrimaryButton onClick={() => setShowCreate(true)}>
               <Plus size={16} />
               Kurs yaratish
-            </button>
+            </PrimaryButton>
           ) : (
-            <span className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2 text-xs font-semibold text-muted">
+            <span className="flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-xs font-semibold text-muted">
               <Lock size={14} />
               Faqat ko'rish
             </span>
@@ -125,103 +130,96 @@ export function VideoLessonsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {courses.map((c) => (
-            <div
-              key={c.id}
-              className="overflow-hidden rounded-2xl border border-line bg-card"
-            >
-              <div className="flex items-center gap-4 p-4">
-                {c.cover_url ? (
-                  <img
-                    src={mediaUrl(c.cover_url)!}
-                    alt={c.title}
-                    className="h-14 w-20 rounded-xl object-cover"
-                  />
-                ) : (
-                  <div className="grid h-14 w-20 place-items-center rounded-xl bg-wine/10">
-                    <Video size={22} className="text-wine/60" />
-                  </div>
-                )}
+          {courses.map((c, i) => (
+            <Reveal key={c.id} index={i}>
+              <div className="overflow-hidden rounded-2xl border border-line bg-card">
+                <div className="flex items-center gap-4 p-4">
+                  {c.cover_url ? (
+                    <img
+                      src={mediaUrl(c.cover_url)!}
+                      alt={c.title}
+                      className="h-14 w-20 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="grid h-14 w-20 place-items-center rounded-xl bg-wine/10 dark:bg-wine/15">
+                      <Video size={22} className="text-wine/60 dark:text-wine-300" />
+                    </div>
+                  )}
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-ink truncate">{c.title}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        c.is_published
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                      }`}
-                    >
-                      {c.is_published ? "Chiqarilgan" : "Qoralama"}
-                    </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-ink truncate">{c.title}</span>
+                      <StatusPill tone={c.is_published ? "success" : "warning"}>
+                        {c.is_published ? "Chiqarilgan" : "Qoralama"}
+                      </StatusPill>
+                    </div>
+                    <div className="mt-0.5 text-xs text-muted">
+                      {c.lesson_count} ta dars · {c.level} ·{" "}
+                      {Number(c.price) > 0
+                        ? `${Number(c.price).toLocaleString()} so'm`
+                        : "Bepul"}
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-xs text-muted">
-                    {c.lesson_count} ta dars · {c.level} ·{" "}
-                    {Number(c.price) > 0
-                      ? `${Number(c.price).toLocaleString()} so'm`
-                      : "Bepul"}
-                  </div>
-                </div>
 
-                {canEdit && (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => setManagingCourse(c)}
-                      className="flex items-center gap-1.5 rounded-xl bg-wine px-2 py-2 text-xs font-bold text-white hover:bg-wine/90 sm:px-3"
-                      title="Kurs kontentini boshqarish"
-                    >
-                      <Settings2 size={14} />
-                      <span className="hidden sm:inline">Boshqarish</span>
-                    </button>
-                    <button
-                      onClick={() => setEditingCourse(c)}
-                      className="rounded-lg p-2 text-muted hover:bg-surface"
-                      title="Tahrirlash"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      title={c.is_published ? "Yashirish" : "Nashr qilish"}
-                      onClick={async () => {
-                        const ok = await confirm({
-                          title: c.is_published
-                            ? t.videoLessons.confirmUnpublish(c.title)
-                            : t.videoLessons.confirmPublish(c.title),
-                          variant: c.is_published ? "warning" : "primary",
-                          confirmText: c.is_published
-                            ? t.modal.unpublish
-                            : t.modal.publish,
-                        });
-                        if (ok)
-                          togglePublish.mutate({
-                            id: c.id,
-                            value: !c.is_published,
+                  {canEdit && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => setManagingCourse(c)}
+                        className="press flex items-center gap-1.5 rounded-full bg-wine px-2 py-2 text-xs font-bold text-white hover:bg-wine/90 sm:px-3"
+                        title="Kurs kontentini boshqarish"
+                      >
+                        <Settings2 size={14} />
+                        <span className="hidden sm:inline">Boshqarish</span>
+                      </button>
+                      <button
+                        onClick={() => setEditingCourse(c)}
+                        className="press rounded-full p-2 text-muted hover:bg-surface"
+                        title="Tahrirlash"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        title={c.is_published ? "Yashirish" : "Nashr qilish"}
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: c.is_published
+                              ? t.videoLessons.confirmUnpublish(c.title)
+                              : t.videoLessons.confirmPublish(c.title),
+                            variant: c.is_published ? "warning" : "primary",
+                            confirmText: c.is_published
+                              ? t.modal.unpublish
+                              : t.modal.publish,
                           });
-                      }}
-                      className="rounded-lg p-2 text-muted hover:bg-surface"
-                    >
-                      {c.is_published ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                    <button
-                      title="O'chirish"
-                      onClick={async () => {
-                        const ok = await confirm({
-                          title: t.videoLessons.confirmDelete(c.title),
-                          description: t.modal.deleteDesc("kurs", c.title),
-                          variant: "danger",
-                          confirmText: t.modal.delete,
-                        });
-                        if (ok) deleteCourse.mutate(c.id);
-                      }}
-                      className="rounded-lg p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                )}
+                          if (ok)
+                            togglePublish.mutate({
+                              id: c.id,
+                              value: !c.is_published,
+                            });
+                        }}
+                        className="press rounded-full p-2 text-muted hover:bg-surface"
+                      >
+                        {c.is_published ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                      <button
+                        title="O'chirish"
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: t.videoLessons.confirmDelete(c.title),
+                            description: t.modal.deleteDesc("kurs", c.title),
+                            variant: "danger",
+                            confirmText: t.modal.delete,
+                          });
+                          if (ok) deleteCourse.mutate(c.id);
+                        }}
+                        className="press rounded-full p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       )}
@@ -340,52 +338,48 @@ function CourseModal({
             <span className="text-xs font-bold uppercase tracking-wide text-muted">
               Kurs nomi
             </span>
-            <input
+            <GlassInput
               required
               placeholder="Masalan: Nutq san'ati"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
             />
           </label>
           <label className="flex flex-col gap-1 sm:col-span-2">
             <span className="text-xs font-bold uppercase tracking-wide text-muted">
               Tavsif
             </span>
-            <textarea
+            <GlassTextarea
               placeholder="Kurs haqida qisqacha..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
             />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-xs font-bold uppercase tracking-wide text-muted">
               Narxi (so'm)
             </span>
-            <input
+            <GlassInput
               type="number"
               min="0"
               placeholder="0"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
             />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-xs font-bold uppercase tracking-wide text-muted">
               Daraja
             </span>
-            <select
+            <GlassSelect
               value={level}
               onChange={(e) => setLevel(e.target.value)}
-              className="rounded-xl border border-line bg-card px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
             >
               <option value="beginner">Boshlang'ich</option>
               <option value="intermediate">O'rta</option>
               <option value="advanced">Yuqori</option>
-            </select>
+            </GlassSelect>
           </label>
           <div className="sm:col-span-2">
             <span className="text-xs font-bold uppercase tracking-wide text-muted">
@@ -394,7 +388,7 @@ function CourseModal({
             <button
               type="button"
               onClick={() => coverRef.current?.click()}
-              className="mt-1 flex w-full items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
+              className="press mt-1 flex w-full items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
             >
               <Upload size={14} />
               {coverFile ? coverFile.name : "Muqova rasmini yuklash"}

@@ -26,6 +26,7 @@ import {
 import { useAuth } from "../lib/auth";
 import { useTheme } from "../lib/theme";
 import { useLang, LANG_LABELS, LANG_NAMES, type Lang } from "../lib/i18n";
+import { AmbientOrbs } from "./glass";
 
 interface NavItem {
   to: string;
@@ -72,7 +73,7 @@ export function Layout() {
           title={t.nav[n.labelKey]}
           onClick={opts.onNavClick}
           className={({ isActive }) =>
-            `group flex items-center rounded-xl py-2.5 text-sm font-semibold transition ${
+            `press group flex items-center rounded-full py-2.5 text-sm font-semibold transition ${
               opts.collapsed ? "justify-center px-2" : "gap-3 px-3"
             } ${
               isActive
@@ -98,7 +99,8 @@ export function Layout() {
   );
 
   return (
-    <div className="flex min-h-screen bg-surface">
+    <div className="relative flex min-h-screen">
+      <AmbientOrbs />
 
       {/* ── Mobile overlay backdrop ── */}
       {sidebarOpen && (
@@ -110,14 +112,14 @@ export function Layout() {
 
       {/* ── Mobile drawer (< md) ── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-full w-72 flex-col overflow-y-auto bg-gradient-to-b from-wine via-wine-dark to-wine-deep p-5 text-white transition-transform duration-300 md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-full w-72 flex-col overflow-y-auto rounded-r-3xl bg-gradient-to-b from-wine via-wine-dark to-wine-deep p-5 text-white shadow-2xl transition-transform duration-300 md:hidden ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Close button */}
         <button
           onClick={() => setSidebarOpen(false)}
-          className="mb-4 self-end rounded-xl border border-white/25 p-2 text-white/80 hover:bg-white/10"
+          className="press mb-4 self-end rounded-full border border-white/25 p-2 text-white/80 hover:bg-white/10"
         >
           <X size={18} />
         </button>
@@ -145,7 +147,7 @@ export function Layout() {
 
         <button
           onClick={() => { logout(); navigate("/login"); }}
-          className="mt-4 flex items-center gap-3 rounded-xl border border-white/25 px-4 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+          className="press mt-4 flex items-center gap-3 rounded-full border border-white/25 px-4 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/10"
         >
           <LogOut size={18} strokeWidth={1.75} />
           {t.sidebar.logout}
@@ -154,7 +156,7 @@ export function Layout() {
 
       {/* ── Tablet + PC sidebar (≥ md) ── */}
       <aside
-        className={`sticky top-0 hidden h-screen shrink-0 flex-col overflow-y-auto bg-gradient-to-b from-wine via-wine-dark to-wine-deep py-5 text-white transition-all duration-300 ease-in-out md:flex ${
+        className={`sticky top-3 hidden h-[calc(100vh-1.5rem)] shrink-0 flex-col overflow-y-auto rounded-3xl bg-gradient-to-b from-wine via-wine-dark to-wine-deep py-5 text-white shadow-2xl shadow-wine-deep/30 transition-all duration-300 ease-in-out md:ml-3 md:flex ${
           sidebarCollapsed ? "w-[60px] px-2" : "w-64 px-4"
         }`}
       >
@@ -192,7 +194,7 @@ export function Layout() {
         <button
           onClick={() => { logout(); navigate("/login"); }}
           title={sidebarCollapsed ? t.sidebar.logout : undefined}
-          className={`mt-3 flex items-center rounded-xl border border-white/25 py-2.5 text-sm font-semibold text-white/90 transition hover:bg-white/10 ${
+          className={`press mt-3 flex items-center rounded-full border border-white/25 py-2.5 text-sm font-semibold text-white/90 transition hover:bg-white/10 ${
             sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"
           }`}
         >
@@ -204,7 +206,7 @@ export function Layout() {
         <button
           onClick={() => setSidebarCollapsed((v) => !v)}
           title={sidebarCollapsed ? "Menuni kengaytirish" : "Menuni yig'ish"}
-          className={`mt-2 flex items-center rounded-xl border border-white/20 py-2 text-white/50 transition hover:bg-white/10 hover:text-white/90 ${
+          className={`press mt-2 flex items-center rounded-full border border-white/20 py-2 text-white/50 transition hover:bg-white/10 hover:text-white/90 ${
             sidebarCollapsed ? "justify-center px-2" : "gap-2 px-3 text-xs font-semibold"
           }`}
         >
@@ -223,13 +225,13 @@ export function Layout() {
       <div className="flex min-w-0 flex-1 flex-col">
 
         {/* Topbar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-card/80 px-4 backdrop-blur-md md:px-5">
+        <header className="glass-chrome sticky top-3 z-20 mx-3 flex h-14 items-center gap-3 rounded-full border px-4 shadow-lg shadow-wine-deep/5 md:px-5">
 
           {/* Mobile hamburger */}
           <button
             onClick={() => setSidebarOpen(true)}
             title="Menuni ochish"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line text-muted transition hover:border-wine/30 hover:text-wine md:hidden"
+            className="press grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-muted transition hover:border-wine/30 hover:text-wine md:hidden"
           >
             <Menu size={20} />
           </button>
@@ -238,7 +240,7 @@ export function Layout() {
           <button
             onClick={() => setSidebarCollapsed((v) => !v)}
             title={sidebarCollapsed ? "Menuni ochish" : "Menuni yopish"}
-            className="hidden h-9 w-9 shrink-0 place-items-center rounded-xl border border-line text-muted transition hover:border-wine/30 hover:text-wine md:grid"
+            className="press hidden h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-muted transition hover:border-wine/30 hover:text-wine md:grid"
           >
             {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
@@ -253,7 +255,7 @@ export function Layout() {
               <input
                 type="text"
                 placeholder={t.topbar.searchCurator}
-                className="w-full rounded-xl border border-line bg-card py-2.5 pl-10 pr-4 text-sm text-ink placeholder:text-muted outline-none transition focus:border-wine/40 focus:ring-2 focus:ring-wine/10 dark:bg-[#251d20]"
+                className="glass-input w-full py-2.5 pl-10 pr-4 text-sm"
               />
             </div>
           </div>
@@ -263,7 +265,7 @@ export function Layout() {
             <button
               onClick={toggleTheme}
               title={theme === "dark" ? "Light mode" : "Dark mode"}
-              className="grid h-9 w-9 place-items-center rounded-xl border border-line text-muted transition hover:border-wine/30 hover:text-wine dark:hover:text-white"
+              className="press grid h-9 w-9 place-items-center rounded-full border border-line text-muted transition hover:border-wine/30 hover:text-wine dark:hover:text-white"
             >
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
@@ -272,7 +274,7 @@ export function Layout() {
             <div className="relative">
               <button
                 onClick={() => { setLangOpen((v) => !v); setMenuOpen(false); }}
-                className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-bold text-ink transition hover:border-wine/30 dark:hover:border-wine/50"
+                className="press flex items-center gap-1.5 rounded-full border border-line px-3 py-2 text-xs font-bold text-ink transition hover:border-wine/30 dark:hover:border-wine/50"
               >
                 <Globe size={13} className="text-muted" />
                 {LANG_LABELS[lang]}
@@ -307,9 +309,9 @@ export function Layout() {
             <div className="relative">
               <button
                 onClick={() => { setMenuOpen((v) => !v); setLangOpen(false); }}
-                className="flex items-center gap-2.5 rounded-xl border border-line bg-card py-1.5 pl-1.5 pr-3 text-left transition hover:border-wine/30"
+                className="press flex items-center gap-2.5 rounded-full border border-line bg-card py-1.5 pl-1.5 pr-3 text-left transition hover:border-wine/30"
               >
-                <div className="grid h-8 w-8 place-items-center rounded-lg bg-wine text-xs font-black text-white">
+                <div className="grid h-8 w-8 place-items-center rounded-full bg-wine text-xs font-black text-white">
                   KR
                 </div>
                 <div className="hidden sm:block">

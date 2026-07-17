@@ -32,7 +32,8 @@ export function Modal({ open, onClose, children, size = "lg" }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-10 backdrop-blur-[18px]"
+      style={{ background: "rgba(63,9,24,0.30)" }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -40,7 +41,7 @@ export function Modal({ open, onClose, children, size = "lg" }: ModalProps) {
       <div
         role="dialog"
         aria-modal="true"
-        className={`w-full ${SIZE_CLASSES[size]} rounded-2xl border border-line bg-card shadow-2xl`}
+        className={`animate-sheet-in w-full ${SIZE_CLASSES[size]} rounded-3xl border border-line bg-card shadow-2xl`}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {children}
@@ -62,7 +63,7 @@ export function ModalHeader({
       {onClose && (
         <button
           onClick={onClose}
-          className="rounded-lg p-1 text-muted transition hover:bg-surface hover:text-wine"
+          className="press rounded-full p-1 text-muted transition hover:bg-surface hover:text-wine"
           aria-label="Yopish"
         >
           <X size={20} />
@@ -99,7 +100,7 @@ export function ModalCancelButton({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-xl border border-line px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
+      className="press rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
     >
       {children}
     </button>
@@ -122,7 +123,7 @@ export function ModalSubmitButton({
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark disabled:opacity-60"
+      className="btn-primary press flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold disabled:opacity-60"
     >
       {loading && (
         <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />

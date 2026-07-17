@@ -134,6 +134,7 @@
   "homeFeatures": "Возможности",
   "homeRecommended": "Рекомендуем",
   "free": "Бесплатно",
+  "demoLabel": "Демо",
   "forSale": "Продаётся",
   "lessonsShort": "{count} ур.",
   "andMore": "Ещё {n} ур.",

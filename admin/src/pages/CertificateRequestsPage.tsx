@@ -6,6 +6,7 @@ import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
+import { PrimaryButton, GlassInput, StatusPill, SegmentedControl, Reveal } from "../components/glass";
 
 type StatusFilter = "pending" | "approved" | "rejected" | "";
 
@@ -60,27 +61,21 @@ export function CertificateRequestsPage() {
         title={cr.title}
         subtitle={cr.subtitle}
         actions={
-          <>
-            {(["pending", "approved", "rejected", ""] as const).map((f) => (
-              <button
-                key={f || "all"}
-                onClick={() => setFilter(f)}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold ${
-                  filter === f
-                    ? "bg-wine text-white"
-                    : "border border-line bg-card text-ink hover:bg-wine-50 dark:hover:bg-wine-900/20"
-                }`}
-              >
-                {f === "pending"
+          <SegmentedControl
+            options={(["pending", "approved", "rejected", ""] as const).map((f) => ({
+              value: f,
+              label:
+                f === "pending"
                   ? cr.pending
                   : f === "approved"
                     ? cr.approved
                     : f === "rejected"
                       ? cr.rejected
-                      : cr.all}
-              </button>
-            ))}
-          </>
+                      : cr.all,
+            }))}
+            value={filter}
+            onChange={setFilter}
+          />
         }
       />
 
@@ -92,20 +87,21 @@ export function CertificateRequestsPage() {
       )}
 
       <div className="space-y-4">
-        {data?.map((req) => (
-          <CertRequestCard
-            key={req.id}
-            req={req}
-            onViewStats={() => setStatsReqId(req.id)}
-            onReject={async (reason) => {
-              const ok = await confirm({
-                title: cr.confirmReject,
-                variant: "danger",
-                confirmText: t.modal.reject,
-              });
-              if (ok) reject.mutate({ id: req.id, reason });
-            }}
-          />
+        {data?.map((req, i) => (
+          <Reveal key={req.id} index={i}>
+            <CertRequestCard
+              req={req}
+              onViewStats={() => setStatsReqId(req.id)}
+              onReject={async (reason) => {
+                const ok = await confirm({
+                  title: cr.confirmReject,
+                  variant: "danger",
+                  confirmText: t.modal.reject,
+                });
+                if (ok) reject.mutate({ id: req.id, reason });
+              }}
+            />
+          </Reveal>
         ))}
       </div>
 
@@ -180,7 +176,7 @@ function StudentStatsModal({
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-muted hover:bg-line"
+            className="press rounded-full p-1.5 text-muted hover:bg-line"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -221,13 +217,9 @@ function StudentStatsModal({
                   {/* Status badge */}
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted">Status:</span>
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                      stats.course.status === "completed"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                    }`}>
+                    <StatusPill tone={stats.course.status === "completed" ? "success" : "warning"}>
                       {stats.course.status}
-                    </span>
+                    </StatusPill>
                   </div>
 
                   {/* Lessons table */}
@@ -275,19 +267,21 @@ function StudentStatsModal({
                   </h3>
                   <div className="space-y-2">
                     {stats.practicums.map((p, i) => (
-                      <div key={i} className="flex items-center justify-between rounded-lg border border-line bg-card px-4 py-2.5">
-                        <div>
-                          <p className="font-semibold text-ink text-sm">{p.title}</p>
-                          <p className="text-xs text-muted">{new Date(p.submitted_at).toLocaleDateString()}</p>
+                      <Reveal key={i} index={i}>
+                        <div className="flex items-center justify-between rounded-lg border border-line bg-card px-4 py-2.5">
+                          <div>
+                            <p className="font-semibold text-ink text-sm">{p.title}</p>
+                            <p className="text-xs text-muted">{new Date(p.submitted_at).toLocaleDateString()}</p>
+                          </div>
+                          {p.score != null && (
+                            <span className={`rounded-full px-3 py-1 text-sm font-bold ${
+                              p.score >= 80 ? "bg-green-100 text-green-700" : p.score >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600"
+                            }`}>
+                              {p.score}
+                            </span>
+                          )}
                         </div>
-                        {p.score != null && (
-                          <span className={`rounded-full px-3 py-1 text-sm font-bold ${
-                            p.score >= 80 ? "bg-green-100 text-green-700" : p.score >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600"
-                          }`}>
-                            {p.score}
-                          </span>
-                        )}
-                      </div>
+                      </Reveal>
                     ))}
                   </div>
                 </section>
@@ -302,19 +296,21 @@ function StudentStatsModal({
                   </h3>
                   <div className="space-y-2">
                     {stats.speech_analyses.slice(0, 5).map((s, i) => (
-                      <div key={i} className="rounded-lg border border-line bg-card px-4 py-2.5">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted">{new Date(s.created_at).toLocaleDateString()}</p>
-                          <div className="flex gap-3 text-xs font-semibold">
-                            <span className="text-muted">Umumiy: <span className="text-ink">{s.overall_score}</span></span>
-                            <span className="text-muted">Mazmun: <span className="text-ink">{s.meaning_score}</span></span>
-                            <span className="text-muted">Ravonlik: <span className="text-ink">{s.fluency_score}</span></span>
+                      <Reveal key={i} index={i}>
+                        <div className="rounded-lg border border-line bg-card px-4 py-2.5">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-muted">{new Date(s.created_at).toLocaleDateString()}</p>
+                            <div className="flex gap-3 text-xs font-semibold">
+                              <span className="text-muted">Umumiy: <span className="text-ink">{s.overall_score}</span></span>
+                              <span className="text-muted">Mazmun: <span className="text-ink">{s.meaning_score}</span></span>
+                              <span className="text-muted">Ravonlik: <span className="text-ink">{s.fluency_score}</span></span>
+                            </div>
                           </div>
+                          {s.summary && (
+                            <p className="mt-1 text-xs text-muted line-clamp-1">{s.summary}</p>
+                          )}
                         </div>
-                        {s.summary && (
-                          <p className="mt-1 text-xs text-muted line-clamp-1">{s.summary}</p>
-                        )}
-                      </div>
+                      </Reveal>
                     ))}
                   </div>
                 </section>
@@ -329,15 +325,17 @@ function StudentStatsModal({
                   </h3>
                   <div className="space-y-2">
                     {stats.audiobooks.map((ab, i) => (
-                      <div key={i} className="flex items-center justify-between rounded-lg border border-line bg-card px-4 py-2.5">
-                        <div>
-                          <p className="font-semibold text-ink text-sm">{ab.title}</p>
-                          {ab.author && <p className="text-xs text-muted">{ab.author}</p>}
+                      <Reveal key={i} index={i}>
+                        <div className="flex items-center justify-between rounded-lg border border-line bg-card px-4 py-2.5">
+                          <div>
+                            <p className="font-semibold text-ink text-sm">{ab.title}</p>
+                            {ab.author && <p className="text-xs text-muted">{ab.author}</p>}
+                          </div>
+                          <span className="text-sm text-muted">
+                            {cr.page} {ab.current_page}/{ab.total_pages}
+                          </span>
                         </div>
-                        <span className="text-sm text-muted">
-                          {cr.page} {ab.current_page}/{ab.total_pages}
-                        </span>
-                      </div>
+                      </Reveal>
                     ))}
                   </div>
                 </section>
@@ -355,27 +353,27 @@ function StudentStatsModal({
               </p>
             )}
             <div className="flex flex-wrap items-center gap-3">
-              <input
+              <GlassInput
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder={cr.reasonPlaceholder}
-                className="flex-1 rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20]"
+                className="flex-1"
               />
               <button
                 disabled={rejecting}
                 onClick={() => onReject(rejectReason)}
-                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                className="press rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
               >
                 {rejecting ? cr.rejecting : cr.reject}
               </button>
-              <button
+              <PrimaryButton
                 disabled={approving || !canApprove || !stats}
                 onClick={onApprove}
                 title={!canApprove ? cr.approveDisabled : undefined}
-                className="rounded-lg bg-wine px-5 py-2 text-sm font-bold text-white hover:bg-wine-dark disabled:opacity-40 disabled:cursor-not-allowed"
+                loading={approving}
               >
                 {approving ? cr.approving : cr.approve}
-              </button>
+              </PrimaryButton>
             </div>
           </div>
         )}
@@ -400,12 +398,12 @@ function CertRequestCard({
   const [reason, setReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
 
-  const statusColor =
+  const statusTone: "success" | "danger" | "warning" =
     req.status === "approved"
-      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+      ? "success"
       : req.status === "rejected"
-        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+        ? "danger"
+        : "warning";
 
   const statusLabel =
     req.status === "approved"
@@ -440,13 +438,11 @@ function CertRequestCard({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusColor}`}>
-            {statusLabel}
-          </span>
+          <StatusPill tone={statusTone}>{statusLabel}</StatusPill>
           {/* View stats button — always visible */}
           <button
             onClick={onViewStats}
-            className="rounded-lg border border-wine/30 bg-wine/5 px-3 py-1.5 text-sm font-semibold text-wine hover:bg-wine/10 transition-colors"
+            className="press rounded-full border border-wine/30 bg-wine/5 px-3 py-1.5 text-sm font-semibold text-wine hover:bg-wine/10 transition-colors"
           >
             {cr.viewStats}
           </button>
@@ -455,11 +451,11 @@ function CertRequestCard({
 
       {req.status === "pending" && (
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <input
+          <GlassInput
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder={cr.reasonPlaceholder}
-            className="flex-1 rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20]"
+            className="flex-1"
           />
           <button
             disabled={rejecting}
@@ -467,17 +463,14 @@ function CertRequestCard({
               setRejecting(true);
               try { onReject(reason); } finally { setRejecting(false); }
             }}
-            className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+            className="press rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
           >
             {rejecting ? cr.rejecting : cr.reject}
           </button>
           {/* Approve only from stats modal — shown as hint */}
-          <button
-            onClick={onViewStats}
-            className="rounded-lg bg-wine px-5 py-2 text-sm font-bold text-white hover:bg-wine-dark"
-          >
+          <PrimaryButton onClick={onViewStats}>
             {cr.approve} →
-          </button>
+          </PrimaryButton>
         </div>
       )}
     </div>

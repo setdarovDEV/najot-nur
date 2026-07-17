@@ -904,6 +904,12 @@ abstract class AppLocalizations {
   /// **'Bepul'**
   String get free;
 
+  /// No description provided for @demoLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Demo'**
+  String get demoLabel;
+
   /// No description provided for @forSale.
   ///
   /// In uz, this message translates to:

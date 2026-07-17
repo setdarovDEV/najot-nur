@@ -4,9 +4,17 @@ import { Headphones, FileText, ExternalLink, Mic } from "lucide-react";
 import { api, apiError, mediaUrl } from "../lib/api";
 import type { Homework } from "../lib/types";
 import { PageHeader } from "../components/Layout";
-import { Modal, ModalBody, ModalFooter, ModalHeader } from "../components/Modal";
+import {
+  Modal,
+  ModalBody,
+  ModalCancelButton,
+  ModalFooter,
+  ModalHeader,
+  ModalSubmitButton,
+} from "../components/Modal";
 import { useLang } from "../lib/i18n";
 import { useToast } from "../lib/toast";
+import { GlassInput, GlassTextarea, Reveal, SegmentedControl, StatusPill } from "../components/glass";
 
 export function HomeworksPage() {
   const qc = useQueryClient();
@@ -45,25 +53,19 @@ export function HomeworksPage() {
         title={t.homeworks.title}
         subtitle={t.homeworks.subtitle}
         actions={
-          <>
-            {(["submitted", "reviewed", ""] as const).map((f) => (
-              <button
-                key={f || "all"}
-                onClick={() => setFilter(f)}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold ${
-                  filter === f
-                    ? "bg-wine text-white"
-                    : "border border-line bg-card text-ink hover:bg-wine-50"
-                }`}
-              >
-                {f === "submitted"
+          <SegmentedControl
+            value={filter}
+            onChange={setFilter}
+            options={(["submitted", "reviewed", ""] as const).map((f) => ({
+              value: f,
+              label:
+                f === "submitted"
                   ? t.homeworks.new_
                   : f === "reviewed"
                     ? t.homeworks.reviewed
-                    : t.homeworks.all}
-              </button>
-            ))}
-          </>
+                    : t.homeworks.all,
+            }))}
+          />
         }
       />
 
@@ -75,8 +77,10 @@ export function HomeworksPage() {
       )}
 
       <div className="space-y-3">
-        {data?.map((hw) => (
-          <HomeworkCard key={hw.id} hw={hw} onOpen={() => setOpenHw(hw)} />
+        {data?.map((hw, i) => (
+          <Reveal key={hw.id} index={i}>
+            <HomeworkCard hw={hw} onOpen={() => setOpenHw(hw)} />
+          </Reveal>
         ))}
       </div>
 
@@ -116,7 +120,7 @@ function HomeworkCard({
     <button
       type="button"
       onClick={onOpen}
-      className="w-full rounded-2xl border border-line bg-card p-5 text-left transition hover:border-wine hover:shadow-md"
+      className="press w-full rounded-2xl border border-line bg-card p-5 text-left transition hover:border-wine hover:shadow-md"
     >
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-semibold text-ink">
@@ -129,24 +133,18 @@ function HomeworkCard({
         </div>
         <div className="flex items-center gap-2">
           {hasText && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
               <FileText size={12} /> {t.homeworks.hasText}
             </span>
           )}
           {hasAudio && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+            <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
               <Mic size={12} /> {t.homeworks.hasAudio}
             </span>
           )}
-          <span
-            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-              hw.status === "reviewed"
-                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-            }`}
-          >
+          <StatusPill tone={hw.status === "reviewed" ? "success" : "warning"}>
             {hw.status === "reviewed" ? t.homeworks.reviewed : t.homeworks.new_}
-          </span>
+          </StatusPill>
         </div>
       </div>
       <p className="line-clamp-2 text-sm text-muted">
@@ -252,25 +250,23 @@ function HomeworkDetailModal({
                 <span className="mb-1 block font-semibold text-ink">
                   {t.homeworks.score} (0-100)
                 </span>
-                <input
+                <GlassInput
                   type="number"
                   min={0}
                   max={100}
                   value={score}
                   onChange={(e) => setScore(Number(e.target.value))}
-                  className="w-full rounded-lg border border-line bg-card px-3 py-2 text-ink outline-none focus:border-wine dark:bg-[#251d20]"
                 />
               </label>
               <label className="text-sm">
                 <span className="mb-1 block font-semibold text-ink">
                   {t.homeworks.feedback}
                 </span>
-                <textarea
+                <GlassTextarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   rows={3}
                   placeholder="..."
-                  className="w-full rounded-lg border border-line bg-card px-3 py-2 text-ink placeholder:text-muted outline-none focus:border-wine dark:bg-[#251d20]"
                 />
               </label>
             </div>
@@ -279,24 +275,14 @@ function HomeworkDetailModal({
         </div>
       </ModalBody>
       <ModalFooter>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-xl border border-line px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
-        >
-          {t.common.cancel}
-        </button>
-        <button
-          type="button"
+        <ModalCancelButton onClick={onClose}>{t.common.cancel}</ModalCancelButton>
+        <ModalSubmitButton
           disabled={saving}
+          loading={saving}
           onClick={() => void onGrade(score, feedback)}
-          className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark disabled:opacity-60"
         >
-          {saving && (
-            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          )}
           {saving ? t.homeworks.grading : t.homeworks.submitGrade}
-        </button>
+        </ModalSubmitButton>
       </ModalFooter>
     </Modal>
   );

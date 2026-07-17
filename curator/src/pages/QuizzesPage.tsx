@@ -19,6 +19,7 @@ import { PageHeader } from "../components/Layout";
 import { useLang } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { useToast } from "../lib/toast";
+import { Reveal, PrimaryButton, SecondaryButton, GlassInput, GlassTextarea, GlassSelect } from "../components/glass";
 
 interface QuizSummary {
   id: string;
@@ -151,13 +152,10 @@ export function QuizzesPage() {
         subtitle={isAdmin ? `${pendingCount} ta test kutilmoqda` : "Testlar yaratish va boshqarish"}
         actions={
           !isAdmin && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 rounded-xl bg-wine px-4 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark"
-            >
+            <PrimaryButton onClick={() => setShowCreate(true)}>
               <Plus size={16} />
               Yangi test
-            </button>
+            </PrimaryButton>
           )
         }
       />
@@ -171,22 +169,20 @@ export function QuizzesPage() {
           <BookOpen size={32} strokeWidth={1.5} />
           <span className="text-sm">Hozircha testlar yo'q</span>
           {!isAdmin && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="rounded-xl bg-wine px-4 py-2 text-xs font-bold text-white"
-            >
+            <PrimaryButton onClick={() => setShowCreate(true)} className="px-4 py-2 text-xs">
               Birinchi testni yarating
-            </button>
+            </PrimaryButton>
           )}
         </div>
       ) : (
         <div className="space-y-3">
-          {quizzes.map((quiz) => (
-            <div key={quiz.id} className="overflow-hidden rounded-2xl border border-line bg-card">
+          {quizzes.map((quiz, qIndex) => (
+            <Reveal key={quiz.id} index={qIndex}>
+            <div className="overflow-hidden rounded-2xl border border-line bg-card">
               <div className="flex items-center gap-4 p-4">
                 <QuizCover
                   url={mediaUrl(quiz.cover_image_url)}
-                  fallbackIcon={<BookOpen size={20} className="text-wine" />}
+                  fallbackIcon={<BookOpen size={20} className="text-wine dark:text-wine-300" />}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -198,13 +194,13 @@ export function QuizzesPage() {
                       {STATUS_LABEL[quiz.status]}
                     </span>
                     {quiz.video_url && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                         <VideoIcon size={11} />
                         Video
                       </span>
                     )}
                     {quiz.cover_image_url && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-bold text-purple-700">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
                         <ImageIcon size={11} />
                         Rasm
                       </span>
@@ -220,14 +216,14 @@ export function QuizzesPage() {
                     <>
                       <button
                         onClick={() => approve(quiz)}
-                        className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
+                        className="press flex items-center gap-1 rounded-full bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
                       >
                         <Check size={14} />
                         Tasdiqlash
                       </button>
                       <button
                         onClick={() => reject(quiz)}
-                        className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+                        className="press flex items-center gap-1 rounded-full bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
                       >
                         <X size={14} />
                         Rad etish
@@ -236,7 +232,7 @@ export function QuizzesPage() {
                   )}
                   <button
                     onClick={() => loadDetail(quiz.id)}
-                    className="flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine"
+                    className="press flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine"
                   >
                     {expandedId === quiz.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     Ko'rish
@@ -282,6 +278,7 @@ export function QuizzesPage() {
                 </div>
               )}
             </div>
+            </Reveal>
           ))}
         </div>
       )}
@@ -299,7 +296,7 @@ export function QuizzesPage() {
 function QuizCover({ url, fallbackIcon }: { url: string | null; fallbackIcon: React.ReactNode }) {
   if (!url) {
     return (
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-wine/10">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-wine/10 dark:bg-wine/15">
         {fallbackIcon}
       </div>
     );
@@ -394,7 +391,7 @@ function QuizMediaEditor({
               <button
                 onClick={() => imageInputRef.current?.click()}
                 disabled={uploadingImage}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine disabled:opacity-50"
+                className="press flex w-full items-center justify-center gap-2 rounded-full border border-line px-3 py-2 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine disabled:opacity-50"
               >
                 <Upload size={13} />
                 {uploadingImage ? "Yuklanmoqda…" : "Almashtirish"}
@@ -411,7 +408,7 @@ function QuizMediaEditor({
               <button
                 onClick={() => imageInputRef.current?.click()}
                 disabled={uploadingImage}
-                className="flex items-center gap-1.5 rounded-lg bg-wine px-3 py-1.5 text-xs font-bold text-white hover:bg-wine-dark disabled:opacity-50"
+                className="press flex items-center gap-1.5 rounded-full bg-wine px-3 py-1.5 text-xs font-bold text-white hover:bg-wine-dark disabled:opacity-50"
               >
                 <Upload size={12} />
                 {uploadingImage ? "Yuklanmoqda…" : "Rasm yuklash"}
@@ -453,7 +450,7 @@ function QuizMediaEditor({
               />
               <button
                 onClick={togglePlay}
-                className="absolute inset-0 flex items-center justify-center bg-black/30 text-white transition hover:bg-black/50"
+                className="press absolute inset-0 flex items-center justify-center bg-black/30 text-white transition hover:bg-black/50"
               >
                 {playing ? <Pause size={28} /> : <Play size={28} />}
               </button>
@@ -462,7 +459,7 @@ function QuizMediaEditor({
               <button
                 onClick={() => videoInputRef.current?.click()}
                 disabled={uploadingVideo}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine disabled:opacity-50"
+                className="press flex w-full items-center justify-center gap-2 rounded-full border border-line px-3 py-2 text-xs font-semibold text-muted hover:border-wine/30 hover:text-wine disabled:opacity-50"
               >
                 <Upload size={13} />
                 {uploadingVideo ? "Yuklanmoqda…" : "Almashtirish"}
@@ -479,7 +476,7 @@ function QuizMediaEditor({
               <button
                 onClick={() => videoInputRef.current?.click()}
                 disabled={uploadingVideo}
-                className="flex items-center gap-1.5 rounded-lg bg-wine px-3 py-1.5 text-xs font-bold text-white hover:bg-wine-dark disabled:opacity-50"
+                className="press flex items-center gap-1.5 rounded-full bg-wine px-3 py-1.5 text-xs font-bold text-white hover:bg-wine-dark disabled:opacity-50"
               >
                 <Upload size={12} />
                 {uploadingVideo ? "Yuklanmoqda…" : "Video yuklash"}
@@ -606,59 +603,65 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10">
-      <div className="w-full max-w-2xl rounded-2xl border border-line bg-card shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-10 backdrop-blur-[18px] sm:pt-16"
+      style={{ background: "rgba(63,9,24,0.30)" }}
+    >
+      <div className="animate-sheet-in w-full max-w-2xl overflow-hidden rounded-3xl border border-line bg-card shadow-2xl">
         <div className="flex items-center justify-between border-b border-line px-4 py-4 sm:px-6">
           <h2 className="text-lg font-extrabold text-ink">Yangi test yaratish</h2>
-          <button onClick={onClose} className="text-muted hover:text-wine"><X size={20} /></button>
+          <button
+            onClick={onClose}
+            className="press grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-muted transition hover:border-wine/30 hover:text-wine"
+            aria-label="Yopish"
+          >
+            <X size={17} />
+          </button>
         </div>
         <div className="space-y-5 p-4 sm:p-6">
           {error && (
-            <div className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>
+            <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:bg-red-900/20 dark:text-red-400">{error}</div>
           )}
 
           <div>
             <label className="mb-1.5 block text-sm font-bold text-ink">Sarlavha *</label>
-            <input
+            <GlassInput
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Test sarlavhasi"
-              className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40 focus:ring-2 focus:ring-wine/10"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-bold text-ink">Qiyinlik</label>
-              <select
+              <GlassSelect
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value as "easy" | "medium" | "hard")}
-                className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40"
               >
                 <option value="easy">Oson</option>
                 <option value="medium">O'rta</option>
                 <option value="hard">Qiyin</option>
-              </select>
+              </GlassSelect>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-bold text-ink">Kategoriya</label>
-              <input
+              <GlassInput
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 placeholder="Masalan: Nutq, Psixologiya"
-                className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40"
               />
             </div>
           </div>
 
           <div>
             <label className="mb-1.5 block text-sm font-bold text-ink">Tavsif</label>
-            <textarea
+            <GlassTextarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               placeholder="Ixtiyoriy tavsif"
-              className="w-full resize-none rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-wine/40"
+              className="resize-none"
             />
           </div>
 
@@ -686,7 +689,7 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
               <h3 className="font-bold text-ink">Savollar ({questions.length})</h3>
               <button
                 onClick={addQuestion}
-                className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-xs font-bold text-wine hover:bg-wine-50"
+                className="press flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-bold text-wine hover:bg-wine-50 dark:text-wine-300 dark:hover:bg-wine-900/20"
               >
                 <Plus size={14} />
                 Savol qo'shish
@@ -694,23 +697,23 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
             </div>
 
             {questions.map((q, qi) => (
-              <div key={qi} className="rounded-xl border border-line bg-surface p-4">
+              <div key={qi} className="rounded-2xl border border-line bg-surface p-4">
                 <div className="mb-3 flex items-start justify-between gap-2">
-                  <span className="text-sm font-bold text-wine">{qi + 1}-savol</span>
+                  <span className="text-sm font-bold text-wine dark:text-wine-300">{qi + 1}-savol</span>
                   {questions.length > 1 && (
-                    <button onClick={() => removeQuestion(qi)} className="text-muted hover:text-red-500">
+                    <button onClick={() => removeQuestion(qi)} className="press rounded-full p-1 text-muted hover:text-red-500 dark:hover:text-red-400">
                       <X size={16} />
                     </button>
                   )}
                 </div>
-                <input
+                <GlassInput
                   value={q.question}
                   onChange={(e) => updateQuestion(qi, "question", e.target.value)}
                   placeholder="Savol matni"
-                  className="mb-3 w-full rounded-xl border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-wine/40"
+                  className="mb-3"
                 />
                 <div className="mt-1 mb-1 flex items-center gap-1.5">
-                  <Check size={13} className="text-green-600" />
+                  <Check size={13} className="text-green-600 dark:text-green-400" />
                   <span className="text-xs font-semibold text-green-700">To'g'ri javobni belgilash uchun yashil tugmani bosing</span>
                 </div>
                 <div className="space-y-2">
@@ -720,13 +723,13 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
                     return (
                       <div
                         key={oi}
-                        className={`flex items-center gap-2 rounded-xl border transition-all ${
+                        className={`flex items-center gap-2 rounded-full border transition-all ${
                           isCorrect
-                            ? "border-green-400 bg-green-50"
+                            ? "border-green-400 bg-green-50 dark:border-green-700 dark:bg-green-900/20"
                             : "border-line bg-card"
                         }`}
                       >
-                        <div className={`ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black ${
+                        <div className={`ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${
                           isCorrect ? "bg-green-500 text-white" : "bg-line text-muted"
                         }`}>
                           {letter}
@@ -743,10 +746,10 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
                           type="button"
                           onClick={() => updateQuestion(qi, "correct_index", oi)}
                           title="To'g'ri javob sifatida belgilash"
-                          className={`mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all ${
+                          className={`press mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all ${
                             isCorrect
                               ? "bg-green-500 text-white shadow-sm"
-                              : "border border-line bg-card text-muted hover:border-green-400 hover:text-green-600"
+                              : "border border-line bg-card text-muted hover:border-green-400 hover:text-green-600 dark:hover:text-green-400"
                           }`}
                         >
                           <Check size={15} strokeWidth={2.5} />
@@ -761,19 +764,12 @@ function CreateQuizModal({ onClose, onCreated }: { onClose: () => void; onCreate
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-line px-4 py-4 sm:px-6">
-          <button
-            onClick={onClose}
-            className="rounded-xl border border-line px-5 py-2.5 text-sm font-semibold text-ink hover:bg-surface"
-          >
+          <SecondaryButton onClick={onClose}>
             Bekor qilish
-          </button>
-          <button
-            onClick={submit}
-            disabled={saving}
-            className="flex items-center gap-2 rounded-xl bg-wine px-5 py-2.5 text-sm font-bold text-white transition hover:bg-wine-dark disabled:opacity-60"
-          >
+          </SecondaryButton>
+          <PrimaryButton onClick={submit} loading={saving}>
             {saving ? "Saqlanmoqda…" : "Testni yuborish"}
-          </button>
+          </PrimaryButton>
         </div>
       </div>
     </div>
@@ -813,7 +809,7 @@ function MediaUploader({
           <button
             type="button"
             onClick={() => onFile(null)}
-            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-500"
+            className="press absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-500"
             title="O'chirish"
           >
             <Trash2 size={13} />

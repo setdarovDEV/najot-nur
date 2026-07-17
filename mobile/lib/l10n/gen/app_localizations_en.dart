@@ -441,6 +441,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get free => 'Free';
 
   @override
+  String get demoLabel => 'Demo';
+
+  @override
   String get forSale => 'For sale';
 
   @override

@@ -431,8 +431,7 @@ class _PreviewView extends StatelessWidget {
                   foregroundColor: AppColors.inkSoft,
                   side: const BorderSide(color: AppColors.line),
                   padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                  shape: const StadiumBorder(),
                 ),
               ),
             ),
@@ -447,8 +446,7 @@ class _PreviewView extends StatelessWidget {
                   backgroundColor: AppColors.wine,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                  shape: const StadiumBorder(),
                   textStyle: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),

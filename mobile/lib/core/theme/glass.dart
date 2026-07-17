@@ -60,10 +60,14 @@ class GlassContainer extends StatelessWidget {
         ? (dark ? AppColors.glassFillDark : AppColors.glassFillLight)
         : (dark ? AppColors.cardFillDark : AppColors.cardFillLight);
 
-    final shape = ContinuousRectangleBorder(
-      borderRadius: BorderRadius.circular(borderRadius),
-      side: BorderSide(color: stroke, width: 0.5),
-    );
+    // Squircle for normal radii; at pill-scale radii ContinuousRectangleBorder
+    // distorts into a lens, so switch to a true capsule.
+    final ShapeBorder shape = borderRadius >= 100
+        ? StadiumBorder(side: BorderSide(color: stroke, width: 0.5))
+        : ContinuousRectangleBorder(
+            borderRadius: BorderRadius.circular(borderRadius),
+            side: BorderSide(color: stroke, width: 0.5),
+          );
 
     Widget surface = Container(
       alignment: alignment,

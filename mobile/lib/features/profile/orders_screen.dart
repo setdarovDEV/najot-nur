@@ -469,8 +469,7 @@ class _GoToCourseButton extends StatelessWidget {
           foregroundColor: accent,
           side: BorderSide(color: accent),
           padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppColors.radiusSegment)),
+          shape: const StadiumBorder(),
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),

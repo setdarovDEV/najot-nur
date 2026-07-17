@@ -328,9 +328,7 @@ class _RequestButton extends ConsumerWidget {
             foregroundColor: accent,
             side: BorderSide(color: accent),
             padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppColors.radiusButton),
-            ),
+            shape: const StadiumBorder(),
           ),
           icon: const Icon(Icons.add_circle_outline_rounded),
           label: Text(

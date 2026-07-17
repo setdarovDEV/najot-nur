@@ -89,9 +89,8 @@ abstract class AppTheme {
           foregroundColor: AppColors.white,
           elevation: 0,
           minimumSize: const Size.fromHeight(56),
-          shape: ContinuousRectangleBorder(
-            borderRadius: BorderRadius.circular(AppColors.radiusButton),
-          ),
+          // Pill buttons (radiusButton is capsule-scale).
+          shape: const StadiumBorder(),
           textStyle: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
@@ -100,9 +99,8 @@ abstract class AppTheme {
           foregroundColor: AppColors.wine,
           minimumSize: const Size.fromHeight(56),
           side: const BorderSide(color: AppColors.wine, width: 1.4),
-          shape: ContinuousRectangleBorder(
-            borderRadius: BorderRadius.circular(AppColors.radiusButton),
-          ),
+          // Pill buttons (radiusButton is capsule-scale).
+          shape: const StadiumBorder(),
           textStyle: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),

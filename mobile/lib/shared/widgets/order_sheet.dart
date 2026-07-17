@@ -611,8 +611,8 @@ class _MethodPicker extends ConsumerWidget {
                       color: dark
                           ? Colors.white.withValues(alpha: 0.14)
                           : Colors.white.withValues(alpha: 0.92),
-                      borderRadius:
-                          BorderRadius.circular(AppColors.radiusSegment),
+                      // Pill indicator to match the pill container.
+                      borderRadius: BorderRadius.circular(999),
                       boxShadow: [
                         BoxShadow(
                           color: AppColors.wineDeep

@@ -83,6 +83,8 @@ abstract class AppColors {
   static const radiusSheet = 34.0;
   static const radiusCard = 28.0;
   static const radiusTariffCard = 24.0;
-  static const radiusButton = 20.0;
+  // Fully-rounded (pill) buttons/CTAs — user preference over the mockups'
+  // original 20px. Any element ≤ ~60px tall renders as a clean capsule.
+  static const radiusButton = 999.0;
   static const radiusSegment = 16.0;
 }

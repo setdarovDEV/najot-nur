@@ -54,7 +54,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         final isPublic = loc == '/onboarding' ||
             loc == '/auth' ||
             loc.startsWith('/auth/') ||
-            loc == '/language';
+            loc == '/language' ||
+            // Course details and lesson playback stay reachable while
+            // logged out so demo lessons can be viewed without an account;
+            // the API itself still gates non-demo lesson content.
+            RegExp(r'^/courses/[^/]+(/lessons/[^/]+)?$').hasMatch(loc);
         if (!isPublic) return '/auth';
       }
 

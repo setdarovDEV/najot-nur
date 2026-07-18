@@ -32,7 +32,6 @@ class _HomeTabState extends ConsumerState<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authControllerProvider);
     final l = AppLocalizations.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final textColor = dark ? AppColors.inkDarkPrimary : AppColors.ink;
@@ -52,7 +51,15 @@ class _HomeTabState extends ConsumerState<HomeTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _Hero(isLoggedIn: auth.isLoggedIn, name: auth.user?.displayName),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final auth = ref.watch(authControllerProvider);
+                    return _Hero(
+                      isLoggedIn: auth.isLoggedIn,
+                      name: auth.user?.displayName,
+                    );
+                  },
+                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
                   child: Column(

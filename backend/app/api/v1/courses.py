@@ -8,8 +8,14 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import CurrentUser, DbSession
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.api.deps import CurrentUser, DbSession, OptionalUser
+from app.core.exceptions import (
+    AppError,
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    UnauthorizedError,
+)
 from app.core.logging import get_logger
 from app.models.certificate import Certificate
 from app.models.course import (
@@ -40,8 +46,19 @@ log = get_logger("courses")
 PASS_THRESHOLD = 60
 
 
+def _hide_locked_video_urls(course: Course) -> CourseDetail:
+    """Non-demo lessons' video_url must not leak via public course endpoints;
+    the actual video is only served through the enrollment/demo-gated
+    GET /lessons/{id} endpoint."""
+    detail = CourseDetail.model_validate(course)
+    for lesson in detail.lessons:
+        if not lesson.is_demo:
+            lesson.video_url = None
+    return detail
+
+
 @router.get("", response_model=list[CourseDetail])
-async def list_courses(db: DbSession) -> list[Course]:
+async def list_courses(db: DbSession) -> list[CourseDetail]:
     rows = (
         await db.execute(
             select(Course)
@@ -50,11 +67,11 @@ async def list_courses(db: DbSession) -> list[Course]:
             .order_by(Course.created_at)
         )
     ).scalars().all()
-    return list(rows)
+    return [_hide_locked_video_urls(course) for course in rows]
 
 
 @router.get("/{course_id}", response_model=CourseDetail)
-async def get_course(course_id: uuid.UUID, db: DbSession) -> Course:
+async def get_course(course_id: uuid.UUID, db: DbSession) -> CourseDetail:
     course = (
         await db.execute(
             select(Course)
@@ -64,7 +81,7 @@ async def get_course(course_id: uuid.UUID, db: DbSession) -> Course:
     ).scalar_one_or_none()
     if course is None:
         raise NotFoundError("Kurs topilmadi.")
-    return course
+    return _hide_locked_video_urls(course)
 
 
 @router.post("/{course_id}/enroll", response_model=EnrollmentRead)
@@ -256,9 +273,12 @@ async def _issue_certificate(
 
 @router.get("/{course_id}/my-progress")
 async def my_course_progress(
-    course_id: uuid.UUID, user: CurrentUser, db: DbSession
+    course_id: uuid.UUID, user: OptionalUser, db: DbSession
 ) -> dict:
     """Returns enrollment + per-lesson completion for an enrolled user."""
+    if user is None:
+        return {"enrolled": False, "has_pending_order": False}
+
     enrollment = (
         await db.execute(
             select(Enrollment).where(
@@ -325,9 +345,12 @@ async def my_course_progress(
 
 @router.get("/lessons/{lesson_id}")
 async def get_lesson(
-    lesson_id: uuid.UUID, user: CurrentUser, db: DbSession
+    lesson_id: uuid.UUID, user: OptionalUser, db: DbSession
 ) -> dict:
-    """Full lesson data including quiz questions (hidden correct_index)."""
+    """Full lesson data including quiz questions (hidden correct_index).
+
+    Demo lessons are viewable without enrollment, even by anonymous users.
+    """
     lesson = (
         await db.execute(
             select(Lesson)
@@ -345,8 +368,10 @@ async def get_lesson(
                 Enrollment.course_id == lesson.course_id,
             )
         )
-    ).scalar_one_or_none()
+    ).scalar_one_or_none() if user else None
     if enrollment is None and not lesson.is_demo:
+        if user is None:
+            raise UnauthorizedError("Avtorizatsiya talab qilinadi.")
         raise ForbiddenError("Bu kursga yozilmagansiz.")
 
     progress = (

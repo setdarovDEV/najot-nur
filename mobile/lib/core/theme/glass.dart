@@ -149,6 +149,13 @@ class _GlassPressableState extends State<GlassPressable>
   late final Animation<double> _scale =
       Tween<double>(begin: 1.0, end: 0.97).animate(_controller);
 
+  // App-wide guard: without it a fast repeat tap (e.g. a first tap dropped
+  // mid-gesture by an unrelated rebuild) fires onTap twice — once here and
+  // once on whatever screen the first tap's navigation just pushed in,
+  // making it look like a step got skipped.
+  static DateTime? _lastTapAt;
+  static const _tapGuard = Duration(milliseconds: 500);
+
   @override
   void dispose() {
     _controller.dispose();
@@ -168,11 +175,20 @@ class _GlassPressableState extends State<GlassPressable>
         duration: GlassMotion.pressOut, curve: GlassMotion.pressOutCurve);
   }
 
+  void _handleTap() {
+    final onTap = widget.onTap;
+    if (onTap == null) return;
+    final now = DateTime.now();
+    if (_lastTapAt != null && now.difference(_lastTapAt!) < _tapGuard) return;
+    _lastTapAt = now;
+    onTap();
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: widget.onTap,
+      onTap: widget.onTap == null ? null : _handleTap,
       onTapDown: _pressIn,
       onTapUp: _release,
       onTapCancel: _release,

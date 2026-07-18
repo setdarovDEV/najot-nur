@@ -111,8 +111,8 @@ def main() -> None:
     print(f"Base URL: {base_url}")
     print(f"API key: {api_key[:4]}...{api_key[-4:]} ({len(api_key)} ta belgi)")
 
-    # Test phone that is known to work in sandbox (status=4, has_limit=true)
-    phone = 998_971_234_567
+    # Test phone provided by the project owner (status=4, has_limit=true)
+    phone = 998_909_781_663
     amount = 100_000
     product_name = "Test kurs"
     callback = "https://notiqlik.uz/nasiya-return?payment_id=test"

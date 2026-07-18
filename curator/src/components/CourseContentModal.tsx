@@ -15,6 +15,7 @@ import {
   Video,
   ClipboardList,
   Mic,
+  Play,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
@@ -240,6 +241,11 @@ function LessonSidebarItem({
           {lesson.is_voice_exercise && (
             <Mic size={11} className="text-purple-500" />
           )}
+          {lesson.is_demo && (
+            <span className="rounded bg-orange-100 px-1 text-[9px] font-bold text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+              DEMO
+            </span>
+          )}
         </div>
       </div>
       <button
@@ -364,6 +370,9 @@ function LessonDetail({
 
         {/* Section 3: Voice exercise */}
         <VoiceSection lesson={lesson} onSave={(p) => updateMut.mutate(p)} />
+
+        {/* Section 4: Demo lesson */}
+        <DemoSection lesson={lesson} onSave={(p) => updateMut.mutate(p)} />
       </div>
     </div>
   );
@@ -840,6 +849,87 @@ function VoiceSection({
               onClick={() => {
                 setEnabled(lesson.is_voice_exercise);
                 setPrompt(lesson.voice_exercise_prompt ?? "");
+                setDirty(false);
+              }}
+              className="px-4 py-2"
+            >
+              Bekor
+            </SecondaryButton>
+          </div>
+        )}
+      </div>
+    </CollapsibleSection>
+  );
+}
+
+// ─── Demo lesson section ────────────────────────────────────────────────────
+
+function DemoSection({
+  lesson,
+  onSave,
+}: {
+  lesson: AdminLesson;
+  onSave: (p: Record<string, unknown>) => void;
+}) {
+  const { t } = useLang();
+  const confirm = useConfirm();
+  const [enabled, setEnabled] = useState(lesson.is_demo);
+  const [dirty, setDirty] = useState(false);
+
+  async function handleSave() {
+    const ok = await confirm({
+      title: t.modal.updateTitle("dars"),
+      description: t.modal.updateDesc("Dars"),
+      variant: "primary",
+      confirmText: t.modal.save,
+    });
+    if (ok) {
+      onSave({ is_demo: enabled });
+      setDirty(false);
+    }
+  }
+
+  return (
+    <CollapsibleSection
+      icon={<Play size={17} className="text-orange-500" />}
+      title="Demo dars"
+      badge={
+        enabled ? (
+          <StatusBadge ok>Demo</StatusBadge>
+        ) : (
+          <StatusBadge>Oddiy dars</StatusBadge>
+        )
+      }
+      defaultOpen={lesson.is_demo}
+    >
+      <div className="flex flex-col gap-4">
+        <label className="flex cursor-pointer items-center gap-3">
+          <div
+            onClick={() => { setEnabled((v) => !v); setDirty(true); }}
+            className={`relative h-6 w-11 rounded-full transition ${enabled ? "bg-wine" : "bg-line"}`}
+          >
+            <div
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                enabled ? "left-5" : "left-0.5"
+              }`}
+            />
+          </div>
+          <span className="text-sm font-semibold text-ink">
+            {enabled
+              ? "Demo dars — sotib olishdan oldin ko'rsatiladi"
+              : "Demo dars o'chirilgan"}
+          </span>
+        </label>
+
+        {dirty && (
+          <div className="flex gap-2">
+            <PrimaryButton onClick={handleSave} className="px-4 py-2">
+              <CheckCircle2 size={14} />
+              Saqlash
+            </PrimaryButton>
+            <SecondaryButton
+              onClick={() => {
+                setEnabled(lesson.is_demo);
                 setDirty(false);
               }}
               className="px-4 py-2"

@@ -116,6 +116,7 @@ export interface AdminLesson {
   duration_sec: number;
   is_voice_exercise: boolean;
   voice_exercise_prompt: string | null;
+  is_demo: boolean;
   questions: LessonQuestion[];
 }
 

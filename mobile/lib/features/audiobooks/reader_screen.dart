@@ -339,239 +339,263 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                           padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
                           child: IntrinsicHeight(
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // ── Cover ────────────────────────────────
-                                GlassEntrance(
-                                  delay: GlassMotion.entranceStep,
-                                  child: Container(
-                                    width: coverSize,
-                                    height: coverSize,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(44),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.wineDeep
-                                              .withValues(alpha: 0.35),
-                                          blurRadius: 50,
-                                          offset: const Offset(0, 24),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(44),
-                                      child: coverUrl != null
-                                          ? Image.network(
-                                              coverUrl,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  const _CoverPlaceholder(),
-                                            )
-                                          : const _CoverPlaceholder(),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-
-                                // ── Title + author ─────────────────────────────
-                                GlassEntrance(
-                                  delay: GlassMotion.entranceStep * 2,
-                                  child: Column(
-                                    children: [
-                                      Text(
-                                        widget.book.title,
-                                        textAlign: TextAlign.center,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: textColor,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w800,
-                                          height: 1.25,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text.rich(
-                                        TextSpan(
-                                          children: [
-                                            if (widget
-                                                    .book.author?.isNotEmpty ??
-                                                false)
-                                              TextSpan(
-                                                  text: widget.book.author!),
-                                            if ((widget.book.author
-                                                        ?.isNotEmpty ??
-                                                    false) &&
-                                                widget.book.isFree)
-                                              const TextSpan(text: ' · '),
-                                            if (widget.book.isFree)
-                                              TextSpan(
-                                                text: l.free,
-                                                style: const TextStyle(
-                                                  color: AppColors.success,
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                              ),
+                                // ── Cover + title (glued to the top) ──────
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    GlassEntrance(
+                                      delay: GlassMotion.entranceStep,
+                                      child: Container(
+                                        width: coverSize,
+                                        height: coverSize,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(44),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.wineDeep
+                                                  .withValues(alpha: 0.35),
+                                              blurRadius: 50,
+                                              offset: const Offset(0, 24),
+                                            ),
                                           ],
                                         ),
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                            color: mutedColor, fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-
-                                // ── Progress ───────────────────────────────────
-                                GlassEntrance(
-                                  delay: GlassMotion.entranceStep * 3,
-                                  child: _SeekBar(handler: handler),
-                                ),
-                                if (_error != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 6),
-                                    child: Text(
-                                      _error!,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: AppColors.danger,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(44),
+                                          child: coverUrl != null
+                                              ? Image.network(
+                                                  coverUrl,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) =>
+                                                      const _CoverPlaceholder(),
+                                                )
+                                              : const _CoverPlaceholder(),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                const SizedBox(height: 16),
+                                    const SizedBox(height: 20),
 
-                                // ── Controls ───────────────────────────────────
-                                GlassEntrance(
-                                  delay: GlassMotion.entranceStep * 4,
-                                  child: StreamBuilder<PlayerState>(
-                                    stream: handler.playerStateStream,
-                                    builder: (context, snap) {
-                                      final playing =
-                                          snap.data?.playing ?? false;
-                                      return Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                    // ── Title + author ────────────────────
+                                    GlassEntrance(
+                                      delay: GlassMotion.entranceStep * 2,
+                                      child: Column(
                                         children: [
-                                          _GlassPill(
-                                            onTap: _cycleSpeed,
-                                            child: Text(
-                                              _speedLabel,
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w800,
-                                                color: textColor,
-                                              ),
+                                          Text(
+                                            widget.book.title,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: textColor,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w800,
+                                              height: 1.25,
                                             ),
                                           ),
-                                          _SkipButton(
-                                            forward: false,
-                                            onTap: () => _skip(
-                                                const Duration(seconds: -15)),
-                                          ),
-                                          // Play / pause
-                                          GlassPressable(
-                                            onTap: _togglePlay,
-                                            child: Container(
-                                              width: 74,
-                                              height: 74,
-                                              decoration: BoxDecoration(
-                                                gradient:
-                                                    AppColors.wineGradient,
-                                                shape: BoxShape.circle,
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: AppColors.wine
-                                                        .withValues(
-                                                            alpha: 0.40),
-                                                    blurRadius: 30,
-                                                    offset: const Offset(0, 14),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: Icon(
-                                                playing
-                                                    ? Icons.pause_rounded
-                                                    : Icons.play_arrow_rounded,
-                                                color: Colors.white,
-                                                size: 38,
-                                              ),
-                                            ),
-                                          ),
-                                          _SkipButton(
-                                            forward: true,
-                                            onTap: () => _skip(
-                                                const Duration(seconds: 15)),
-                                          ),
-                                          _GlassPill(
-                                            onTap: () => setState(
-                                                () => _nightMode = !_nightMode),
-                                            active: _nightMode,
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
+                                          const SizedBox(height: 4),
+                                          Text.rich(
+                                            TextSpan(
                                               children: [
-                                                Icon(
-                                                  _nightMode
-                                                      ? Icons.bedtime_rounded
-                                                      : Icons.bedtime_outlined,
-                                                  size: 14,
-                                                  color: _nightMode
-                                                      ? AppColors.blue
-                                                      : textColor,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  'Uyqu',
+                                                if (widget.book.author
+                                                        ?.isNotEmpty ??
+                                                    false)
+                                                  TextSpan(
+                                                      text:
+                                                          widget.book.author!),
+                                                if ((widget.book.author
+                                                            ?.isNotEmpty ??
+                                                        false) &&
+                                                    widget.book.isFree)
+                                                  const TextSpan(text: ' · '),
+                                                if (widget.book.isFree)
+                                                  TextSpan(
+                                                    text: l.free,
+                                                    style: const TextStyle(
+                                                      color: AppColors.success,
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                                color: mutedColor,
+                                                fontSize: 13),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                // ── Progress + controls (glued to the
+                                // bottom) ─────────────────────────────────
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    GlassEntrance(
+                                      delay: GlassMotion.entranceStep * 3,
+                                      child: _SeekBar(handler: handler),
+                                    ),
+                                    if (_error != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 6),
+                                        child: Text(
+                                          _error!,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: AppColors.danger,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    const SizedBox(height: 16),
+
+                                    // ── Controls ───────────────────────────────────
+                                    GlassEntrance(
+                                      delay: GlassMotion.entranceStep * 4,
+                                      child: StreamBuilder<PlayerState>(
+                                        stream: handler.playerStateStream,
+                                        builder: (context, snap) {
+                                          final playing =
+                                              snap.data?.playing ?? false;
+                                          return Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              _GlassPill(
+                                                onTap: _cycleSpeed,
+                                                child: Text(
+                                                  _speedLabel,
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w800,
-                                                    color: _nightMode
-                                                        ? AppColors.blue
-                                                        : textColor,
+                                                    color: textColor,
                                                   ),
                                                 ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                ),
-
-                                // ── Page list ──────────────────────────────────
-                                if (widget.pages.length > 1) ...[
-                                  const SizedBox(height: 18),
-                                  GlassEntrance(
-                                    delay: GlassMotion.entranceStep * 5,
-                                    child: GlassContainer(
-                                      borderRadius: AppColors.radiusTariffCard,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 4),
-                                      child: Column(
-                                        children: [
-                                          for (var i = 0;
-                                              i < widget.pages.length;
-                                              i++)
-                                            _PageRow(
-                                              index: i,
-                                              page: widget.pages[i],
-                                              active: i == widget.pageIndex,
-                                              isLast:
-                                                  i == widget.pages.length - 1,
-                                              onTap: () {
-                                                if (i != widget.pageIndex) {
-                                                  widget.onPageChanged(i);
-                                                }
-                                              },
-                                            ),
-                                        ],
+                                              ),
+                                              _SkipButton(
+                                                forward: false,
+                                                onTap: () => _skip(
+                                                    const Duration(
+                                                        seconds: -15)),
+                                              ),
+                                              // Play / pause
+                                              GlassPressable(
+                                                onTap: _togglePlay,
+                                                child: Container(
+                                                  width: 74,
+                                                  height: 74,
+                                                  decoration: BoxDecoration(
+                                                    gradient:
+                                                        AppColors.wineGradient,
+                                                    shape: BoxShape.circle,
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: AppColors.wine
+                                                            .withValues(
+                                                                alpha: 0.40),
+                                                        blurRadius: 30,
+                                                        offset:
+                                                            const Offset(0, 14),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Icon(
+                                                    playing
+                                                        ? Icons.pause_rounded
+                                                        : Icons
+                                                            .play_arrow_rounded,
+                                                    color: Colors.white,
+                                                    size: 38,
+                                                  ),
+                                                ),
+                                              ),
+                                              _SkipButton(
+                                                forward: true,
+                                                onTap: () => _skip(
+                                                    const Duration(
+                                                        seconds: 15)),
+                                              ),
+                                              _GlassPill(
+                                                onTap: () => setState(() =>
+                                                    _nightMode = !_nightMode),
+                                                active: _nightMode,
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      _nightMode
+                                                          ? Icons
+                                                              .bedtime_rounded
+                                                          : Icons
+                                                              .bedtime_outlined,
+                                                      size: 14,
+                                                      color: _nightMode
+                                                          ? AppColors.blue
+                                                          : textColor,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      'Uyqu',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        color: _nightMode
+                                                            ? AppColors.blue
+                                                            : textColor,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
                                       ),
                                     ),
-                                  ),
-                                ],
+
+                                    // ── Page list ──────────────────────────────────
+                                    if (widget.pages.length > 1) ...[
+                                      const SizedBox(height: 18),
+                                      GlassEntrance(
+                                        delay: GlassMotion.entranceStep * 5,
+                                        child: GlassContainer(
+                                          borderRadius:
+                                              AppColors.radiusTariffCard,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 4),
+                                          child: Column(
+                                            children: [
+                                              for (var i = 0;
+                                                  i < widget.pages.length;
+                                                  i++)
+                                                _PageRow(
+                                                  index: i,
+                                                  page: widget.pages[i],
+                                                  active: i == widget.pageIndex,
+                                                  isLast: i ==
+                                                      widget.pages.length - 1,
+                                                  onTap: () {
+                                                    if (i != widget.pageIndex) {
+                                                      widget.onPageChanged(i);
+                                                    }
+                                                  },
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ), // Column (progress + controls, bottom)
                               ],
                             ), // Column (centered player body)
                           ), // IntrinsicHeight

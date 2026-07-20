@@ -92,6 +92,53 @@ async def _get_payment_by_external_id(db: AsyncSession, external_id: str) -> Pay
     return row
 
 
+async def ensure_not_already_purchased(
+    db: AsyncSession,
+    *,
+    user_id: uuid.UUID,
+    purpose: PaymentPurpose,
+    reference_id: uuid.UUID | None,
+) -> None:
+    """Reject initiating a new payment for something the user already owns.
+
+    `_grant_access_for_payment` is idempotent about the resulting
+    Enrollment/AudiobookAccess row, but nothing upstream stops a second real
+    Payment (and a second real provider charge/contract) from being created
+    for the same course/audiobook — the mobile UI hides the Buy button once
+    owned, but that's client state only and can be bypassed by a stale
+    screen, a double-tap race, or a second device.
+    """
+    if reference_id is None:
+        return
+    if purpose == PaymentPurpose.course:
+        existing = (
+            await db.execute(
+                select(Enrollment).where(
+                    Enrollment.user_id == user_id,
+                    Enrollment.course_id == reference_id,
+                    Enrollment.status.in_(
+                        [EnrollmentStatus.active, EnrollmentStatus.completed]
+                    ),
+                )
+            )
+        ).scalar_one_or_none()
+        if existing:
+            raise AppError("Siz bu kursni allaqachon sotib olgansiz.", status_code=409)
+    elif purpose == PaymentPurpose.audiobook:
+        existing = (
+            await db.execute(
+                select(AudiobookAccess).where(
+                    AudiobookAccess.user_id == user_id,
+                    AudiobookAccess.audiobook_id == reference_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing:
+            raise AppError(
+                "Siz bu audiokitobni allaqachon sotib olgansiz.", status_code=409
+            )
+
+
 # ──────────────────────────────────────────────
 #  Uzum Bank  (paymart.uz)
 # ──────────────────────────────────────────────
@@ -328,10 +375,11 @@ async def _nasiya_post(path: str, json_body: dict[str, Any]) -> dict[str, Any]:
         # log/report a short, fixed-size summary.
         content_type = exc.response.headers.get("content-type", "")
         detail: str
+        body_json: dict[str, Any] | None = None
         if "json" in content_type:
             try:
-                error_body = exc.response.json()
-                detail = str(error_body.get("error") or error_body.get("message") or error_body)
+                body_json = exc.response.json()
+                detail = str(body_json.get("error") or body_json.get("message") or body_json)
             except ValueError:
                 detail = exc.response.text[:500]
         else:
@@ -357,6 +405,15 @@ async def _nasiya_post(path: str, json_body: dict[str, Any]) -> dict[str, Any]:
                 "identifikatsiyadan o'ting yoki birozdan so'ng qayta urinib ko'ring.",
                 status_code=502,
             ) from exc
+        if body_json is not None:
+            # Uzum encodes some business-logic outcomes (e.g. "contract
+            # already activated", response_code 4010) as HTTP 4xx with a
+            # JSON body rather than an HTTP 2xx — hand the parsed body back
+            # so callers' existing response_code/status checks (which already
+            # treat specific codes as success, e.g. uzum_nasiya_confirm) can
+            # run instead of every 4xx collapsing into a generic 502 here.
+            _nasiya_record_success()
+            return body_json
         raise AppError(
             f"Uzum Nasiya xatoligi: {exc.response.status_code} — {detail}",
             status_code=502,

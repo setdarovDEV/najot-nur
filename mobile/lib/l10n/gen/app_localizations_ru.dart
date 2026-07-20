@@ -432,6 +432,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeActionObservationSub => '10 тестов: психология и язык тела';
 
   @override
+  String get testsHub => 'Тесты';
+
+  @override
+  String get testsHubSub => 'Психологические и тесты наблюдательности';
+
+  @override
+  String get testsHubPrompt => 'Какой тест попробуем?';
+
+  @override
+  String get testsHubSub2 => 'Каждый завершается анализом ИИ.';
+
+  @override
   String get homeFeatures => 'Возможности';
 
   @override
@@ -1235,6 +1247,9 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get permissionGateMessage =>
       'Предоставьте разрешения ниже, чтобы приложение работало полноценно:';
+
+  @override
+  String get permissionCamera => 'Камера';
 
   @override
   String get permissionMicrophone => 'Микрофон';

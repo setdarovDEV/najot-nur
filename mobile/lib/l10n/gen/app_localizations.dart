@@ -886,6 +886,30 @@ abstract class AppLocalizations {
   /// **'10 ta test: psixologiya va tana tili'**
   String get homeActionObservationSub;
 
+  /// No description provided for @testsHub.
+  ///
+  /// In uz, this message translates to:
+  /// **'Testlar'**
+  String get testsHub;
+
+  /// No description provided for @testsHubSub.
+  ///
+  /// In uz, this message translates to:
+  /// **'Psixologik va kuzatuvchanlik testlari'**
+  String get testsHubSub;
+
+  /// No description provided for @testsHubPrompt.
+  ///
+  /// In uz, this message translates to:
+  /// **'Qaysi testni sinab ko\'ramiz?'**
+  String get testsHubPrompt;
+
+  /// No description provided for @testsHubSub2.
+  ///
+  /// In uz, this message translates to:
+  /// **'Har biri AI tahlili bilan yakunlanadi.'**
+  String get testsHubSub2;
+
   /// No description provided for @homeFeatures.
   ///
   /// In uz, this message translates to:
@@ -2373,6 +2397,12 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Ilova to\'liq ishlashi uchun quyidagi ruxsatlarni bering:'**
   String get permissionGateMessage;
+
+  /// No description provided for @permissionCamera.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kamera'**
+  String get permissionCamera;
 
   /// No description provided for @permissionMicrophone.
   ///

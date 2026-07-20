@@ -5,10 +5,11 @@ import 'package:permission_handler/permission_handler.dart';
 /// The permissions the app cares about at the "have you granted this yet?"
 /// level, independent of which feature (login audio capture, city
 /// detection, push notifications) actually consumes them.
-enum AppPermissionKind { microphone, location, notification }
+enum AppPermissionKind { camera, microphone, location, notification }
 
 extension AppPermissionKindHandler on AppPermissionKind {
   Permission get _handler => switch (this) {
+        AppPermissionKind.camera => Permission.camera,
         AppPermissionKind.microphone => Permission.microphone,
         AppPermissionKind.location => Permission.location,
         AppPermissionKind.notification => Permission.notification,

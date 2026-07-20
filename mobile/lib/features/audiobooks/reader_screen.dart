@@ -276,7 +276,8 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
     final topInset = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: dark ? AppColors.bgDark : AppColors.bg,
+      resizeToAvoidBottomInset: false,
       body: Theme(
         data: theme,
         child: Stack(
@@ -291,6 +292,9 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
             // Big wine glow behind the cover (mockup 3a).
             const _CoverGlow(),
             const AmbientOrbs(),
+            // Mirrors the cover glow at the bottom so the ambient look
+            // still reaches the far edge on short (single-page) books.
+            const _BottomGlow(),
             SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 40),
               child: Column(
@@ -544,6 +548,40 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Soft glow anchored to the bottom edge so the ambient background reaches
+/// the far end of the page even when there's little content (e.g. a
+/// single-page free book) below the fold.
+class _BottomGlow extends StatelessWidget {
+  const _BottomGlow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: -160,
+      left: 0,
+      right: 0,
+      child: IgnorePointer(
+        child: Center(
+          child: Container(
+            width: 480,
+            height: 480,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  AppColors.orange.withValues(alpha: 0.22),
+                  AppColors.orange.withValues(alpha: 0),
+                ],
+                stops: const [0.0, 0.85],
+              ),
+            ),
+          ),
         ),
       ),
     );

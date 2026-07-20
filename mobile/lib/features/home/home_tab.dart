@@ -411,11 +411,18 @@ class _SectionsGrid extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final items = [
       (
-        icon: Icons.play_circle_fill_rounded,
+        icon: Icons.psychology_rounded,
+        color: AppColors.orange,
+        title: l.testsHub,
+        subtitle: l.testsHubSub,
+        onTap: () => context.push('/tests'),
+      ),
+      (
+        icon: Icons.record_voice_over_rounded,
         color: AppColors.wine,
-        title: l.videoLessons,
-        subtitle: l.tabCourses,
-        onTap: () => onChangeTab?.call(1),
+        title: l.homeActionSpeech,
+        subtitle: l.homeActionSpeechSub,
+        onTap: () => context.push('/speech'),
       ),
       (
         icon: Icons.headphones_rounded,
@@ -425,18 +432,11 @@ class _SectionsGrid extends ConsumerWidget {
         onTap: () => onChangeTab?.call(2),
       ),
       (
-        icon: Icons.psychology_rounded,
-        color: AppColors.orange,
-        title: l.psychologyTest,
-        subtitle: l.psychologyAnalysis,
-        onTap: () => context.push('/psychology'),
-      ),
-      (
-        icon: Icons.visibility_rounded,
+        icon: Icons.play_circle_fill_rounded,
         color: AppColors.success,
-        title: l.homeActionObservation,
-        subtitle: l.homeActionObservationSub,
-        onTap: () => context.push('/observation'),
+        title: l.videoLessons,
+        subtitle: l.tabCourses,
+        onTap: () => onChangeTab?.call(1),
       ),
     ];
 

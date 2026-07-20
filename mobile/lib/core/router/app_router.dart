@@ -28,6 +28,7 @@ import '../../features/psychology/psychology_screen.dart';
 import '../../features/quizzes/quiz_screen.dart';
 import '../../features/speech/practice_screen.dart';
 import '../../features/speech/speech_hub_screen.dart';
+import '../../features/tests/tests_hub_screen.dart';
 import '../../features/speech/talk_result_screen.dart';
 import '../../features/speech/talk_screen.dart';
 import '../../features/speech/voice_result_screen.dart';
@@ -111,6 +112,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/speech/practice',
         builder: (_, __) => const PracticeScreen(),
       ),
+
+      // ───── Tests hub ─────
+      GoRoute(path: '/tests', builder: (_, __) => const TestsHubScreen()),
 
       // ───── Psychology ─────
       GoRoute(

@@ -50,6 +50,13 @@ async def initiate_payment(
     """Initiate a payment with the chosen provider and return a redirect URL."""
     amount = float(payload.amount)
 
+    await payment_service.ensure_not_already_purchased(
+        db,
+        user_id=current_user.id,
+        purpose=payload.purpose,
+        reference_id=payload.reference_id,
+    )
+
     if payload.provider == PaymentProvider.uzum:
         payment, redirect_url = await payment_service.initiate_uzum(
             db,

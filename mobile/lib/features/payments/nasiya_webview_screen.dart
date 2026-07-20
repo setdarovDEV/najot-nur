@@ -69,10 +69,24 @@ class _NasiyaWebViewScreenState extends State<NasiyaWebViewScreen> {
                 javaScriptEnabled: true,
                 thirdPartyCookiesEnabled: true,
                 sharedCookiesEnabled: true,
+                mediaPlaybackRequiresUserGesture: false,
+                allowsInlineMediaPlayback: true,
               ),
               onProgressChanged: (controller, progress) {
                 if (!mounted) return;
                 setState(() => _progress = progress / 100);
+              },
+              // Uzum's My ID identity verification step calls getUserMedia()
+              // for the camera. The app already holds the OS-level CAMERA
+              // permission, but Android/iOS never forward that to WebView
+              // content automatically — without this callback the page sees
+              // the permission request silently rejected and shows "Camera
+              // is off".
+              onPermissionRequest: (controller, request) async {
+                return PermissionResponse(
+                  resources: request.resources,
+                  action: PermissionResponseAction.GRANT,
+                );
               },
               shouldOverrideUrlLoading: (controller, navigationAction) async {
                 final url = navigationAction.request.url?.toString() ?? '';

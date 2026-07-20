@@ -440,6 +440,18 @@ class AppLocalizationsUz extends AppLocalizations {
   String get homeActionObservationSub => '10 ta test: psixologiya va tana tili';
 
   @override
+  String get testsHub => 'Testlar';
+
+  @override
+  String get testsHubSub => 'Psixologik va kuzatuvchanlik testlari';
+
+  @override
+  String get testsHubPrompt => 'Qaysi testni sinab ko\'ramiz?';
+
+  @override
+  String get testsHubSub2 => 'Har biri AI tahlili bilan yakunlanadi.';
+
+  @override
   String get homeFeatures => 'Imkoniyatlar';
 
   @override
@@ -1245,6 +1257,9 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get permissionGateMessage =>
       'Ilova to\'liq ishlashi uchun quyidagi ruxsatlarni bering:';
+
+  @override
+  String get permissionCamera => 'Kamera';
 
   @override
   String get permissionMicrophone => 'Mikrofon';

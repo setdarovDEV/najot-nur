@@ -270,6 +270,7 @@ class _PermissionCard extends StatelessWidget {
   }
 
   IconData _iconFor(AppPermissionKind kind) => switch (kind) {
+        AppPermissionKind.camera => Icons.camera_alt_rounded,
         AppPermissionKind.microphone => Icons.mic_rounded,
         AppPermissionKind.location => Icons.location_on_rounded,
         AppPermissionKind.notification => Icons.notifications_rounded,
@@ -277,6 +278,7 @@ class _PermissionCard extends StatelessWidget {
 
   String _labelFor(AppLocalizations l, AppPermissionKind kind) =>
       switch (kind) {
+        AppPermissionKind.camera => l.permissionCamera,
         AppPermissionKind.microphone => l.permissionMicrophone,
         AppPermissionKind.location => l.permissionLocation,
         AppPermissionKind.notification => l.permissionNotification,

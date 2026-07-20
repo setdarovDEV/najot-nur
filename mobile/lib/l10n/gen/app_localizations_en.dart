@@ -432,6 +432,18 @@ class AppLocalizationsEn extends AppLocalizations {
       '10 tests: psychology and body language';
 
   @override
+  String get testsHub => 'Tests';
+
+  @override
+  String get testsHubSub => 'Psychology and observation tests';
+
+  @override
+  String get testsHubPrompt => 'Which test shall we try?';
+
+  @override
+  String get testsHubSub2 => 'Each one ends with an AI analysis.';
+
+  @override
   String get homeFeatures => 'Features';
 
   @override
@@ -1235,6 +1247,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get permissionGateMessage =>
       'Grant the permissions below so the app can work fully:';
+
+  @override
+  String get permissionCamera => 'Camera';
 
   @override
   String get permissionMicrophone => 'Microphone';

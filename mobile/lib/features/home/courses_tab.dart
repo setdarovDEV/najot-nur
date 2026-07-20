@@ -76,12 +76,33 @@ class _CoursesTabState extends ConsumerState<CoursesTab> {
             ),
             data: (list) {
               final filtered = list.where((c) {
-                final byLevel =
-                    _levelFilter == null || c.level == _levelFilter;
+                final byLevel = _levelFilter == null || c.level == _levelFilter;
                 final byQuery = _query.isEmpty ||
                     c.title.toLowerCase().contains(_query.toLowerCase());
                 return byLevel && byQuery;
               }).toList();
+
+              // Purchased courses float to the top, most recently bought
+              // first; everything else keeps its original relative order.
+              final progressByCourse = {
+                for (final c in filtered)
+                  c.id: ref.watch(courseProgressProvider(c.id)).valueOrNull,
+              };
+              final order = List<int>.generate(filtered.length, (i) => i);
+              order.sort((ia, ib) {
+                final a = progressByCourse[filtered[ia].id];
+                final b = progressByCourse[filtered[ib].id];
+                final aBought = a?.enrolled ?? false;
+                final bBought = b?.enrolled ?? false;
+                if (aBought != bBought) return aBought ? -1 : 1;
+                if (aBought && bBought) {
+                  final ad = a?.enrolledAt;
+                  final bd = b?.enrolledAt;
+                  if (ad != null && bd != null) return bd.compareTo(ad);
+                }
+                return ia.compareTo(ib);
+              });
+              final sorted = [for (final i in order) filtered[i]];
 
               return NotificationListener<ScrollNotification>(
                 onNotification: (n) {
@@ -109,8 +130,7 @@ class _CoursesTabState extends ConsumerState<CoursesTab> {
                           const SizedBox(height: 2),
                           Text(
                             l.coursesCount(list.length),
-                            style:
-                                TextStyle(fontSize: 12.5, color: mutedColor),
+                            style: TextStyle(fontSize: 12.5, color: mutedColor),
                           ),
                         ],
                       ),
@@ -128,8 +148,7 @@ class _CoursesTabState extends ConsumerState<CoursesTab> {
                       delay: GlassMotion.entranceStep * 2,
                       child: _LevelChips(
                         selected: _levelFilter,
-                        onSelect: (lvl) =>
-                            setState(() => _levelFilter = lvl),
+                        onSelect: (lvl) => setState(() => _levelFilter = lvl),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -142,10 +161,10 @@ class _CoursesTabState extends ConsumerState<CoursesTab> {
                         ),
                       )
                     else
-                      for (var i = 0; i < filtered.length; i++) ...[
+                      for (var i = 0; i < sorted.length; i++) ...[
                         GlassEntrance(
                           delay: GlassMotion.entranceStep * (3 + i),
-                          child: _CourseCard(course: filtered[i]),
+                          child: _CourseCard(course: sorted[i]),
                         ),
                         const SizedBox(height: 12),
                       ],
@@ -158,8 +177,7 @@ class _CoursesTabState extends ConsumerState<CoursesTab> {
             top: 0,
             left: 0,
             right: 0,
-            child:
-                GlassTopChrome(offset: _scrollOffset, title: l.videoLessons),
+            child: GlassTopChrome(offset: _scrollOffset, title: l.videoLessons),
           ),
         ],
       ),
@@ -268,9 +286,7 @@ class _FilterChip extends StatelessWidget {
           gradient: active ? AppColors.wineGradient : null,
           color: active
               ? null
-              : (dark
-                  ? AppColors.glassFillDark
-                  : AppColors.glassFillLight),
+              : (dark ? AppColors.glassFillDark : AppColors.glassFillLight),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: active
@@ -316,129 +332,207 @@ class _CourseCard extends ConsumerWidget {
     final coverUrl = course.coverUrl == null
         ? null
         : ref.read(apiClientProvider).resolveMediaUrl(course.coverUrl!);
+    final purchased =
+        ref.watch(courseProgressProvider(course.id)).valueOrNull?.enrolled ??
+            false;
 
-    return GlassPressable(
-      onTap: () => _navigateToCourse(ref, context, course.id),
-      child: GlassContainer(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+    final cardChild = Column(
+      children: [
+        Stack(
           children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: SizedBox(
-                    height: 112,
-                    width: double.infinity,
-                    child: coverUrl != null
-                        ? Image.network(
-                            coverUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const _CoverPlaceholder(),
-                          )
-                        : const _CoverPlaceholder(),
-                  ),
-                ),
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.65),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Text(
-                      _levelLabel(l, course.level),
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.wine,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: SizedBox(
+                height: 112,
+                width: double.infinity,
+                child: coverUrl != null
+                    ? Image.network(
+                        coverUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const _CoverPlaceholder(),
+                      )
+                    : const _CoverPlaceholder(),
+              ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 12, 6, 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          course.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: textColor,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          [
-                            if (course.lessons.isNotEmpty)
-                              l.lessonsShort(course.lessons.length),
-                            if (course.lessons
-                                .any((ls) => ls.isVoiceExercise))
-                              'AI',
-                          ].join(' · '),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, color: mutedColor),
-                        ),
-                      ],
-                    ),
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.65),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    width: 0.5,
                   ),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 13, vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient:
-                          course.isFree ? null : AppColors.wineGradient,
-                      color: course.isFree
-                          ? AppColors.success.withValues(alpha: 0.12)
-                          : null,
-                      borderRadius: BorderRadius.circular(999),
-                      boxShadow: course.isFree
-                          ? null
-                          : [
-                              BoxShadow(
-                                color:
-                                    AppColors.wine.withValues(alpha: 0.30),
-                                blurRadius: 12,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                    ),
-                    child: Text(
-                      course.isFree
-                          ? l.free
-                          : l.sumPrice(course.price.toStringAsFixed(0)),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color:
-                            course.isFree ? AppColors.success : Colors.white,
-                      ),
-                    ),
+                ),
+                child: Text(
+                  _levelLabel(l, course.level),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.wine,
                   ),
-                ],
+                ),
               ),
             ),
           ],
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(6, 12, 6, 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      course.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        if (course.lessons.isNotEmpty)
+                          l.lessonsShort(course.lessons.length),
+                        if (course.lessons.any((ls) => ls.isVoiceExercise))
+                          'AI',
+                      ].join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: mutedColor),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: purchased || course.isFree
+                      ? null
+                      : AppColors.wineGradient,
+                  color: purchased
+                      ? AppColors.success.withValues(alpha: 0.16)
+                      : (course.isFree
+                          ? AppColors.success.withValues(alpha: 0.12)
+                          : null),
+                  borderRadius: BorderRadius.circular(999),
+                  border: purchased
+                      ? Border.all(
+                          color: AppColors.success.withValues(alpha: 0.4),
+                          width: 1,
+                        )
+                      : null,
+                  boxShadow: purchased || course.isFree
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: AppColors.wine.withValues(alpha: 0.30),
+                            blurRadius: 12,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (purchased)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: Icon(Icons.check_circle_rounded,
+                            size: 13, color: AppColors.success),
+                      ),
+                    Text(
+                      purchased
+                          ? l.coursePurchased
+                          : (course.isFree
+                              ? l.free
+                              : l.sumPrice(course.price.toStringAsFixed(0))),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: (purchased || course.isFree)
+                            ? AppColors.success
+                            : Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    return GlassPressable(
+      onTap: () => _navigateToCourse(ref, context, course.id),
+      child: purchased
+          ? _PurchasedGlassCard(
+              padding: const EdgeInsets.all(12),
+              child: cardChild,
+            )
+          : GlassContainer(
+              padding: const EdgeInsets.all(12),
+              child: cardChild,
+            ),
+    );
+  }
+}
+
+/// Green liquid-glass variant of [GlassContainer] for courses the user has
+/// already purchased — same rim-highlight/shadow language, tinted with
+/// [AppColors.success] instead of the neutral glass fill.
+class _PurchasedGlassCard extends StatelessWidget {
+  const _PurchasedGlassCard({required this.child, this.padding});
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fill = AppColors.success.withValues(alpha: dark ? 0.16 : 0.10);
+    final highlight = dark
+        ? Colors.white.withValues(alpha: 0.10)
+        : Colors.white.withValues(alpha: 0.55);
+    final stroke = AppColors.success.withValues(alpha: 0.35);
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppColors.radiusCard),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.success.withValues(alpha: 0.20),
+            blurRadius: 26,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Container(
+        padding: padding,
+        decoration: ShapeDecoration(
+          shape: ContinuousRectangleBorder(
+            borderRadius: BorderRadius.circular(AppColors.radiusCard),
+            side: BorderSide(color: stroke, width: 1),
+          ),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color.alphaBlend(highlight, fill), fill],
+            stops: const [0.0, 0.4],
+          ),
+        ),
+        child: child,
       ),
     );
   }
@@ -452,8 +546,8 @@ class _CoverPlaceholder extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(gradient: AppColors.wineGradient),
       child: const Center(
-        child: Icon(Icons.play_circle_fill_rounded,
-            color: Colors.white, size: 44),
+        child:
+            Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 44),
       ),
     );
   }

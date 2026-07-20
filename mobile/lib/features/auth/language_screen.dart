@@ -6,7 +6,6 @@ import '../../core/theme/app_colors.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../models/app_language.dart';
 import '../../providers/providers.dart';
-import '../../shared/widgets/brand.dart';
 
 class LanguageScreen extends ConsumerStatefulWidget {
   const LanguageScreen({super.key, this.fromContext});
@@ -60,7 +59,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 16),
-              const BrandBadge(size: 72, radius: 20),
+              const _BrandBanner(),
               const Spacer(),
               Text(
                 l.selectLanguage,
@@ -108,6 +107,37 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Full-width wine banner with the emblem, sized bigger than the plain
+/// [BrandBadge] used elsewhere — this screen is the very first thing new
+/// users see, so the brand mark gets more room to breathe.
+class _BrandBanner extends StatelessWidget {
+  const _BrandBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 160,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.wine,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.wine.withValues(alpha: 0.25),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Image.asset(
+        'assets/images/logo_white.png',
+        height: 64,
+        fit: BoxFit.contain,
       ),
     );
   }

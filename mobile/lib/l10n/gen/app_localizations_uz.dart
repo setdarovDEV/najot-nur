@@ -461,6 +461,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get free => 'Bepul';
 
   @override
+  String get coursePurchased => 'Sotib olingan';
+
+  @override
   String get demoLabel => 'Demo';
 
   @override

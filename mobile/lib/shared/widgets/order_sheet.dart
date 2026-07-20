@@ -421,7 +421,7 @@ class _CashInstructions extends StatelessWidget {
                 Icon(Icons.phone_rounded, size: 16, color: AppColors.success),
                 SizedBox(width: 8),
                 Text(
-                  '+998 71 200 00 00',
+                  '+998 55 515 65 00',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14,

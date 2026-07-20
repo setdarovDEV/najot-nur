@@ -928,6 +928,12 @@ abstract class AppLocalizations {
   /// **'Bepul'**
   String get free;
 
+  /// No description provided for @coursePurchased.
+  ///
+  /// In uz, this message translates to:
+  /// **'Sotib olingan'**
+  String get coursePurchased;
+
   /// No description provided for @demoLabel.
   ///
   /// In uz, this message translates to:

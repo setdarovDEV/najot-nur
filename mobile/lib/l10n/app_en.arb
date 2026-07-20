@@ -138,6 +138,7 @@
   "homeFeatures": "Features",
   "homeRecommended": "Recommended",
   "free": "Free",
+  "coursePurchased": "Purchased",
   "demoLabel": "Demo",
   "forSale": "For sale",
   "lessonsShort": "{count} lessons",

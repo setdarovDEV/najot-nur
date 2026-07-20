@@ -322,6 +322,7 @@ async def my_course_progress(
         "enrollment_id": str(enrollment.id),
         "status": enrollment.status.value,
         "progress_pct": enrollment.progress_pct,
+        "enrolled_at": enrollment.created_at.isoformat(),
         "lessons": [
             {
                 "lesson_id": str(ls.id),

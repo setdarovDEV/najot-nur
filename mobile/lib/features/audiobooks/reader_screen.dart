@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
@@ -71,10 +70,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           loading: () => const _GlassScaffold(child: AppLoader()),
           error: (_, __) => _GlassScaffold(
             child: ErrorView(
-              message:
-                  'Kirish tekshirishda xatolik. Qaytadan urinib ko\'ring.',
-              onRetry: () => ref
-                  .invalidate(audiobookAccessProvider(widget.audiobookId)),
+              message: 'Kirish tekshirishda xatolik. Qaytadan urinib ko\'ring.',
+              onRetry: () =>
+                  ref.invalidate(audiobookAccessProvider(widget.audiobookId)),
             ),
           ),
           data: (a) {
@@ -179,11 +177,12 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
     if (url != _loadedUrl || widget.pageIndex != _loadedPage) {
       try {
         setState(() => _error = null);
-        final artUri = widget.book.coverUrl != null &&
-                widget.book.coverUrl!.isNotEmpty
-            ? Uri.tryParse(
-                ref.read(apiClientProvider).resolveMediaUrl(widget.book.coverUrl!))
-            : null;
+        final artUri =
+            widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty
+                ? Uri.tryParse(ref
+                    .read(apiClientProvider)
+                    .resolveMediaUrl(widget.book.coverUrl!))
+                : null;
         await _handler.loadUrl(
           url,
           title: widget.book.title,
@@ -245,9 +244,8 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
     );
   }
 
-  String get _speedLabel => _speed == _speed.truncateToDouble()
-      ? '${_speed.toInt()}.0×'
-      : '$_speed×';
+  String get _speedLabel =>
+      _speed == _speed.truncateToDouble() ? '${_speed.toInt()}.0×' : '$_speed×';
 
   @override
   Widget build(BuildContext context) {
@@ -295,12 +293,12 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
             // Mirrors the cover glow at the bottom so the ambient look
             // still reaches the far edge on short (single-page) books.
             const _BottomGlow(),
-            SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 40),
-              child: Column(
-                children: [
-                  // ── Top chrome ─────────────────────────────────
-                  GlassEntrance(
+            Column(
+              children: [
+                // ── Top chrome ───────────────────────────────────
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 0),
+                  child: GlassEntrance(
                     child: Row(
                       children: [
                         _GlassCircleButton(
@@ -326,227 +324,264 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 18),
-
-                  // ── Cover ──────────────────────────────────────
-                  GlassEntrance(
-                    delay: GlassMotion.entranceStep,
-                    child: Container(
-                      width: coverSize,
-                      height: coverSize,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(44),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.wineDeep.withValues(alpha: 0.35),
-                            blurRadius: 50,
-                            offset: const Offset(0, 24),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(44),
-                        child: coverUrl != null
-                            ? Image.network(
-                                coverUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    const _CoverPlaceholder(),
-                              )
-                            : const _CoverPlaceholder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ── Title + author ─────────────────────────────
-                  GlassEntrance(
-                    delay: GlassMotion.entranceStep * 2,
-                    child: Column(
-                      children: [
-                        Text(
-                          widget.book.title,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            height: 1.25,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text.rich(
-                          TextSpan(
-                            children: [
-                              if (widget.book.author?.isNotEmpty ?? false)
-                                TextSpan(text: widget.book.author!),
-                              if ((widget.book.author?.isNotEmpty ?? false) &&
-                                  widget.book.isFree)
-                                const TextSpan(text: ' · '),
-                              if (widget.book.isFree)
-                                TextSpan(
-                                  text: l.free,
-                                  style: const TextStyle(
-                                    color: AppColors.success,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: mutedColor, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // ── Progress ───────────────────────────────────
-                  GlassEntrance(
-                    delay: GlassMotion.entranceStep * 3,
-                    child: _SeekBar(handler: handler),
-                  ),
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppColors.danger,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 16),
-
-                  // ── Controls ───────────────────────────────────
-                  GlassEntrance(
-                    delay: GlassMotion.entranceStep * 4,
-                    child: StreamBuilder<PlayerState>(
-                      stream: handler.playerStateStream,
-                      builder: (context, snap) {
-                        final playing = snap.data?.playing ?? false;
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _GlassPill(
-                              onTap: _cycleSpeed,
-                              child: Text(
-                                _speedLabel,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: textColor,
-                                ),
-                              ),
-                            ),
-                            _SkipButton(
-                              forward: false,
-                              onTap: () =>
-                                  _skip(const Duration(seconds: -15)),
-                            ),
-                            // Play / pause
-                            GlassPressable(
-                              onTap: _togglePlay,
-                              child: Container(
-                                width: 74,
-                                height: 74,
-                                decoration: BoxDecoration(
-                                  gradient: AppColors.wineGradient,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.wine
-                                          .withValues(alpha: 0.40),
-                                      blurRadius: 30,
-                                      offset: const Offset(0, 14),
+                ),
+                // ── Player body ──────────────────────────────────
+                // Fills the remaining space; centers vertically for short
+                // (single-page) books so there's no dead space at the
+                // bottom, but still scrolls when the page list is long.
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minHeight: constraints.maxHeight),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
+                          child: IntrinsicHeight(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                // ── Cover ────────────────────────────────
+                                GlassEntrance(
+                                  delay: GlassMotion.entranceStep,
+                                  child: Container(
+                                    width: coverSize,
+                                    height: coverSize,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(44),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.wineDeep
+                                              .withValues(alpha: 0.35),
+                                          blurRadius: 50,
+                                          offset: const Offset(0, 24),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  playing
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                  color: Colors.white,
-                                  size: 38,
-                                ),
-                              ),
-                            ),
-                            _SkipButton(
-                              forward: true,
-                              onTap: () => _skip(const Duration(seconds: 15)),
-                            ),
-                            _GlassPill(
-                              onTap: () =>
-                                  setState(() => _nightMode = !_nightMode),
-                              active: _nightMode,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _nightMode
-                                        ? Icons.bedtime_rounded
-                                        : Icons.bedtime_outlined,
-                                    size: 14,
-                                    color: _nightMode
-                                        ? AppColors.blue
-                                        : textColor,
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(44),
+                                      child: coverUrl != null
+                                          ? Image.network(
+                                              coverUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) =>
+                                                  const _CoverPlaceholder(),
+                                            )
+                                          : const _CoverPlaceholder(),
+                                    ),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Uyqu',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w800,
-                                      color: _nightMode
-                                          ? AppColors.blue
-                                          : textColor,
+                                ),
+                                const SizedBox(height: 20),
+
+                                // ── Title + author ─────────────────────────────
+                                GlassEntrance(
+                                  delay: GlassMotion.entranceStep * 2,
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        widget.book.title,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: textColor,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w800,
+                                          height: 1.25,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text.rich(
+                                        TextSpan(
+                                          children: [
+                                            if (widget
+                                                    .book.author?.isNotEmpty ??
+                                                false)
+                                              TextSpan(
+                                                  text: widget.book.author!),
+                                            if ((widget.book.author
+                                                        ?.isNotEmpty ??
+                                                    false) &&
+                                                widget.book.isFree)
+                                              const TextSpan(text: ' · '),
+                                            if (widget.book.isFree)
+                                              TextSpan(
+                                                text: l.free,
+                                                style: const TextStyle(
+                                                  color: AppColors.success,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            color: mutedColor, fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+
+                                // ── Progress ───────────────────────────────────
+                                GlassEntrance(
+                                  delay: GlassMotion.entranceStep * 3,
+                                  child: _SeekBar(handler: handler),
+                                ),
+                                if (_error != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: Text(
+                                      _error!,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: AppColors.danger,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(height: 16),
+
+                                // ── Controls ───────────────────────────────────
+                                GlassEntrance(
+                                  delay: GlassMotion.entranceStep * 4,
+                                  child: StreamBuilder<PlayerState>(
+                                    stream: handler.playerStateStream,
+                                    builder: (context, snap) {
+                                      final playing =
+                                          snap.data?.playing ?? false;
+                                      return Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          _GlassPill(
+                                            onTap: _cycleSpeed,
+                                            child: Text(
+                                              _speedLabel,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w800,
+                                                color: textColor,
+                                              ),
+                                            ),
+                                          ),
+                                          _SkipButton(
+                                            forward: false,
+                                            onTap: () => _skip(
+                                                const Duration(seconds: -15)),
+                                          ),
+                                          // Play / pause
+                                          GlassPressable(
+                                            onTap: _togglePlay,
+                                            child: Container(
+                                              width: 74,
+                                              height: 74,
+                                              decoration: BoxDecoration(
+                                                gradient:
+                                                    AppColors.wineGradient,
+                                                shape: BoxShape.circle,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: AppColors.wine
+                                                        .withValues(
+                                                            alpha: 0.40),
+                                                    blurRadius: 30,
+                                                    offset: const Offset(0, 14),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Icon(
+                                                playing
+                                                    ? Icons.pause_rounded
+                                                    : Icons.play_arrow_rounded,
+                                                color: Colors.white,
+                                                size: 38,
+                                              ),
+                                            ),
+                                          ),
+                                          _SkipButton(
+                                            forward: true,
+                                            onTap: () => _skip(
+                                                const Duration(seconds: 15)),
+                                          ),
+                                          _GlassPill(
+                                            onTap: () => setState(
+                                                () => _nightMode = !_nightMode),
+                                            active: _nightMode,
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  _nightMode
+                                                      ? Icons.bedtime_rounded
+                                                      : Icons.bedtime_outlined,
+                                                  size: 14,
+                                                  color: _nightMode
+                                                      ? AppColors.blue
+                                                      : textColor,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Uyqu',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: _nightMode
+                                                        ? AppColors.blue
+                                                        : textColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+
+                                // ── Page list ──────────────────────────────────
+                                if (widget.pages.length > 1) ...[
+                                  const SizedBox(height: 18),
+                                  GlassEntrance(
+                                    delay: GlassMotion.entranceStep * 5,
+                                    child: GlassContainer(
+                                      borderRadius: AppColors.radiusTariffCard,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 4),
+                                      child: Column(
+                                        children: [
+                                          for (var i = 0;
+                                              i < widget.pages.length;
+                                              i++)
+                                            _PageRow(
+                                              index: i,
+                                              page: widget.pages[i],
+                                              active: i == widget.pageIndex,
+                                              isLast:
+                                                  i == widget.pages.length - 1,
+                                              onTap: () {
+                                                if (i != widget.pageIndex) {
+                                                  widget.onPageChanged(i);
+                                                }
+                                              },
+                                            ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-
-                  // ── Page list ──────────────────────────────────
-                  if (widget.pages.length > 1) ...[
-                    const SizedBox(height: 18),
-                    GlassEntrance(
-                      delay: GlassMotion.entranceStep * 5,
-                      child: GlassContainer(
-                        borderRadius: AppColors.radiusTariffCard,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        child: Column(
-                          children: [
-                            for (var i = 0; i < widget.pages.length; i++)
-                              _PageRow(
-                                index: i,
-                                page: widget.pages[i],
-                                active: i == widget.pageIndex,
-                                isLast: i == widget.pages.length - 1,
-                                onTap: () {
-                                  if (i != widget.pageIndex) {
-                                    widget.onPageChanged(i);
-                                  }
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+                              ],
+                            ), // Column (centered player body)
+                          ), // IntrinsicHeight
+                        ), // Padding
+                      ), // ConstrainedBox
+                    ), // SingleChildScrollView
+                  ), // LayoutBuilder
+                ), // Expanded
+              ],
+            ), // Column (chrome + body)
           ],
         ),
       ),
@@ -788,9 +823,7 @@ class _SeekBarState extends State<_SeekBar> {
             final curMs = _dragMs ??
                 (maxMs == 0
                     ? 0.0
-                    : pos.inMilliseconds
-                        .clamp(0, maxMs.toInt())
-                        .toDouble());
+                    : pos.inMilliseconds.clamp(0, maxMs.toInt()).toDouble());
             final t = maxMs == 0 ? 0.0 : (curMs / maxMs).clamp(0.0, 1.0);
 
             return Column(
@@ -801,8 +834,7 @@ class _SeekBarState extends State<_SeekBar> {
                     double msFromDx(double dx) =>
                         maxMs == 0 ? 0 : (dx / w).clamp(0.0, 1.0) * maxMs;
                     void commit(double ms) {
-                      widget.handler
-                          .seek(Duration(milliseconds: ms.toInt()));
+                      widget.handler.seek(Duration(milliseconds: ms.toInt()));
                       setState(() => _dragMs = null);
                     }
 
@@ -937,8 +969,8 @@ class _PageRow extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: active
                         ? (dark
@@ -965,8 +997,7 @@ class _PageRow extends StatelessWidget {
                     'Bet ${page.pageNumber}',
                     style: TextStyle(
                       fontSize: 13.5,
-                      fontWeight:
-                          active ? FontWeight.w800 : FontWeight.w600,
+                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
                       color: active ? textColor : mutedColor,
                     ),
                   ),
@@ -1002,8 +1033,7 @@ class _CoverPlaceholder extends StatelessWidget {
           ),
         ),
         child: const Center(
-          child: Icon(Icons.menu_book_rounded,
-              color: Colors.white30, size: 72),
+          child: Icon(Icons.menu_book_rounded, color: Colors.white30, size: 72),
         ),
       );
 }
@@ -1056,8 +1086,8 @@ class _TextSheet extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: dark
                           ? AppColors.wine300.withValues(alpha: 0.16)
@@ -1204,8 +1234,8 @@ class _LockedGate extends StatelessWidget {
                                     AppColors.radiusButton),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.wine
-                                        .withValues(alpha: 0.30),
+                                    color:
+                                        AppColors.wine.withValues(alpha: 0.30),
                                     blurRadius: 28,
                                     offset: const Offset(0, 12),
                                   ),

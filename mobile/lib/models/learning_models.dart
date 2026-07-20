@@ -178,6 +178,7 @@ class CourseProgress {
     this.progressPct,
     this.lessons = const [],
     this.hasPendingOrder = false,
+    this.enrolledAt,
   });
   final bool enrolled;
   final String? enrollmentId;
@@ -185,6 +186,7 @@ class CourseProgress {
   final int? progressPct;
   final List<EnrolledLesson> lessons;
   final bool hasPendingOrder;
+  final DateTime? enrolledAt;
 
   bool get isCompleted => status == 'completed';
 
@@ -194,6 +196,9 @@ class CourseProgress {
         status: j['status'] as String?,
         progressPct: j['progress_pct'] as int?,
         hasPendingOrder: j['has_pending_order'] as bool? ?? false,
+        enrolledAt: j['enrolled_at'] == null
+            ? null
+            : DateTime.tryParse(j['enrolled_at'] as String),
         lessons: ((j['lessons'] as List?) ?? [])
             .map((e) => EnrolledLesson.fromJson(e as Map<String, dynamic>))
             .toList(),
@@ -389,8 +394,8 @@ class OrderRequest {
         status: OrderStatusX.fromApi(j['status'] as String?),
         paymentProofUrl: j['payment_proof_url'] as String?,
         adminNote: j['admin_note'] as String?,
-        createdAt:
-            DateTime.tryParse(j['created_at'] as String? ?? '') ?? DateTime.now(),
+        createdAt: DateTime.tryParse(j['created_at'] as String? ?? '') ??
+            DateTime.now(),
       );
 }
 
@@ -433,6 +438,7 @@ class NasiyaTariff {
   final String period;
   final String titleUz;
   final String titleRu;
+
   /// Present only when returned from /calculate (exact sums for this price).
   final num? monthlyPayment;
   final num? total;
@@ -445,8 +451,10 @@ class NasiyaTariff {
 
   factory NasiyaTariff.fromCalculate(Map<String, dynamic> j) => NasiyaTariff(
         period: (j['tariff'] ?? '').toString(),
-        titleUz: (j['title_uz'] ?? j['tariff_name'] ?? j['tariff'] ?? '').toString(),
-        titleRu: (j['title_ru'] ?? j['tariff_name'] ?? j['tariff'] ?? '').toString(),
+        titleUz:
+            (j['title_uz'] ?? j['tariff_name'] ?? j['tariff'] ?? '').toString(),
+        titleRu:
+            (j['title_ru'] ?? j['tariff_name'] ?? j['tariff'] ?? '').toString(),
         monthlyPayment: num.tryParse(j['month']?.toString() ?? ''),
         total: num.tryParse(j['total']?.toString() ?? ''),
       );
@@ -478,12 +486,15 @@ class NasiyaStatus {
   });
 
   final int status;
+
   /// status == 4 means the buyer can take a contract right away.
   final bool isVerified;
+
   /// Whether Uzum has granted the buyer a credit limit. A status-4 buyer
   /// without a limit cannot create a contract (Uzum's order API even 500s
   /// for such buyers), so treat them as still needing registration.
   final bool hasLimit;
+
   /// Open in a WebView when [isVerified] is false so the buyer can finish
   /// Uzum's own registration.
   final String webview;
@@ -512,6 +523,7 @@ class AudiobookAccessStatus {
 
   /// 'granted' = user can read; 'locked' = paid gate shown.
   final String state;
+
   /// 'free' | 'purchased' | 'pending' | 'none'
   final String reason;
   final bool hasPendingOrder;

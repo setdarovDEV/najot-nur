@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import AdminUser, CuratorUser, DbSession
+from app.core.config import settings
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.core.logging import get_logger
 from app.core.security import hash_password_async
@@ -1115,6 +1116,11 @@ async def upload_lesson_video(
     if not (file.content_type or "").startswith("video/"):
         raise AppError("Faqat video fayllari qabul qilinadi (video/*).", status_code=400)
     data = await file.read()
+    max_bytes = settings.lesson_video_max_mb * 1024 * 1024
+    if len(data) > max_bytes:
+        raise AppError(
+            f"Video hajmi {settings.lesson_video_max_mb}MB dan oshmasligi kerak.", status_code=413
+        )
     ext = (file.filename or "video.mp4").rsplit(".", 1)[-1]
     url = await storage.save_bytes(
         data,

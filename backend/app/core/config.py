@@ -131,6 +131,9 @@ class Settings(BaseSettings):
     # Quiz intro video max size in MB.
     quiz_video_max_mb: int = 200
 
+    # Lesson video max size in MB.
+    lesson_video_max_mb: int = 500
+
     # ───── AMOCRM ─────
     amocrm_base_url: str = ""
     amocrm_access_token: str = ""

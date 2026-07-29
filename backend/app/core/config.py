@@ -59,15 +59,13 @@ class Settings(BaseSettings):
 
     # Token lifetimes, per role. All roles get a short access token plus a
     # long, sliding refresh token (rotated on every /refresh call — see
-    # auth.py) so an active session practically never re-logins. Admin/
-    # curator access tokens are shorter-lived than mobile's since a
-    # compromised staff credential has a bigger blast radius.
+    # auth.py) so an active session practically never re-logins.
     access_token_expire_minutes_user: int = 30
     refresh_token_expire_days_user: int = 90
-    access_token_expire_minutes_curator: int = 20
-    refresh_token_expire_days_curator: int = 30
-    access_token_expire_minutes_admin: int = 15
-    refresh_token_expire_days_admin: int = 30
+    access_token_expire_minutes_curator: int = 30
+    refresh_token_expire_days_curator: int = 90
+    access_token_expire_minutes_admin: int = 30
+    refresh_token_expire_days_admin: int = 90
 
     otp_ttl_seconds: int = 120
     otp_length: int = 6
@@ -132,7 +130,7 @@ class Settings(BaseSettings):
     quiz_video_max_mb: int = 200
 
     # Lesson video max size in MB.
-    lesson_video_max_mb: int = 500
+    lesson_video_max_mb: int = 2048
 
     # ───── AMOCRM ─────
     amocrm_base_url: str = ""

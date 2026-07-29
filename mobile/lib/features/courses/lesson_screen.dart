@@ -48,7 +48,8 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
   }
 
   Future<void> _openVideo(String url) async {
-    final uri = Uri.tryParse(url);
+    final fullUrl = ref.read(apiClientProvider).resolveMediaUrl(url);
+    final uri = Uri.tryParse(fullUrl);
     if (uri != null && await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (mounted) {

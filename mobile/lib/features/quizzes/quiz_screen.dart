@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/glass.dart';
 import '../../l10n/gen/app_localizations.dart';
@@ -196,8 +195,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
     final question = quiz.questions[_currentIndex];
     final isLast = _currentIndex == quiz.questions.length - 1;
-    final coverImage = _absoluteUrl(quiz.coverImageUrl);
-    final introVideo = _absoluteUrl(quiz.videoUrl);
+    final coverImage = _absMediaUrl(quiz.coverImageUrl);
+    final introVideo = _absMediaUrl(quiz.videoUrl);
     final progress = (_currentIndex + 1) / quiz.questions.length;
     final counter =
         '${'${_currentIndex + 1}'.padLeft(2, '0')}/${'${quiz.questions.length}'.padLeft(2, '0')}';
@@ -342,7 +341,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                             borderRadius: BorderRadius.circular(
                                 AppColors.radiusTariffCard),
                             child: Image.network(
-                              _absoluteUrl(question.imageUrl)!,
+                              _absMediaUrl(question.imageUrl)!,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) =>
                                   const SizedBox.shrink(),
@@ -352,7 +351,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                         ],
                         if (question.videoUrl != null) ...[
                           _VideoPlayerBlock(
-                              url: _absoluteUrl(question.videoUrl)!),
+                              url: _absMediaUrl(question.videoUrl)!),
                           const SizedBox(height: 12),
                         ],
                         // Question card (mockup 6a).
@@ -444,6 +443,12 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         ],
       ),
     );
+  }
+
+  String? _absMediaUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return ref.read(apiClientProvider).resolveMediaUrl(path);
   }
 }
 
@@ -888,6 +893,7 @@ class _StatRow extends StatelessWidget {
       ],
     );
   }
+
 }
 
 class _ScoreRingPainter extends CustomPainter {
@@ -917,8 +923,7 @@ class _ScoreRingPainter extends CustomPainter {
         2 * math.pi * progress.clamp(0.0, 1.0),
         false,
         fg,
-      );
-    }
+    );
   }
 
   @override
@@ -1004,8 +1009,4 @@ class _VideoPlayerBlock extends StatelessWidget {
   }
 }
 
-String? _absoluteUrl(String? path) {
-  if (path == null || path.isEmpty) return null;
-  if (path.startsWith('http')) return path;
-  return '${AppConstants.apiUrl}$path';
-}
+

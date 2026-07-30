@@ -107,6 +107,13 @@ export interface LessonQuestion {
   order_index: number;
 }
 
+export interface HomeworkFile {
+  filename: string;
+  url: string;
+  size: number;
+  content_type: string;
+}
+
 export interface AdminLesson {
   id: string;
   title: string;
@@ -118,6 +125,7 @@ export interface AdminLesson {
   voice_exercise_prompt: string | null;
   is_demo: boolean;
   questions: LessonQuestion[];
+  homework_files: HomeworkFile[];
 }
 
 export interface AdminCourse {

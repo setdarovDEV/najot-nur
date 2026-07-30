@@ -109,6 +109,7 @@ class LessonDetail {
     required this.isCompleted,
     this.autoScore,
     this.questions = const [],
+    this.homeworkFiles = const [],
   });
   final String id;
   final String title;
@@ -121,6 +122,7 @@ class LessonDetail {
   final bool isCompleted;
   final int? autoScore;
   final List<LessonQuizQuestion> questions;
+  final List<HomeworkFile> homeworkFiles;
 
   bool get hasQuiz => questions.isNotEmpty;
 
@@ -137,6 +139,9 @@ class LessonDetail {
         autoScore: j['auto_score'] as int?,
         questions: ((j['questions'] as List?) ?? [])
             .map((e) => LessonQuizQuestion.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        homeworkFiles: ((j['homework_files'] as List?) ?? [])
+            .map((e) => HomeworkFile.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
 }
@@ -536,4 +541,30 @@ class AudiobookAccessStatus {
         reason: (j['reason'] as String?) ?? 'none',
         hasPendingOrder: (j['has_pending_order'] as bool?) ?? false,
       );
+}
+
+class HomeworkFile {
+  HomeworkFile({
+    required this.filename,
+    required this.url,
+    required this.size,
+    required this.contentType,
+  });
+  final String filename;
+  final String url;
+  final int size;
+  final String contentType;
+
+  factory HomeworkFile.fromJson(Map<String, dynamic> j) => HomeworkFile(
+        filename: j['filename'] as String? ?? '',
+        url: j['url'] as String? ?? '',
+        size: j['size'] as int? ?? 0,
+        contentType: j['content_type'] as String? ?? '',
+      );
+
+  String get sizeFormatted {
+    if (size < 1024) return '$size B';
+    if (size < 1024 * 1024) return '${(size / 1024).toStringAsFixed(1)} KB';
+    return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
 }

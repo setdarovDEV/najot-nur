@@ -31,6 +31,7 @@ class LessonRead(BaseModel):
     is_voice_exercise: bool
     voice_exercise_prompt: str | None
     is_demo: bool
+    homework_files: list = []
 
 
 class CourseRead(BaseModel):

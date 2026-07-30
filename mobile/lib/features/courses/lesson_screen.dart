@@ -177,6 +177,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                             _HomeworkTab(
                               lessonId: widget.lessonId,
                               courseId: widget.courseId,
+                              homeworkFiles: lesson.homeworkFiles,
                             ),
                           ],
                         )
@@ -973,9 +974,14 @@ class _QuizResult extends StatelessWidget {
 // ═══════════════════════════════════════════════════
 
 class _HomeworkTab extends ConsumerStatefulWidget {
-  const _HomeworkTab({required this.lessonId, required this.courseId});
+  const _HomeworkTab({
+    required this.lessonId,
+    required this.courseId,
+    this.homeworkFiles = const [],
+  });
   final String lessonId;
   final String courseId;
+  final List<HomeworkFile> homeworkFiles;
 
   @override
   ConsumerState<_HomeworkTab> createState() => _HomeworkTabState();
@@ -1077,6 +1083,7 @@ class _HomeworkTabState extends ConsumerState<_HomeworkTab> {
           return _HomeworkResult(
             hw: hw,
             l: l,
+            homeworkFiles: widget.homeworkFiles,
             onResubmit: () {
               _textCtrl.text = hw.submissionText ?? '';
               setState(() => _editing = true);
@@ -1116,6 +1123,37 @@ class _HomeworkTabState extends ConsumerState<_HomeworkTab> {
                 ),
               ),
               const SizedBox(height: 16),
+
+              // Homework files from curator
+              if (widget.homeworkFiles.isNotEmpty) ...[
+                GlassEntrance(
+                  child: GlassContainer(
+                    borderRadius: AppColors.radiusTariffCard,
+                    withShadow: false,
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Biriktirilgan fayllar',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: textColor,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ...widget.homeworkFiles.map((f) => _HomeworkFileTile(
+                          file: f,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                        )),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // Toggle: Text or Voice
               GlassEntrance(
@@ -1194,23 +1232,94 @@ class _HomeworkTabState extends ConsumerState<_HomeworkTab> {
                     ),
                   ),
                 ],
-              ],
-            ],
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
+}
+
+class _HomeworkFileTile extends ConsumerWidget {
+  const _HomeworkFileTile({
+    required this.file,
+    required this.textColor,
+    required this.mutedColor,
+  });
+  final HomeworkFile file;
+  final Color textColor;
+  final Color mutedColor;
+
+  IconData _icon() {
+    final ct = file.contentType;
+    if (ct.contains('pdf')) return Icons.picture_as_pdf;
+    if (ct.contains('word') || ct.contains('document')) return Icons.description;
+    if (ct.contains('excel') || ct.contains('spreadsheet')) return Icons.table_chart;
+    if (ct.contains('presentation') || ct.contains('powerpoint')) return Icons.slideshow;
+    if (ct.contains('zip') || ct.contains('rar') || ct.contains('7z') || ct.contains('tar'))
+        return Icons.folder_zip;
+    if (ct.contains('image')) return Icons.image;
+    return Icons.insert_drive_file;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fullUrl = ref.read(apiClientProvider).resolveMediaUrl(file.url);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GlassPressable(
+        onTap: () async {
+          final uri = Uri.tryParse(fullUrl);
+          if (uri != null && await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: textColor.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Icon(_icon(), size: 22, color: textColor.withValues(alpha: 0.6)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  file.filename,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                file.sizeFormatted,
+                style: TextStyle(fontSize: 11, color: mutedColor),
+              ),
+              const SizedBox(width: 6),
+              Icon(Icons.download_rounded, size: 18, color: mutedColor),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 }
 
 class _HomeworkResult extends StatelessWidget {
   const _HomeworkResult({
     required this.hw,
     required this.l,
+    this.homeworkFiles = const [],
     required this.onResubmit,
   });
   final HomeworkSubmission hw;
   final AppLocalizations l;
+  final List<HomeworkFile> homeworkFiles;
   final VoidCallback onResubmit;
 
   @override
@@ -1280,6 +1389,37 @@ class _HomeworkResult extends StatelessWidget {
           ),
 
           const SizedBox(height: 12),
+
+          // Homework files from curator
+          if (homeworkFiles.isNotEmpty) ...[
+            GlassEntrance(
+              child: GlassContainer(
+                borderRadius: AppColors.radiusTariffCard,
+                withShadow: false,
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Biriktirilgan fayllar',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ...homeworkFiles.map((f) => _HomeworkFileTile(
+                      file: f,
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                    )),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
 
           // Submitted text
           if (hw.submissionText != null) ...[

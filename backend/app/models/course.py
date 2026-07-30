@@ -54,6 +54,8 @@ class Lesson(UUIDMixin, TimestampMixin, Base):
     voice_exercise_prompt: Mapped[str | None] = mapped_column(Text)
     # demo lessons are visible and watchable before purchase
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    # homework attachment files uploaded by curator/admin
+    homework_files: Mapped[list] = mapped_column(JSONB, default=list)
 
     course: Mapped["Course"] = relationship(back_populates="lessons")
     questions: Mapped[list["LessonQuestion"]] = relationship(

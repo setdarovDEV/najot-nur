@@ -1011,6 +1011,7 @@ async def get_course_admin(course_id: uuid.UUID, _: CuratorUser, db: DbSession) 
                 "is_voice_exercise": l.is_voice_exercise,
                 "voice_exercise_prompt": l.voice_exercise_prompt,
                 "is_demo": l.is_demo,
+                "homework_files": l.homework_files or [],
                 "questions": [
                     {
                         "id": str(q.id),
@@ -1132,6 +1133,80 @@ async def upload_lesson_video(
     await db.flush()
     log.info("lesson.video_uploaded", lesson_id=str(lesson_id), url=url)
     return {"video_url": url}
+
+
+ALLOWED_HOMEWORK_TYPES = {
+    "application/pdf", "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "image/jpeg", "image/png", "image/webp",
+    "text/plain", "text/csv",
+    "application/zip", "application/x-rar-compressed",
+    "application/x-7z-compressed",
+}
+
+
+@router.post("/lessons/{lesson_id}/homework/files")
+async def upload_homework_file(
+    lesson_id: uuid.UUID,
+    _: CuratorUser,
+    db: DbSession,
+    file: UploadFile = File(...),
+) -> dict:
+    lesson = await db.get(Lesson, lesson_id)
+    if lesson is None:
+        raise NotFoundError("Dars topilmadi.")
+    ct = file.content_type or ""
+    if ct not in ALLOWED_HOMEWORK_TYPES:
+        raise AppError(
+            "Faqat PDF, DOC, Excel, PowerPoint, rasm, matn va arxiv fayllari qabul qilinadi.",
+            status_code=400,
+        )
+    data = await file.read()
+    if len(data) > 50 * 1024 * 1024:
+        raise AppError("Fayl hajmi 50MB dan oshmasligi kerak.", status_code=413)
+    ext = (file.filename or "file").rsplit(".", 1)[-1]
+    name = (file.filename or f"file.{ext}").strip()
+    url = await storage.save_bytes(
+        data,
+        folder="homework_files",
+        filename=f"hw_{lesson_id}_{uuid.uuid4().hex}.{ext}",
+        content_type=ct or "application/octet-stream",
+    )
+    files = list(lesson.homework_files or [])
+    files.append({
+        "filename": name,
+        "url": url,
+        "size": len(data),
+        "content_type": ct or "application/octet-stream",
+    })
+    lesson.homework_files = files
+    await db.flush()
+    log.info("lesson.homework_file_uploaded", lesson_id=str(lesson_id), filename=name)
+    return {"homework_files": files}
+
+
+@router.delete("/lessons/{lesson_id}/homework/files/{file_index}")
+async def delete_homework_file(
+    lesson_id: uuid.UUID,
+    file_index: int,
+    _: CuratorUser,
+    db: DbSession,
+) -> dict:
+    lesson = await db.get(Lesson, lesson_id)
+    if lesson is None:
+        raise NotFoundError("Dars topilmadi.")
+    files = list(lesson.homework_files or [])
+    if file_index < 0 or file_index >= len(files):
+        raise NotFoundError("Fayl topilmadi.")
+    files.pop(file_index)
+    lesson.homework_files = files
+    await db.flush()
+    log.info("lesson.homework_file_deleted", lesson_id=str(lesson_id), index=file_index)
+    return {"homework_files": files}
 
 
 @router.delete("/lessons/{lesson_id}")

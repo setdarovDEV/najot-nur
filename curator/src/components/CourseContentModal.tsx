@@ -22,6 +22,7 @@ import {
   Loader2,
   AlertCircle,
   BookOpen,
+  Paperclip,
 } from "lucide-react";
 import { api, apiError, mediaUrl } from "../lib/api";
 import { useToast } from "../lib/toast";
@@ -371,7 +372,10 @@ function LessonDetail({
         {/* Section 3: Voice exercise */}
         <VoiceSection lesson={lesson} onSave={(p) => updateMut.mutate(p)} />
 
-        {/* Section 4: Demo lesson */}
+        {/* Section 4: Homework files */}
+        <HomeworkSection lesson={lesson} onRefresh={onRefresh} />
+
+        {/* Section 5: Demo lesson */}
         <DemoSection lesson={lesson} onSave={(p) => updateMut.mutate(p)} />
       </div>
     </div>
@@ -991,6 +995,149 @@ function StatusBadge({
     <StatusPill tone={ok ? "success" : "warning"} className="shrink-0">
       {children}
     </StatusPill>
+  );
+}
+
+// ─── Homework files section ─────────────────────────────────────────────────
+
+function HomeworkSection({
+  lesson,
+  onRefresh,
+}: {
+  lesson: AdminLesson;
+  onRefresh: () => void;
+}) {
+  const toast = useToast();
+  const [progress, setProgress] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const upload = useCallback(
+    async (file: File) => {
+      const allowed = [
+        "application/pdf", "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "image/jpeg", "image/png", "image/webp",
+        "text/plain", "text/csv",
+        "application/zip", "application/x-rar-compressed",
+        "application/x-7z-compressed",
+      ];
+      if (!allowed.includes(file.type)) {
+        toast.error("Faqat PDF, DOC, Excel, rasm va arxiv fayllari qabul qilinadi.");
+        return;
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error("Fayl hajmi 50MB dan oshmasligi kerak.");
+        return;
+      }
+      setProgress(0);
+      const fd = new FormData();
+      fd.append("file", file);
+      try {
+        await api.post(`/admin/lessons/${lesson.id}/homework/files`, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: (evt) => {
+            if (evt.total) setProgress(Math.round((evt.loaded / evt.total) * 100));
+          },
+        });
+        toast.success("Fayl muvaffaqiyatli yuklandi.");
+        onRefresh();
+      } catch (e) {
+        toast.error(apiError(e));
+      } finally {
+        setProgress(null);
+        if (inputRef.current) inputRef.current.value = "";
+      }
+    },
+    [lesson.id, onRefresh, toast],
+  );
+
+  const deleteMut = useMutation({
+    mutationFn: (index: number) => api.delete(`/admin/lessons/${lesson.id}/homework/files/${index}`),
+    onSuccess: () => {
+      toast.success("Fayl o'chirildi.");
+      onRefresh();
+    },
+    onError: (e) => toast.error(apiError(e)),
+  });
+
+  const files = lesson.homework_files ?? [];
+
+  return (
+    <CollapsibleSection
+      icon={<Paperclip size={17} className="text-cyan-600" />}
+      title="Uyga vazifa fayllari"
+      badge={
+        files.length > 0 ? (
+          <StatusBadge ok>{files.length} ta fayl</StatusBadge>
+        ) : (
+          <StatusBadge>Fayl yo'q</StatusBadge>
+        )
+      }
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt,.csv,.zip,.rar,.7z"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }}
+      />
+
+      {files.length > 0 && (
+        <div className="mb-4 flex flex-col gap-2">
+          {files.map((f, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-sm font-semibold text-ink">{f.filename}</p>
+                <p className="text-xs text-muted">
+                  {(f.size / 1024 / 1024).toFixed(1)} MB
+                </p>
+              </div>
+              <a
+                href={mediaUrl(f.url) ?? ""}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="press flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-wine hover:bg-wine/5"
+              >
+                Yuklab olish
+              </a>
+              <button
+                onClick={() => deleteMut.mutate(i)}
+                disabled={deleteMut.isPending}
+                className="press shrink-0 text-muted hover:text-danger disabled:opacity-50"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={progress !== null}
+        className="press flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line py-4 text-sm font-semibold text-muted transition hover:border-cyan-400 hover:bg-cyan-500/5 disabled:opacity-50"
+      >
+        <Upload size={18} />
+        Fayl qo'shish
+      </button>
+
+      {progress !== null && (
+        <div className="mt-3">
+          <ProgressBar value={progress} />
+        </div>
+      )}
+
+      <p className="mt-2 text-xs text-muted">
+        PDF, DOC, Excel, rasm, matn, arxiv — 50 MB gacha
+      </p>
+    </CollapsibleSection>
   );
 }
 

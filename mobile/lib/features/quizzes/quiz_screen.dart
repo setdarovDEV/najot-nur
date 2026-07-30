@@ -923,7 +923,8 @@ class _ScoreRingPainter extends CustomPainter {
         2 * math.pi * progress.clamp(0.0, 1.0),
         false,
         fg,
-    );
+      );
+    }
   }
 
   @override

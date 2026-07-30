@@ -139,12 +139,41 @@ class Settings(BaseSettings):
     amocrm_responsible_user_id: str = ""
 
     # ───── Storage ─────
+    # Cloudflare R2 is the production target: S3-compatible API, zero egress.
+    #   S3_ENDPOINT = https://<account-id>.r2.cloudflarestorage.com
+    #   S3_REGION   = auto
     s3_endpoint: str = ""
     s3_region: str = "us-east-1"
     s3_bucket: str = "notiqai-media"
     s3_access_key: str = ""
     s3_secret_key: str = ""
     local_media_dir: str = "./media"
+    # Public CDN origin for stored objects (R2 custom domain / Cloudflare zone).
+    # When set, playback URLs are built from this host instead of the S3
+    # endpoint, so bytes are served by the CDN edge and never by the API.
+    s3_public_base_url: str = ""
+    # Bucket is private: playback URLs are presigned for this many seconds.
+    # 6h comfortably covers a lesson watch without making links shareable.
+    media_signed_url_ttl_sec: int = 6 * 3600
+
+    # ───── Video pipeline ─────
+    # Part size for browser→storage multipart uploads. S3 requires >=5MiB for
+    # every part but the last; 8MiB keeps the part count sane for 2GB files
+    # (2GB / 8MiB = 256 parts) while staying small enough to retry cheaply.
+    video_upload_part_size_mb: int = 8
+    # How long the presigned PUT URLs handed to the browser stay valid.
+    video_upload_url_ttl_sec: int = 12 * 3600
+    # Transcode lesson videos to an HLS ladder via the arq worker. When off,
+    # the uploaded MP4 is served directly (no adaptive bitrate).
+    video_transcode_enabled: bool = True
+    # Rendition ladder as "height:video_kbps:audio_kbps", low → high. Sources
+    # shorter than a rung's height are not upscaled; that rung is skipped.
+    video_hls_ladder: str = "360:800:96,720:2500:128,1080:5000:192"
+    # Segment length in seconds. 4s balances startup latency against the
+    # request count on the CDN.
+    video_hls_segment_sec: int = 4
+    ffmpeg_binary: str = "ffmpeg"
+    ffprobe_binary: str = "ffprobe"
 
     # ───── Payments ─────
     uzum_merchant_id: str = ""

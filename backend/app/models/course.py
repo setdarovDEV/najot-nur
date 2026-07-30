@@ -47,7 +47,15 @@ class Lesson(UUIDMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
+    # Original uploaded file (mp4). Kept as the transcode source and as the
+    # playback fallback while the HLS ladder is still being built.
     video_url: Mapped[str | None] = mapped_column(String(512))
+    # HLS master playlist produced by the transcode worker — this is what
+    # players should prefer: adaptive bitrate, starts in ~1s.
+    hls_url: Mapped[str | None] = mapped_column(String(512))
+    poster_url: Mapped[str | None] = mapped_column(String(512))
+    # pending → processing → ready | failed. "ready" means hls_url is usable.
+    video_status: Mapped[str | None] = mapped_column(String(20))
     duration_sec: Mapped[int] = mapped_column(Integer, default=0)
     # voice-exercise lessons trigger the AI practice flow after watching
     is_voice_exercise: Mapped[bool] = mapped_column(Boolean, default=False)

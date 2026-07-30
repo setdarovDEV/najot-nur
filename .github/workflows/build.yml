@@ -52,6 +52,11 @@ jobs:
               dockerfile: Dockerfile.prod
               build_args: ""
           - service:
+              name: worker
+              context: ./backend
+              dockerfile: Dockerfile.worker
+              build_args: ""
+          - service:
               name: admin
               context: ./admin
               dockerfile: Dockerfile.prod
@@ -215,7 +220,7 @@ jobs:
             echo "▶ Konteynerlar qayta yaratilmoqda (maks 6 min)..."
             if ! timeout 6m docker compose up -d --remove-orphans; then
               echo "⚠ up -d 6 min ichida tugamadi — sog'lom bo'lmagan servis loglari:" >&2
-              for svc in backend admin curator landing nginx; do
+              for svc in backend worker admin curator landing nginx; do
                 if [ "$(docker inspect -f '{{.State.Health.Status}}' "notiq_${svc}" 2>/dev/null)" != "healthy" ]; then
                   echo "──── $svc (oxirgi 40 qator) ────" >&2
                   docker compose logs --tail 40 "$svc" 2>&1 | sed 's/^/    /' >&2

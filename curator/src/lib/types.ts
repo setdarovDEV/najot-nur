@@ -120,6 +120,11 @@ export interface AdminLesson {
   description: string | null;
   order_index: number;
   video_url: string | null;
+  /** HLS master playlist — present once transcoding finished. */
+  hls_url: string | null;
+  poster_url: string | null;
+  /** pending → processing → ready | failed */
+  video_status: "pending" | "processing" | "ready" | "failed" | null;
   duration_sec: number;
   is_voice_exercise: boolean;
   voice_exercise_prompt: string | null;

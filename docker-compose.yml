@@ -137,6 +137,44 @@ services:
       com.centurylinklabs.watchtower.enable: "true"
 
   # ─────────────────────────────────────────────────────────────
+  #  Transcode worker — arq + ffmpeg, builds the HLS ladder for
+  #  lesson videos. CPU-bound: scale with `--scale worker=N`, but
+  #  keep N below the core count or every encode just gets slower.
+  # ─────────────────────────────────────────────────────────────
+  worker:
+    image: ghcr.io/setdarovdev/najot-nur-worker:${IMAGE_TAG:-latest}
+    container_name: notiq_worker
+    restart: unless-stopped
+    pull_policy: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-notiq}:${POSTGRES_PASSWORD:?required}@postgres:5432/${POSTGRES_DB:-notiqai}
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: production
+      DEBUG: "false"
+      LOCAL_MEDIA_DIR: /app/media
+    volumes:
+      - media:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          # ffmpeg streams rather than buffers, but x264 lookahead on 1080p
+          # still wants real headroom.
+          memory: 2G
+    networks:
+      - notiq
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  # ─────────────────────────────────────────────────────────────
   #  Admin SPA — React + Vite (prebuilt image from GHCR)
   # ─────────────────────────────────────────────────────────────
   admin:

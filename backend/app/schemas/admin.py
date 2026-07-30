@@ -116,3 +116,30 @@ class CuratorRead(BaseModel):
     is_active: bool
     is_verified: bool
     created_at: datetime
+
+
+# ───────────────────── Lesson video upload (direct to storage) ─────────────────────
+class LessonVideoInit(BaseModel):
+    """Request to open a browser→storage multipart upload."""
+
+    filename: str = Field(..., min_length=1, max_length=255)
+    content_type: str = Field(..., min_length=1, max_length=100)
+    size: int = Field(..., gt=0)
+
+
+class UploadedPart(BaseModel):
+    """One completed part, as reported back by the browser."""
+
+    part_number: int = Field(..., ge=1, le=10_000)
+    etag: str = Field(..., min_length=1, max_length=256)
+
+
+class LessonVideoComplete(BaseModel):
+    key: str = Field(..., min_length=1, max_length=512)
+    upload_id: str = Field(..., min_length=1, max_length=512)
+    parts: list[UploadedPart] = Field(..., min_length=1)
+
+
+class LessonVideoAbort(BaseModel):
+    key: str = Field(..., min_length=1, max_length=512)
+    upload_id: str = Field(..., min_length=1, max_length=512)

@@ -32,6 +32,11 @@ dependencies:
   # In-app WebView for the Telegram Login Widget OAuth flow
   flutter_inappwebview: ^6.1.5
 
+  # Video playback (video darsliklar) — HLS adaptive bitrate via ExoPlayer
+  # on Android and AVPlayer on iOS, both handled natively by video_player.
+  video_player: ^2.9.2
+  chewie: ^1.8.5
+
   # Audio playback (audiokitob)
   just_audio: ^0.9.42
   audio_service: ^0.18.16

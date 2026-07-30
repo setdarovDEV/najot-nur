@@ -38,6 +38,9 @@ from app.schemas.admin import (
     GiftCourseRequest,
     GradeRequest,
     HomeworkRow,
+    LessonVideoAbort,
+    LessonVideoComplete,
+    LessonVideoInit,
     PushCreate,
     PushRead,
 )
@@ -50,6 +53,7 @@ from app.schemas.audiobook import (
 )
 from app.schemas.common import Message, Page
 from app.services import order_service, storage
+from app.workers import queue
 
 router = APIRouter()
 log = get_logger("admin")
@@ -1006,7 +1010,12 @@ async def get_course_admin(course_id: uuid.UUID, _: CuratorUser, db: DbSession) 
                 "title": l.title,
                 "description": l.description,
                 "order_index": l.order_index,
-                "video_url": l.video_url,
+                # The bucket is private — presign so the panel's <video>
+                # preview can actually fetch the file.
+                "video_url": await _signed(l.video_url),
+                "hls_url": l.hls_url,
+                "poster_url": await _signed(l.poster_url),
+                "video_status": l.video_status,
                 "duration_sec": l.duration_sec,
                 "is_voice_exercise": l.is_voice_exercise,
                 "voice_exercise_prompt": l.voice_exercise_prompt,
@@ -1104,6 +1113,124 @@ async def add_lesson(course_id: uuid.UUID, payload: dict, _: CuratorUser, db: Db
     }
 
 
+# ─────────────────── Lesson video upload ───────────────────
+#
+# Large videos never pass through this process. The browser asks for presigned
+# part URLs, PUTs the parts straight to object storage in parallel, then tells
+# us to finalise — at which point an HLS transcode is queued. The legacy
+# single-request endpoint below stays for local dev (no S3) and small files,
+# but streams to disk instead of buffering the whole file in RAM.
+
+
+async def _signed(stored: str | None) -> str | None:
+    """Presign a stored media URL so a private-bucket object is fetchable."""
+    if not stored:
+        return None
+    key = storage.key_from_url(stored)
+    return stored if key is None else await storage.presign_get(key)
+
+
+async def _get_lesson(db: AsyncSession, lesson_id: uuid.UUID) -> Lesson:
+    lesson = await db.get(Lesson, lesson_id)
+    if lesson is None:
+        raise NotFoundError("Dars topilmadi.")
+    return lesson
+
+
+@router.post("/lessons/{lesson_id}/video/init")
+async def init_lesson_video_upload(
+    lesson_id: uuid.UUID,
+    _: CuratorUser,
+    db: DbSession,
+    payload: LessonVideoInit,
+) -> dict:
+    """Open a multipart upload and hand the browser one presigned URL per part."""
+    await _get_lesson(db, lesson_id)
+
+    if not payload.content_type.startswith("video/"):
+        raise AppError("Faqat video fayllari qabul qilinadi (video/*).", status_code=400)
+    max_bytes = settings.lesson_video_max_mb * 1024 * 1024
+    if payload.size > max_bytes:
+        raise AppError(
+            f"Video hajmi {settings.lesson_video_max_mb}MB dan oshmasligi kerak.",
+            status_code=413,
+        )
+    if not storage.s3_enabled():
+        raise AppError(
+            "Object storage sozlanmagan — video to'g'ridan-to'g'ri yuklanadi.",
+            status_code=409,
+        )
+
+    part_size = settings.video_upload_part_size_mb * 1024 * 1024
+    part_count = max(1, -(-payload.size // part_size))  # ceil division
+    ext = (payload.filename or "video.mp4").rsplit(".", 1)[-1].lower()[:8] or "mp4"
+    # Uploads land under a per-attempt key so a re-upload never races the
+    # transcode of the previous one; the worker moves the result to the
+    # canonical videos/{lesson_id}/ prefix.
+    key = f"uploads/{lesson_id}/{uuid.uuid4().hex}.{ext}"
+
+    upload_id, urls = await storage.multipart_create(
+        key, content_type=payload.content_type, part_count=part_count
+    )
+    log.info(
+        "lesson.video_upload_init",
+        lesson_id=str(lesson_id), key=key, parts=part_count, size=payload.size,
+    )
+    return {
+        "key": key,
+        "upload_id": upload_id,
+        "part_size": part_size,
+        "part_urls": urls,
+    }
+
+
+@router.post("/lessons/{lesson_id}/video/complete")
+async def complete_lesson_video_upload(
+    lesson_id: uuid.UUID,
+    _: CuratorUser,
+    db: DbSession,
+    payload: LessonVideoComplete,
+) -> dict:
+    """Finalise the multipart upload and queue the HLS transcode."""
+    lesson = await _get_lesson(db, lesson_id)
+
+    url = await storage.multipart_complete(
+        payload.key,
+        payload.upload_id,
+        [{"PartNumber": p.part_number, "ETag": p.etag} for p in payload.parts],
+    )
+
+    # Clear the previous rendition so the player never mixes an old HLS ladder
+    # with a new source while the transcode runs.
+    lesson.video_url = url
+    lesson.hls_url = None
+    lesson.poster_url = None
+    lesson.video_status = "pending"
+    await db.flush()
+
+    queued = await queue.enqueue_transcode(str(lesson_id), payload.key)
+    if not queued:
+        # No worker / transcoding disabled — the MP4 itself is the final asset.
+        lesson.video_status = "ready"
+        await db.flush()
+
+    log.info("lesson.video_uploaded", lesson_id=str(lesson_id), url=url, queued=queued)
+    return {"video_url": url, "video_status": lesson.video_status}
+
+
+@router.post("/lessons/{lesson_id}/video/abort")
+async def abort_lesson_video_upload(
+    lesson_id: uuid.UUID,
+    _: CuratorUser,
+    db: DbSession,
+    payload: LessonVideoAbort,
+) -> Message:
+    """Discard a cancelled/failed upload so its parts stop being stored."""
+    await _get_lesson(db, lesson_id)
+    await storage.multipart_abort(payload.key, payload.upload_id)
+    return Message(message="Yuklash bekor qilindi.")
+
+
 @router.post("/lessons/{lesson_id}/video")
 async def upload_lesson_video(
     lesson_id: uuid.UUID,
@@ -1111,28 +1238,67 @@ async def upload_lesson_video(
     db: DbSession,
     file: UploadFile = File(...),
 ) -> dict:
-    lesson = await db.get(Lesson, lesson_id)
-    if lesson is None:
-        raise NotFoundError("Dars topilmadi.")
+    """Single-request upload — fallback for local dev and small files.
+
+    Streams straight to storage: the file is never held in memory, and the
+    size limit is enforced as bytes arrive rather than after reading 2GB.
+    """
+    lesson = await _get_lesson(db, lesson_id)
     if not (file.content_type or "").startswith("video/"):
         raise AppError("Faqat video fayllari qabul qilinadi (video/*).", status_code=400)
-    data = await file.read()
+
     max_bytes = settings.lesson_video_max_mb * 1024 * 1024
-    if len(data) > max_bytes:
+    # Content-Length is advisory but lets an oversized upload be rejected
+    # before a single byte is stored.
+    declared = file.size or 0
+    if declared > max_bytes:
         raise AppError(
-            f"Video hajmi {settings.lesson_video_max_mb}MB dan oshmasligi kerak.", status_code=413
+            f"Video hajmi {settings.lesson_video_max_mb}MB dan oshmasligi kerak.",
+            status_code=413,
         )
+
     ext = (file.filename or "video.mp4").rsplit(".", 1)[-1]
-    url = await storage.save_bytes(
-        data,
+    url, written = await storage.save_stream(
+        file,
         folder="videos",
         filename=f"lesson_{lesson_id}.{ext}",
         content_type=file.content_type or "video/mp4",
     )
+    if written > max_bytes:
+        raise AppError(
+            f"Video hajmi {settings.lesson_video_max_mb}MB dan oshmasligi kerak.",
+            status_code=413,
+        )
+
     lesson.video_url = url
+    lesson.hls_url = None
+    lesson.poster_url = None
+    lesson.video_status = "pending"
     await db.flush()
-    log.info("lesson.video_uploaded", lesson_id=str(lesson_id), url=url)
-    return {"video_url": url}
+
+    source_key = storage.key_from_url(url)
+    queued = bool(source_key) and await queue.enqueue_transcode(str(lesson_id), source_key)
+    if not queued:
+        lesson.video_status = "ready"
+        await db.flush()
+
+    log.info("lesson.video_uploaded", lesson_id=str(lesson_id), url=url, queued=queued)
+    return {"video_url": url, "video_status": lesson.video_status}
+
+
+@router.get("/lessons/{lesson_id}/video/status")
+async def lesson_video_status(
+    lesson_id: uuid.UUID, _: CuratorUser, db: DbSession
+) -> dict:
+    """Poll target for the admin UI while a transcode is running."""
+    lesson = await _get_lesson(db, lesson_id)
+    return {
+        "video_status": lesson.video_status,
+        "video_url": await _signed(lesson.video_url),
+        "hls_url": lesson.hls_url,
+        "poster_url": await _signed(lesson.poster_url),
+        "duration_sec": lesson.duration_sec,
+    }
 
 
 ALLOWED_HOMEWORK_TYPES = {

@@ -49,6 +49,7 @@ notiq_admin        ghcr.io/...admin      ── React SPA
 notiq_curator      ghcr.io/...curator    ── React SPA
 notiq_landing      ghcr.io/...landing    ── React SPA
 notiq_backend      ghcr.io/...backend    ── FastAPI + gunicorn
+notiq_worker       ghcr.io/...worker     ── arq + ffmpeg, video transcoding
 notiq_postgres     postgres:16-alpine    ── primary DB
 notiq_redis        redis:7-alpine        ── cache + rate-limit
 notiq_watchtower   watchtower            ── auto-pull new images
@@ -133,7 +134,7 @@ docker exec -it notiq_postgres psql -U notiq -d notiqai
 
 ## Required: GHCR images must be PUBLIC
 
-GitHub Actions pushes images to `ghcr.io/setdarovdev/najot-nur-{backend,admin,curator,landing}`. Watchtower on the server can only pull them if they're **public**.
+GitHub Actions pushes images to `ghcr.io/setdarovdev/najot-nur-{backend,worker,admin,curator,landing}`. Watchtower on the server can only pull them if they're **public**.
 
 Verify at: <https://github.com/setdarovDEV?tab=packages>
 
@@ -167,3 +168,53 @@ Caddy will auto-issue a Let's Encrypt cert for the new domain within seconds.
 - Rate-limit zones: 30 r/s API, 5 r/min auth
 - Auto-HTTPS (Let's Encrypt) + auto-renewal
 - All GHCR images scanned by GitHub
+
+## Video pipeline (Cloudflare R2 + HLS)
+
+Lesson videos do not pass through the API. The admin browser uploads parts
+straight to R2 with presigned URLs, then `notiq_worker` builds an HLS ladder
+with ffmpeg. Playlists are served (and gated) by the API; segments come from
+the CDN edge.
+
+**1. R2 credentials in `.env`:**
+
+```bash
+S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+S3_REGION=auto
+S3_BUCKET=notiqai-media
+S3_ACCESS_KEY=<R2 API token access key>
+S3_SECRET_KEY=<R2 API token secret>
+S3_PUBLIC_BASE_URL=https://cdn.notiqlik.uz   # R2 custom domain
+```
+
+Leave `S3_ACCESS_KEY` empty to fall back to local disk — the panel detects
+this (HTTP 409 from `/video/init`) and uses the single-request upload instead.
+
+**2. R2 CORS — required, uploads fail silently without it.** The browser must
+be able to read the `ETag` response header of each uploaded part:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://admin.notiqlik.uz", "https://curator.notiqlik.uz"],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+**3. Keep the bucket private.** Access is granted per request: playlists via a
+short-lived token, segments via presigned URLs. A public bucket would make the
+enrollment gate decorative.
+
+**4. Scaling the worker.** Transcoding is CPU-bound — never run more workers
+than cores, or every encode just gets slower:
+
+```bash
+docker compose up -d --scale worker=2
+```
+
+Set `VIDEO_TRANSCODE_ENABLED=false` to turn the ladder off; uploads still work
+and the MP4 is served directly.

@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1.6
+# ─────────────────────────────────────────────────────────────
+#  NotiqAI Transcode Worker — arq + ffmpeg
+#
+#  Kept separate from the API image so the web containers stay slim:
+#  ffmpeg and its codec dependencies add ~300MB that the API never uses.
+# ─────────────────────────────────────────────────────────────
+FROM python:3.12-slim AS base
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH=/app \
+    HOME=/tmp
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg tini \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r app && useradd -r -g app app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY --chown=app:app . .
+
+# Transcoding writes multi-GB intermediates to the system temp dir.
+RUN mkdir -p /tmp/transcode && chown app:app /tmp/transcode
+ENV TMPDIR=/tmp/transcode
+
+USER app
+
+# The worker holds no ports; liveness is "arq is still connected to Redis".
+HEALTHCHECK --interval=60s --timeout=10s --start-period=20s --retries=3 \
+    CMD python -c "import redis, os, urllib.parse as u; \
+p=u.urlparse(os.environ.get('REDIS_URL','redis://redis:6379/0')); \
+redis.Redis(host=p.hostname, port=p.port or 6379).ping()" || exit 1
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["arq", "app.workers.main.WorkerSettings"]

@@ -10,6 +10,7 @@ import '../../providers/providers.dart';
 import '../../shared/widgets/common.dart';
 import '../../shared/widgets/secure_screen.dart';
 import '../../shared/widgets/voice_recorder.dart';
+import 'video_player_screen.dart';
 
 /// Lesson screen, Liquid Glass mockup "6b": dark gradient video block with a
 /// frosted play button and glass chrome, a glass segmented tab picker and
@@ -47,18 +48,28 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
     super.dispose();
   }
 
-  Future<void> _openVideo(String url) async {
-    final fullUrl = ref.read(apiClientProvider).resolveMediaUrl(url);
-    final uri = Uri.tryParse(fullUrl);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (mounted) {
+  /// Opens the lesson video in the in-app player, preferring the HLS ladder
+  /// (adaptive bitrate, ~1s to first frame) and falling back to the MP4 while
+  /// a freshly uploaded lesson is still being transcoded.
+  Future<void> _openVideo(LessonDetail lesson) async {
+    final source = lesson.playbackUrl;
+    if (source == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).videoOpenError),
-        ),
+        SnackBar(content: Text(AppLocalizations.of(context).videoOpenError)),
       );
+      return;
     }
+    final fullUrl = ref.read(apiClientProvider).resolveMediaUrl(source);
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VideoPlayerScreen(
+          url: fullUrl,
+          title: lesson.title,
+          isHls: lesson.hlsUrl != null,
+        ),
+      ),
+    );
   }
 
   @override
@@ -391,7 +402,7 @@ class _VideoTab extends ConsumerWidget {
   });
   final LessonDetail lesson;
   final String courseId;
-  final Future<void> Function(String) onOpenVideo;
+  final Future<void> Function(LessonDetail) onOpenVideo;
   final Future<void> Function()? onComplete;
 
   @override
@@ -410,10 +421,10 @@ class _VideoTab extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Video block: dark gradient frame + frosted play button (6b).
-          if (lesson.videoUrl != null)
+          if (lesson.playbackUrl != null)
             GlassEntrance(
               child: GlassPressable(
-                onTap: () => onOpenVideo(lesson.videoUrl!),
+                onTap: () => onOpenVideo(lesson),
                 child: Container(
                   height: 220,
                   decoration: BoxDecoration(
@@ -422,6 +433,22 @@ class _VideoTab extends ConsumerWidget {
                       end: Alignment.bottomRight,
                       colors: [AppColors.ink, AppColors.wineDeep],
                     ),
+                    // Poster frame extracted during transcoding — a few KB, so
+                    // the lesson looks like the video it is before playback.
+                    image: lesson.posterUrl == null
+                        ? null
+                        : DecorationImage(
+                            image: NetworkImage(
+                              ref
+                                  .read(apiClientProvider)
+                                  .resolveMediaUrl(lesson.posterUrl!),
+                            ),
+                            fit: BoxFit.cover,
+                            colorFilter: ColorFilter.mode(
+                              Colors.black.withValues(alpha: 0.35),
+                              BlendMode.darken,
+                            ),
+                          ),
                     borderRadius:
                         BorderRadius.circular(AppColors.radiusTariffCard),
                   ),
@@ -475,7 +502,9 @@ class _VideoTab extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-                              const Icon(Icons.open_in_new_rounded,
+                              // Playback is in-app now, so this is a play
+                              // affordance rather than "leaves the app".
+                              const Icon(Icons.play_circle_outline_rounded,
                                   color: Colors.white, size: 15),
                             ],
                           ),
@@ -1232,9 +1261,11 @@ class _HomeworkTabState extends ConsumerState<_HomeworkTab> {
                     ),
                   ),
                 ],
-          ],
-        ),
-      ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -1307,7 +1338,6 @@ class _HomeworkFileTile extends ConsumerWidget {
       ),
     );
   }
-}
 }
 
 class _HomeworkResult extends StatelessWidget {

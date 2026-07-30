@@ -102,6 +102,9 @@ class LessonDetail {
     required this.title,
     this.description,
     this.videoUrl,
+    this.hlsUrl,
+    this.posterUrl,
+    this.videoStatus,
     required this.durationSec,
     required this.isVoiceExercise,
     this.voiceExercisePrompt,
@@ -114,7 +117,17 @@ class LessonDetail {
   final String id;
   final String title;
   final String? description;
+
+  /// Progressive-download MP4. Fallback for when [hlsUrl] is not ready yet.
   final String? videoUrl;
+
+  /// HLS master playlist — adaptive bitrate, starts in about a second.
+  /// Null while the server is still transcoding.
+  final String? hlsUrl;
+  final String? posterUrl;
+
+  /// pending | processing | ready | failed
+  final String? videoStatus;
   final int durationSec;
   final bool isVoiceExercise;
   final String? voiceExercisePrompt;
@@ -126,11 +139,23 @@ class LessonDetail {
 
   bool get hasQuiz => questions.isNotEmpty;
 
+  /// Best available playback source: HLS when transcoding finished, the raw
+  /// MP4 otherwise.
+  String? get playbackUrl => hlsUrl ?? videoUrl;
+
+  /// True when the ladder is still being built — playback works, but from the
+  /// single-bitrate MP4.
+  bool get isTranscoding =>
+      videoStatus == 'pending' || videoStatus == 'processing';
+
   factory LessonDetail.fromJson(Map<String, dynamic> j) => LessonDetail(
         id: j['id'] as String,
         title: j['title'] as String,
         description: j['description'] as String?,
         videoUrl: j['video_url'] as String?,
+        hlsUrl: j['hls_url'] as String?,
+        posterUrl: j['poster_url'] as String?,
+        videoStatus: j['video_status'] as String?,
         durationSec: j['duration_sec'] as int? ?? 0,
         isVoiceExercise: j['is_voice_exercise'] as bool? ?? false,
         voiceExercisePrompt: j['voice_exercise_prompt'] as String?,

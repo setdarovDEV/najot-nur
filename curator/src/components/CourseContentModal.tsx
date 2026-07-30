@@ -15,16 +15,24 @@ import {
   Video,
   ClipboardList,
   Mic,
-  Play,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
   Loader2,
   AlertCircle,
   BookOpen,
+  Play,
   Paperclip,
 } from "lucide-react";
 import { api, apiError, mediaUrl } from "../lib/api";
+import {
+  UploadCancelled,
+  formatEta,
+  formatRate,
+  uploadLessonVideo,
+  type UploadHandle,
+  type UploadProgress,
+} from "../lib/videoUpload";
 import { useToast } from "../lib/toast";
 import { useConfirm } from "../lib/confirm";
 import { useLang } from "../lib/i18n";
@@ -460,8 +468,9 @@ function VideoSection({
   onRefresh: () => void;
 }) {
   const toast = useToast();
-  const [progress, setProgress] = useState<number | null>(null);
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const handleRef = useRef<UploadHandle | null>(null);
 
   const upload = useCallback(
     async (file: File) => {
@@ -469,27 +478,43 @@ function VideoSection({
         toast.error("Faqat video fayl yuklash mumkin.");
         return;
       }
-      setProgress(0);
-      const fd = new FormData();
-      fd.append("file", file);
+      setProgress({ percent: 0, phase: "uploading", bytesPerSecond: 0, etaSeconds: null });
+      const handle = uploadLessonVideo(lesson.id, file, setProgress);
+      handleRef.current = handle;
       try {
-        await api.post(`/admin/lessons/${lesson.id}/video`, fd, {
-          headers: { "Content-Type": "multipart/form-data" },
-          onUploadProgress: (evt) => {
-            if (evt.total) setProgress(Math.round((evt.loaded / evt.total) * 100));
-          },
-        });
-        toast.success("Video muvaffaqiyatli yuklandi.");
+        const res = await handle.promise;
+        toast.success(
+          res.video_status === "ready"
+            ? "Video muvaffaqiyatli yuklandi."
+            : "Video yuklandi — sifat variantlari tayyorlanmoqda."
+        );
         onRefresh();
       } catch (e) {
-        toast.error(apiError(e));
+        if (e instanceof UploadCancelled) toast.error("Yuklash bekor qilindi.");
+        else toast.error(apiError(e));
       } finally {
+        handleRef.current = null;
         setProgress(null);
         if (inputRef.current) inputRef.current.value = "";
       }
     },
     [lesson.id, onRefresh, toast]
   );
+
+  // While the worker builds the HLS ladder the lesson has no playable
+  // rendition yet — poll until it flips to ready/failed.
+  const processing =
+    lesson.video_status === "pending" || lesson.video_status === "processing";
+  useQuery({
+    queryKey: ["lesson-video-status", lesson.id],
+    queryFn: async () => {
+      const res = await api.get(`/admin/lessons/${lesson.id}/video/status`);
+      if (res.data.video_status !== lesson.video_status) onRefresh();
+      return res.data;
+    },
+    enabled: processing,
+    refetchInterval: 5000,
+  });
 
   const [dragging, setDragging] = useState(false);
 
@@ -512,9 +537,12 @@ function VideoSection({
         <div className="flex flex-col gap-3">
           <video
             src={mediaUrl(lesson.video_url) ?? ""}
+            poster={mediaUrl(lesson.poster_url) ?? undefined}
             controls
+            preload="metadata"
             className="max-h-56 w-full rounded-xl border border-line bg-black object-contain"
           />
+          <TranscodeStatus status={lesson.video_status} />
           <button
             onClick={() => inputRef.current?.click()}
             disabled={progress !== null}
@@ -523,7 +551,12 @@ function VideoSection({
             <Upload size={14} />
             Videoni almashtirish
           </button>
-          {progress !== null && <ProgressBar value={progress} />}
+          {progress !== null && (
+            <UploadProgressBar
+              progress={progress}
+              onCancel={() => handleRef.current?.cancel()}
+            />
+          )}
         </div>
       ) : (
         <div
@@ -548,7 +581,12 @@ function VideoSection({
             <br />
             <span className="text-xs">MP4, MOV, AVI — 2 GB gacha</span>
           </div>
-          {progress !== null && <ProgressBar value={progress} />}
+          {progress !== null && (
+            <UploadProgressBar
+              progress={progress}
+              onCancel={() => handleRef.current?.cancel()}
+            />
+          )}
         </div>
       )}
     </CollapsibleSection>
@@ -1156,4 +1194,74 @@ function ProgressBar({ value }: { value: number }) {
       </div>
     </div>
   );
+}
+
+/**
+ * Upload progress with throughput and ETA. On a 2GB file the difference
+ * between "stalled" and "8 minutes left" is the difference between the
+ * curator waiting and the curator reloading the page mid-upload.
+ */
+function UploadProgressBar({
+  progress,
+  onCancel,
+}: {
+  progress: UploadProgress;
+  onCancel: () => void;
+}) {
+  const rate = formatRate(progress.bytesPerSecond);
+  const eta = formatEta(progress.etaSeconds);
+  return (
+    <div className="w-full">
+      <div className="mb-1 flex items-center justify-between gap-2 text-xs text-muted">
+        <span>
+          {progress.phase === "finalizing" ? "Yakunlanmoqda…" : "Yuklanmoqda…"}
+          {rate && progress.phase === "uploading" && (
+            <span className="ml-2 tabular-nums">{rate}</span>
+          )}
+          {eta && progress.phase === "uploading" && (
+            <span className="ml-2 tabular-nums">· {eta} qoldi</span>
+          )}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="tabular-nums">{progress.percent}%</span>
+          {progress.phase === "uploading" && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onCancel(); }}
+              className="text-muted underline hover:text-wine"
+            >
+              Bekor qilish
+            </button>
+          )}
+        </span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-line">
+        <div
+          className="h-full rounded-full bg-wine transition-all duration-300"
+          style={{ width: `${progress.percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Banner shown while the worker builds the HLS ladder. */
+function TranscodeStatus({ status }: { status: AdminLesson["video_status"] }) {
+  if (status === "pending" || status === "processing") {
+    return (
+      <div className="flex items-center gap-2 rounded-xl bg-wine/5 px-3 py-2 text-xs text-muted">
+        <Loader2 size={14} className="animate-spin text-wine" />
+        Sifat variantlari (360p/720p/1080p) tayyorlanmoqda — video shu orada ham ochiladi.
+      </div>
+    );
+  }
+  if (status === "failed") {
+    return (
+      <div className="flex items-center gap-2 rounded-xl bg-red-500/10 px-3 py-2 text-xs text-red-600">
+        <AlertCircle size={14} />
+        Sifat variantlarini tayyorlab bo'lmadi — video asl sifatda ochiladi.
+      </div>
+    );
+  }
+  return null;
 }

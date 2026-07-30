@@ -16,6 +16,12 @@ alembic>=1.13
 # ─── Cache / rate limit ───
 redis>=5.0
 
+# ─── Background jobs (video transcoding) ───
+arq>=0.26
+
+# ─── Object storage (Cloudflare R2 / S3) ───
+aioboto3>=13.0
+
 # ─── Auth ───
 pyjwt>=2.8
 bcrypt>=4.1

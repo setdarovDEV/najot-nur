@@ -22,6 +22,8 @@ from app.core.security_middleware import (
     InputSanitizationMiddleware,
     SecurityHeadersMiddleware,
 )
+from app.services import storage
+from app.workers import queue
 
 configure_logging()
 log = get_logger("app")
@@ -33,6 +35,9 @@ async def lifespan(_: FastAPI):
     await init_redis()
     yield
     await close_redis()
+    # Shared S3 client and the arq job pool both hold open sockets.
+    await storage.close_client()
+    await queue.close_pool()
     log.info("app.shutdown")
 
 

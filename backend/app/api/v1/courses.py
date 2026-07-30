@@ -1,9 +1,13 @@
 """Courses, lessons, enrollment, post-lesson quizzes, certificate issuance."""
 from __future__ import annotations
 
+import hashlib
+import hmac
+import re
+import time
 import uuid
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, Response, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
@@ -16,6 +20,7 @@ from app.core.exceptions import (
     NotFoundError,
     UnauthorizedError,
 )
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.models.certificate import Certificate
 from app.models.course import (
@@ -344,21 +349,37 @@ async def my_course_progress(
 
 # ─────────────────── Lesson detail (enrolled users) ───────────────────
 
-@router.get("/lessons/{lesson_id}")
-async def get_lesson(
-    lesson_id: uuid.UUID, user: OptionalUser, db: DbSession
-) -> dict:
-    """Full lesson data including quiz questions (hidden correct_index).
 
-    Demo lessons are viewable without enrollment, even by anonymous users.
+async def _playback_url(stored: str | None) -> str | None:
+    """Turn a stored media URL into something the client can actually fetch.
+
+    The bucket is private, so object URLs are presigned. Local ``/media/...``
+    paths are returned unchanged — nginx serves those directly in dev.
     """
-    lesson = (
-        await db.execute(
-            select(Lesson)
-            .where(Lesson.id == lesson_id)
-            .options(selectinload(Lesson.questions))
-        )
-    ).scalar_one_or_none()
+    if not stored:
+        return None
+    key = storage.key_from_url(stored)
+    if key is None:
+        return stored
+    return await storage.presign_get(key)
+
+
+async def _authorize_lesson(
+    lesson_id: uuid.UUID,
+    user,
+    db,
+    *,
+    load_questions: bool = False,
+) -> tuple[Lesson, Enrollment | None]:
+    """Load a lesson and enforce the demo/enrollment gate.
+
+    Returns ``(lesson, enrollment)``; enrollment is None for demo lessons
+    watched by anonymous or non-enrolled users.
+    """
+    stmt = select(Lesson).where(Lesson.id == lesson_id)
+    if load_questions:
+        stmt = stmt.options(selectinload(Lesson.questions))
+    lesson = (await db.execute(stmt)).scalar_one_or_none()
     if lesson is None:
         raise NotFoundError("Dars topilmadi.")
 
@@ -374,6 +395,20 @@ async def get_lesson(
         if user is None:
             raise UnauthorizedError("Avtorizatsiya talab qilinadi.")
         raise ForbiddenError("Bu kursga yozilmagansiz.")
+    return lesson, enrollment
+
+
+@router.get("/lessons/{lesson_id}")
+async def get_lesson(
+    lesson_id: uuid.UUID, user: OptionalUser, db: DbSession
+) -> dict:
+    """Full lesson data including quiz questions (hidden correct_index).
+
+    Demo lessons are viewable without enrollment, even by anonymous users.
+    """
+    lesson, enrollment = await _authorize_lesson(
+        lesson_id, user, db, load_questions=True
+    )
 
     progress = (
         await db.execute(
@@ -388,7 +423,19 @@ async def get_lesson(
         "id": str(lesson.id),
         "title": lesson.title,
         "description": lesson.description,
-        "video_url": lesson.video_url,
+        "video_url": await _playback_url(lesson.video_url),
+        # Players should prefer the HLS master when it is ready; video_url is
+        # the progressive-download fallback.
+        # Tokenised: native players cannot attach our bearer header to the
+        # segment requests, so the gate rides in the query string instead.
+        "hls_url": (
+            f"/api/v1/courses/lessons/{lesson.id}/hls/master.m3u8"
+            f"?t={_playback_token(lesson.id)}"
+            if lesson.hls_url
+            else None
+        ),
+        "poster_url": await _playback_url(lesson.poster_url),
+        "video_status": lesson.video_status,
         "duration_sec": lesson.duration_sec,
         "is_voice_exercise": lesson.is_voice_exercise,
         "voice_exercise_prompt": lesson.voice_exercise_prompt,
@@ -610,3 +657,147 @@ async def submit_homework(
         has_audio=bool(hw.submission_url),
     )
     return Message(message="Uy vazifasi yuborildi.")
+
+
+
+
+# ─────────────────── HLS playback (enrollment-gated) ───────────────────
+#
+# The bucket is private, so segments cannot simply be linked: a player fetches
+# them itself and carries no session. Instead the API serves the playlists —
+# a few KB of text — with every segment URL individually presigned. The gate
+# stays real (a non-enrolled user gets 403 at the playlist), while all the
+# heavy bytes still come straight from the CDN edge, never from this process.
+#
+# Access is carried by a short-lived token in the query string rather than an
+# Authorization header: segment URLs are SigV4-presigned, and S3/R2 reject a
+# request that presents both query-string auth and an auth header. A native
+# player applies its configured headers to every request in the stream, so a
+# header-based scheme would break segment fetches.
+
+_HLS_HEADERS = {
+    # Playlists embed short-lived signatures; caching them past the signature
+    # lifetime would hand players URLs that 403.
+    "Cache-Control": "private, max-age=60",
+}
+
+
+def _playback_token(lesson_id: uuid.UUID) -> str:
+    """Mint a ``<exp>.<sig>`` token authorising playback of one lesson.
+
+    Stateless (HMAC over lesson + expiry) so no round-trip to Redis is needed
+    on the segment path.
+    """
+    exp = int(time.time()) + settings.media_signed_url_ttl_sec
+    sig = hmac.new(
+        settings.jwt_secret_key.encode(),
+        f"{lesson_id}.{exp}".encode(),
+        hashlib.sha256,
+    ).hexdigest()[:32]
+    return f"{exp}.{sig}"
+
+
+def _playback_token_valid(lesson_id: uuid.UUID, token: str | None) -> bool:
+    if not token or "." not in token:
+        return False
+    exp_raw, _, sig = token.partition(".")
+    try:
+        exp = int(exp_raw)
+    except ValueError:
+        return False
+    if exp < time.time():
+        return False
+    expected = hmac.new(
+        settings.jwt_secret_key.encode(),
+        f"{lesson_id}.{exp}".encode(),
+        hashlib.sha256,
+    ).hexdigest()[:32]
+    return hmac.compare_digest(expected, sig)
+
+
+async def _authorize_playback(
+    lesson_id: uuid.UUID, token: str | None, user, db
+) -> Lesson:
+    """Allow playback via a valid token, else fall back to the session gate."""
+    if _playback_token_valid(lesson_id, token):
+        lesson = await db.get(Lesson, lesson_id)
+        if lesson is None:
+            raise NotFoundError("Dars topilmadi.")
+        return lesson
+    lesson, _ = await _authorize_lesson(lesson_id, user, db)
+    return lesson
+
+
+def _hls_prefix(lesson: Lesson) -> str:
+    """Object-storage prefix holding the lesson's rendered HLS tree."""
+    return f"videos/{lesson.id}/hls"
+
+
+async def _load_playlist(key: str) -> str:
+    raw = await storage.load_bytes(storage.object_url(key))
+    if raw is None:
+        raise NotFoundError("Video hali tayyor emas.")
+    return raw.decode("utf-8", errors="replace")
+
+
+@router.get("/lessons/{lesson_id}/hls/master.m3u8")
+async def lesson_hls_master(
+    lesson_id: uuid.UUID,
+    user: OptionalUser,
+    db: DbSession,
+    t: str | None = None,
+) -> Response:
+    """Master playlist — variant URLs point back at this API, not the bucket."""
+    lesson = await _authorize_playback(lesson_id, t, user, db)
+    if not lesson.hls_url:
+        raise NotFoundError("Video hali tayyor emas.")
+
+    text = await _load_playlist(f"{_hls_prefix(lesson)}/master.m3u8")
+    # The player fetches variant playlists on its own, so each must carry the
+    # token forward — mint a fresh one rather than reusing a nearly-expired.
+    token = _playback_token(lesson_id)
+    base = f"/api/v1/courses/lessons/{lesson_id}/hls"
+    out = []
+    for line in text.splitlines():
+        # Variant lines are the only non-comment entries in a master playlist.
+        if line and not line.startswith("#"):
+            out.append(f"{base}/{line.strip()}?t={token}")
+        else:
+            out.append(line)
+    return Response(
+        "\n".join(out),
+        media_type="application/vnd.apple.mpegurl",
+        headers=_HLS_HEADERS,
+    )
+
+
+@router.get("/lessons/{lesson_id}/hls/{rendition}/index.m3u8")
+async def lesson_hls_variant(
+    lesson_id: uuid.UUID,
+    rendition: str,
+    user: OptionalUser,
+    db: DbSession,
+    t: str | None = None,
+) -> Response:
+    """Variant playlist with each segment rewritten to a presigned CDN URL."""
+    lesson = await _authorize_playback(lesson_id, t, user, db)
+    if not lesson.hls_url:
+        raise NotFoundError("Video hali tayyor emas.")
+    # Renditions are named v0, v1, … by the transcoder — reject anything else
+    # so this cannot be walked into another prefix.
+    if not re.fullmatch(r"v\d{1,2}", rendition):
+        raise NotFoundError("Sifat varianti topilmadi.")
+
+    prefix = f"{_hls_prefix(lesson)}/{rendition}"
+    text = await _load_playlist(f"{prefix}/index.m3u8")
+    out = []
+    for line in text.splitlines():
+        if line and not line.startswith("#"):
+            out.append(await storage.presign_get(f"{prefix}/{line.strip()}"))
+        else:
+            out.append(line)
+    return Response(
+        "\n".join(out),
+        media_type="application/vnd.apple.mpegurl",
+        headers=_HLS_HEADERS,
+    )

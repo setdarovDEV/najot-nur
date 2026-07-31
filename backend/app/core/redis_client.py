@@ -43,30 +43,45 @@ def get_redis() -> aioredis.Redis | None:
 async def cache_set(key: str, value: str, ttl: int | None = None) -> None:
     if _redis is None:
         return
-    await _redis.set(key, value, ex=ttl)
+    try:
+        await _redis.set(key, value, ex=ttl)
+    except Exception as exc:  # pragma: no cover - depends on environment
+        log.warning("redis.cache_set_failed", key=key, error=str(exc))
 
 
 async def cache_get(key: str) -> str | None:
     if _redis is None:
         return None
-    return await _redis.get(key)
+    try:
+        return await _redis.get(key)
+    except Exception as exc:  # pragma: no cover - depends on environment
+        log.warning("redis.cache_get_failed", key=key, error=str(exc))
+        return None
 
 
 async def cache_delete(key: str) -> None:
     if _redis is None:
         return
-    await _redis.delete(key)
+    try:
+        await _redis.delete(key)
+    except Exception as exc:  # pragma: no cover - depends on environment
+        log.warning("redis.cache_delete_failed", key=key, error=str(exc))
 
 
 async def incr_with_ttl(key: str, ttl: int) -> int:
     """Atomic counter used for rate limiting. Returns current count.
 
-    Returns 0 when Redis is unavailable so rate limiting fails open in dev.
+    Returns 0 when Redis is unavailable (or errors) so rate limiting fails
+    open instead of taking down every request behind it.
     """
     if _redis is None:
         return 0
-    pipe = _redis.pipeline()
-    pipe.incr(key)
-    pipe.expire(key, ttl)
-    result = await pipe.execute()
-    return int(result[0])
+    try:
+        pipe = _redis.pipeline()
+        pipe.incr(key)
+        pipe.expire(key, ttl)
+        result = await pipe.execute()
+        return int(result[0])
+    except Exception as exc:  # pragma: no cover - depends on environment
+        log.warning("redis.incr_with_ttl_failed", key=key, error=str(exc))
+        return 0

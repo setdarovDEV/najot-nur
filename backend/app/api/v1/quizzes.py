@@ -178,20 +178,13 @@ async def upload_quiz_video(
     content_type = file.content_type or ""
     if not content_type.startswith("video/"):
         raise AppError("Faqat video fayllari qabul qilinadi (video/*).", status_code=400)
-    data = await file.read()
-    if not data:
-        raise AppError("Video fayl bo'sh.", status_code=400)
     max_mb = getattr(settings, "quiz_video_max_mb", 200)
-    max_bytes = max_mb * 1024 * 1024
-    if len(data) > max_bytes:
-        raise AppError(
-            f"Video hajmi {max_mb}MB dan oshmasligi kerak.", status_code=413
-        )
-    url = await storage.save_bytes(
-        data,
+    url = await storage.save_stream(
+        file,
         folder="quiz_videos",
         filename=file.filename or "video.mp4",
         content_type=content_type,
+        max_bytes=max_mb * 1024 * 1024,
     )
     q.video_url = url
     await db.commit()

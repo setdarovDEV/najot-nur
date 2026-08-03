@@ -9,6 +9,7 @@ import uuid
 from pathlib import Path
 
 from app.core.config import settings
+from app.core.exceptions import AppError
 from app.core.logging import get_logger
 
 log = get_logger("storage")
@@ -35,6 +36,54 @@ async def save_bytes(
     await asyncio.to_thread(path.write_bytes, data)
     url = f"/media/{folder}/{name}"
     log.info("storage.saved_local", path=str(path))
+    return url
+
+
+async def save_stream(
+    source,
+    *,
+    folder: str,
+    filename: str,
+    content_type: str | None = None,
+    max_bytes: int | None = None,
+) -> str:
+    """Stream an upload to local disk without buffering it in memory.
+
+    Reads ``source.read(chunk)`` in 1MB chunks and writes each chunk to a temp
+    file before atomically renaming it into place. If ``max_bytes`` is set and
+    the stream grows past it, a 413 ``AppError`` is raised and the temp file is
+    removed. This keeps large video uploads within the container memory limit
+    instead of calling ``file.read()`` and buffering the whole file in RAM.
+    """
+    name = _safe_name(filename)
+    base = Path(settings.local_media_dir) / folder
+    base.mkdir(parents=True, exist_ok=True)
+    path = base / name
+    tmp_path = path.with_name(path.name + ".part")
+
+    total = 0
+    try:
+        with tmp_path.open("wb") as out:
+            while True:
+                chunk = await source.read(1024 * 1024)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if max_bytes is not None and total > max_bytes:
+                    limit_mb = max_bytes // (1024 * 1024)
+                    raise AppError(
+                        f"Fayl hajmi {limit_mb}MB dan oshmasligi kerak.",
+                        status_code=413,
+                        code="file_too_large",
+                    )
+                await asyncio.to_thread(out.write, chunk)
+        tmp_path.replace(path)
+    except BaseException:
+        tmp_path.unlink(missing_ok=True)
+        raise
+
+    url = f"/media/{folder}/{name}"
+    log.info("storage.saved_local_stream", path=str(path), size=total)
     return url
 
 

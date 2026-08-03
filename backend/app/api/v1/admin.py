@@ -1116,18 +1116,14 @@ async def upload_lesson_video(
         raise NotFoundError("Dars topilmadi.")
     if not (file.content_type or "").startswith("video/"):
         raise AppError("Faqat video fayllari qabul qilinadi (video/*).", status_code=400)
-    data = await file.read()
     max_bytes = settings.lesson_video_max_mb * 1024 * 1024
-    if len(data) > max_bytes:
-        raise AppError(
-            f"Video hajmi {settings.lesson_video_max_mb}MB dan oshmasligi kerak.", status_code=413
-        )
     ext = (file.filename or "video.mp4").rsplit(".", 1)[-1]
-    url = await storage.save_bytes(
-        data,
+    url = await storage.save_stream(
+        file,
         folder="videos",
         filename=f"lesson_{lesson_id}.{ext}",
         content_type=file.content_type or "video/mp4",
+        max_bytes=max_bytes,
     )
     lesson.video_url = url
     await db.flush()

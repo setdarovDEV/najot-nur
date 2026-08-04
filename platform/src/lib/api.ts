@@ -1,0 +1,205 @@
+import axios, { type InternalAxiosRequestConfig } from "axios";
+
+const API_URL =
+  import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+
+/** WebSocket base URL (same prefix as API_URL but with ``ws`` scheme). */
+export const WS_URL: string = (() => {
+  const explicit = (import.meta.env.VITE_WS_URL as string | undefined)?.trim();
+  if (explicit) return explicit.replace(/\/+$/, "");
+  return API_URL.replace(/^http/, "ws");
+})();
+
+export const TOKEN_KEY = "notiq_user_token";
+export const REFRESH_TOKEN_KEY = "notiq_user_refresh_token";
+
+// 30s default so a hung backend can't spin the UI forever; uploads
+// (audio recordings) get 10 minutes instead.
+export const api = axios.create({ baseURL: API_URL, timeout: 30_000 });
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+    config.timeout = 600_000;
+  }
+  return config;
+});
+
+/**
+ * Handler invoked when the server rejects a request with 401 (token expired or
+ * invalid). Registered by the auth provider so it can clear React state and
+ * redirect to the login page. Defined outside React because interceptors run
+ * outside the component tree.
+ */
+let onUnauthorized: (() => void) | null = null;
+
+export function setUnauthorizedHandler(fn: (() => void) | null): void {
+  onUnauthorized = fn;
+}
+
+type RetryableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
+
+// The backend rotates refresh tokens: each /auth/refresh call invalidates the
+// refresh token it consumed and issues a new one. If several requests 401 at
+// once, they must all await a single in-flight refresh instead of each
+// calling /auth/refresh — a second concurrent call would reuse an
+// already-rotated token and fail.
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refreshToken) return null;
+
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${API_URL}/auth/refresh`, { refresh_token: refreshToken })
+      .then((res) => {
+        const access = res.data.access_token as string;
+        const refresh = res.data.refresh_token as string;
+        localStorage.setItem(TOKEN_KEY, access);
+        localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
+        return access;
+      })
+      .catch(() => {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+        return null;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
+const LOGIN_URLS = [
+  "/auth/login",
+  "/auth/refresh",
+  "/auth/phone/login",
+  "/auth/otp/check",
+  "/auth/otp/verify",
+  "/auth/password/reset",
+];
+
+api.interceptors.response.use(
+  (res) => res,
+  async (err) => {
+    if (!axios.isAxiosError(err) || err.response?.status !== 401) {
+      return Promise.reject(err);
+    }
+
+    const config = err.config as RetryableConfig | undefined;
+    const url = config?.url ?? "";
+    // A failed login also returns 401 — don't treat that as a session expiry,
+    // and never try to "refresh" using the response of /auth/refresh itself.
+    const isAuthEndpoint = LOGIN_URLS.some((u) => url.includes(u));
+
+    if (config && !isAuthEndpoint && !config._retried) {
+      config._retried = true;
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        config.headers.Authorization = `Bearer ${newToken}`;
+        return api.request(config);
+      }
+    }
+
+    if (!url.includes("/auth/phone/login")) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      onUnauthorized?.();
+    }
+    return Promise.reject(err);
+  },
+);
+
+/** Returns true if a JWT's `exp` claim is in the past (or it can't be parsed). */
+export function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (typeof payload.exp !== "number") return false;
+    return payload.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
+/** Convert a relative /media/... path from the backend to a full URL. */
+export function mediaUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  const base = (import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1").replace(/\/api\/v1\/?$/, "");
+  return `${base}${path}`;
+}
+
+/** Extract a human-friendly message from the API error envelope. */
+export function apiError(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as
+      | { error?: { code?: string; message?: string; details?: unknown } }
+      | { detail?: string }
+      | undefined;
+    const error = data && "error" in data ? data.error : undefined;
+    if (error?.message) {
+      // Pydantic 422 validation errors: surface the first field-level message
+      if (error.code === "validation_error" && Array.isArray(error.details)) {
+        const first = (error.details as Array<{ msg?: string; loc?: unknown[] }>)[0];
+        const field = Array.isArray(first?.loc)
+          ? String((first!.loc as unknown[]).slice(-1)[0] ?? "")
+          : "";
+        const msg = first?.msg ? translateValidationMsg(first.msg) : null;
+        if (msg) {
+          return field ? `${humanField(field)}: ${msg}` : msg;
+        }
+      }
+      return error.message;
+    }
+    if (data && "detail" in data && typeof data.detail === "string") {
+      return data.detail;
+    }
+    // Status-specific fallbacks when the server didn't return a JSON envelope.
+    const status = err.response?.status;
+    if (status === 405) {
+      return "Soʻrov usuli qoʻllab-quvvatlanmaydi (405). API manzili notoʻgʻri boʻlishi mumkin.";
+    }
+    if (status === 404) {
+      return "API topilmadi (404). VITE_API_URL toʻgʻri sozlanganini tekshiring.";
+    }
+    if (status === 502 || status === 503) {
+      return "Backend serveriga ulanib boʻlmadi. Birozdan soʻng qayta urinib koʻring.";
+    }
+    // Network / CORS / no response.
+    if (err.code === "ERR_NETWORK") return "Server bilan bogʻlanib boʻlmadi.";
+    if (err.code === "ECONNABORTED") return "Soʻrov vaqti tugadi.";
+    return err.message || "Kutilmagan xatolik";
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return "Kutilmagan xatolik";
+}
+
+function humanField(name: string): string {
+  const map: Record<string, string> = {
+    email: "Email",
+    password: "Parol",
+    phone: "Telefon",
+    code: "Kod",
+    full_name: "Ism",
+  };
+  return map[name] ?? name;
+}
+
+function translateValidationMsg(msg: string): string | null {
+  const m = msg.toLowerCase();
+  if (m.includes("at least 6 characters")) return "kamida 6 ta belgidan iborat boʻlishi kerak";
+  if (m.includes("at least")) return `kamida ${(m.match(/at least (\d+)/)?.[1] ?? "0")} ta belgi kerak`;
+  if (m.includes("at most")) return `koʻpi bilan ${(m.match(/at most (\d+)/)?.[1] ?? "0")} ta belgi`;
+  if (m.includes("value is not a valid email")) return "toʻgʻri email formatida emas";
+  if (m.includes("field required")) return "toʻldirilishi shart";
+  return null;
+}
+
+export function formatSum(amount: number | string | null | undefined): string {
+  const n = typeof amount === "string" ? parseFloat(amount) : (amount ?? 0);
+  if (Number.isNaN(n)) return "0";
+  return new Intl.NumberFormat("uz-UZ").format(Math.round(n));
+}

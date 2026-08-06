@@ -28,16 +28,17 @@ Kuratorlar **curator paneli** orqali uy vazifalarini tekshiradi, ball qo'yadi;
 adminlar esa **admin paneli** orqali mijozlar, to'lovlar va kontentni boshqaradi;
 kursni tugatganlarga **PDF sertifikat** beriladi.
 
-## 🏗 Arxitektura (monorepo, 4 ta alohida frontend)
+## 🏗 Arxitektura (monorepo, 5 ta alohida frontend)
 
 ```
 najot-nur/
-├── .github/workflows/build.yml   ← GH Actions: 4 image'ni build/push qiladi
+├── .github/workflows/build.yml   ← GH Actions: 5 image'ni build/push qiladi
 ├── backend/        FastAPI · SQLAlchemy(async) · Alembic · Redis · Claude AI
 ├── mobile/         Flutter ilova (premium UI, brand: #8A1538)
 ├── landing/        React + Vite + TS  → notiqlik.uz         (marketing)
 ├── admin/          React + Vite + TS  → admin.notiqlik.uz   (super admin panel)
 ├── curator/        React + Vite + TS  → curator.notiqlik.uz (kurator paneli)
+├── platform/       React + Vite + TS  → platform.notiqlik.uz (foydalanuvchi veb-ilovasi)
 ├── docs/           Brending (logo, ranglar, NN aydentika.pdf)
 ├── deploy/
 │   ├── Caddyfile   Auto-HTTPS reverse proxy
@@ -57,8 +58,9 @@ najot-nur/
 | `admin.notiqlik.uz` | `admin` | 443 | Super admin paneli |
 | `curator.notiqlik.uz` | `curator` | 443 | Kurator paneli |
 | `api.notiqlik.uz` | `backend` | 443 | FastAPI API |
+| `platform.notiqlik.uz` | `platform` | 443 | Foydalanuvchi veb-ilovasi |
 
-Caddy avtomatik HTTPS bilan 4 ta domenni bitta `nginx` service'ga
+Caddy avtomatik HTTPS bilan 5 ta domenni bitta `nginx` service'ga
 (port 8080) yo'naltiradi. Nginx `Host` header orqali to'g'ri
 service'ga yo'naltiradi.
 
@@ -84,6 +86,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up
 # Landing:  http://localhost:5175
 # Admin:    http://localhost:5173
 # Curator:  http://localhost:5174
+# Platform: http://localhost:5176
 ```
 
 `docker-compose.local.yml` prebuilt image'lar o'rniga `build:` ishlatadi

@@ -16,6 +16,7 @@ www.notiqlik.uz,
 admin.notiqlik.uz,
 curator.notiqlik.uz,
 api.notiqlik.uz,
+platform.notiqlik.uz,
 grafana.notiqlik.uz {
     encode zstd gzip
 

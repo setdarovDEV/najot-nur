@@ -218,6 +218,34 @@ services:
       com.centurylinklabs.watchtower.enable: "true"
 
   # ─────────────────────────────────────────────────────────────
+  #  Platform SPA — user web app (prebuilt image from GHCR)
+  # ─────────────────────────────────────────────────────────────
+  platform:
+    image: ghcr.io/setdarovdev/najot-nur-platform:${IMAGE_TAG:-latest}
+    container_name: notiq_platform
+    restart: unless-stopped
+    pull_policy: always
+    expose:
+      - "80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - notiq
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  # ─────────────────────────────────────────────────────────────
   #  Nginx — internal Host-based routing.
   #  Receives requests from Caddy (via internal Docker network on
   #  port 80) and forwards to the right service based on the
@@ -235,6 +263,8 @@ services:
       curator:
         condition: service_healthy
       landing:
+        condition: service_healthy
+      platform:
         condition: service_healthy
     expose:
       - "80"

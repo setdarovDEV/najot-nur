@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Lock, Phone, LogIn, AlertCircle } from "lucide-react";
+import { Lock, LogIn, AlertCircle } from "lucide-react";
 import { AuthShell } from "./AuthShell";
 import { GlassInput, PrimaryButton } from "../../components/glass";
+import { PhoneInput, isCompleteUzPhone } from "../../components/PhoneInput";
 import { useAuth } from "../../lib/auth";
 import { useLang } from "../../lib/i18n";
 import { apiError } from "../../lib/api";
@@ -13,7 +14,7 @@ export function LoginPage() {
   const location = useLocation();
   const { t } = useLang();
 
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+998");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,7 +24,7 @@ export function LoginPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!/^\+?\d{9,15}$/.test(phone.trim())) {
+    if (!isCompleteUzPhone(phone)) {
       setError(t.auth.invalidPhone);
       return;
     }
@@ -56,18 +57,7 @@ export function LoginPage() {
           <label className="mb-1.5 block text-xs font-bold text-muted">
             {t.auth.phone}
           </label>
-          <div className="relative">
-            <Phone size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-            <GlassInput
-              type="tel"
-              inputMode="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder={t.auth.phonePlaceholder}
-              className="pl-10"
-              autoFocus
-            />
-          </div>
+          <PhoneInput value={phone} onChange={setPhone} autoFocus />
         </div>
 
         <div>

@@ -69,6 +69,8 @@ rsync -a --delete \
   --exclude='landing/node_modules' \
   --exclude='landing_demo/dist' \
   --exclude='landing_demo/node_modules' \
+  --exclude='platform/dist' \
+  --exclude='platform/node_modules' \
   --exclude='backend/media' \
   --exclude='bugs' \
   "$PROJECT_DIR/" "$INSTALL_DIR/"
@@ -152,6 +154,7 @@ echo "    https://notiqlik.uz"
 echo "    https://www.notiqlik.uz"
 echo "    https://admin.notiqlik.uz"
 echo "    https://curator.notiqlik.uz"
+echo "    https://platform.notiqlik.uz"
 echo "    https://api.notiqlik.uz/docs"
 echo
 echo "  Auto-deploy:"

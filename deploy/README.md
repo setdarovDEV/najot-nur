@@ -8,7 +8,7 @@ Production stack lives on **`45.138.159.219`** at **`/opt/notiqai/`**.
 git push origin main
    ↓
 GitHub Actions (.github/workflows/build.yml)
-  → builds 4 images on GitHub's infrastructure
+  → builds 5 images on GitHub's infrastructure
   → pushes to GitHub Container Registry
    ↓
 Watchtower (server, polls every 5 min)
@@ -23,10 +23,11 @@ Caddy (in compose)
    ↓
 nginx (in compose)
   → Host-based routing
-  → api.notiqlik.uz   → backend:8000
-  → admin.notiqlik.uz → admin:80
-  → curator.*.uz      → curator:80
-  → notiqlik.uz / www → landing:80
+  → api.notiqlik.uz      → backend:8000
+  → admin.notiqlik.uz    → admin:80
+  → curator.*.uz         → curator:80
+  → platform.notiqlik.uz → platform:80
+  → notiqlik.uz / www    → landing:80
 ```
 
 **No Dokploy, no manual certificate management, no Traefik labels.**
@@ -38,6 +39,7 @@ nginx (in compose)
 | `notiqlik.uz` / `www.notiqlik.uz` | Landing | Marketing SPA |
 | `admin.notiqlik.uz` | Admin panel | React + Vite SPA |
 | `curator.notiqlik.uz` | Curator panel | React + Vite SPA |
+| `platform.notiqlik.uz` | Platform (user web app) | React + Vite SPA |
 | `api.notiqlik.uz` | FastAPI backend | `/api/v1/*`, `/docs`, `/health`, `/media/*` |
 
 ## Container layout
@@ -48,6 +50,7 @@ notiq_nginx        nginx:1.27-alpine     ── Host-based routing
 notiq_admin        ghcr.io/...admin      ── React SPA
 notiq_curator      ghcr.io/...curator    ── React SPA
 notiq_landing      ghcr.io/...landing    ── React SPA
+notiq_platform     ghcr.io/...platform   ── React SPA
 notiq_backend      ghcr.io/...backend    ── FastAPI + gunicorn
 notiq_postgres     postgres:16-alpine    ── primary DB
 notiq_redis        redis:7-alpine        ── cache + rate-limit
@@ -74,13 +77,13 @@ sudo bash /opt/notiqai/deploy/setup-server.sh
 
 `setup-server.sh` will:
 - Generate strong `POSTGRES_PASSWORD` and `JWT_SECRET_KEY` automatically
-- Pull all 4 images from GHCR
-- Start Caddy, nginx, backend, admin, curator, landing, postgres, redis, watchtower
+- Pull all 5 images from GHCR
+- Start Caddy, nginx, backend, admin, curator, landing, platform, postgres, redis, watchtower
 - Caddy auto-issues Let's Encrypt certs (1-2 min)
 
-**DNS must be configured first**: 5 A-records → `45.138.159.219`:
+**DNS must be configured first**: 6 A-records → `45.138.159.219`:
 `notiqlik.uz`, `www.notiqlik.uz`, `admin.notiqlik.uz`,
-`curator.notiqlik.uz`, `api.notiqlik.uz`.
+`curator.notiqlik.uz`, `api.notiqlik.uz`, `platform.notiqlik.uz`.
 
 ## Migrating from Dokploy (if upgrading from old setup)
 
@@ -133,7 +136,7 @@ docker exec -it notiq_postgres psql -U notiq -d notiqai
 
 ## Required: GHCR images must be PUBLIC
 
-GitHub Actions pushes images to `ghcr.io/setdarovdev/najot-nur-{backend,admin,curator,landing}`. Watchtower on the server can only pull them if they're **public**.
+GitHub Actions pushes images to `ghcr.io/setdarovdev/najot-nur-{backend,admin,curator,landing,platform}`. Watchtower on the server can only pull them if they're **public**.
 
 Verify at: <https://github.com/setdarovDEV?tab=packages>
 

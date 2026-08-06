@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, Lock, ShieldCheck, AlertCircle, ArrowLeft } from "lucide-react";
+import { Lock, ShieldCheck, AlertCircle, ArrowLeft } from "lucide-react";
 import { AuthShell } from "./AuthShell";
 import { GlassInput, PrimaryButton } from "../../components/glass";
+import { PhoneInput, isCompleteUzPhone } from "../../components/PhoneInput";
 import { useLang } from "../../lib/i18n";
 import { api, apiError } from "../../lib/api";
 
@@ -13,7 +14,7 @@ export function ForgotPasswordPage() {
   const { t } = useLang();
 
   const [step, setStep] = useState<Step>("phone");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+998");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export function ForgotPasswordPage() {
 
   async function requestCode() {
     setError(null);
-    if (!/^\+?\d{9,15}$/.test(phone.trim())) {
+    if (!isCompleteUzPhone(phone)) {
       setError(t.auth.invalidPhone);
       return;
     }
@@ -103,18 +104,7 @@ export function ForgotPasswordPage() {
             <label className="mb-1.5 block text-xs font-bold text-muted">
               {t.auth.phone}
             </label>
-            <div className="relative">
-              <Phone size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-              <GlassInput
-                type="tel"
-                inputMode="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder={t.auth.phonePlaceholder}
-                className="pl-10"
-                autoFocus
-              />
-            </div>
+            <PhoneInput value={phone} onChange={setPhone} autoFocus />
           </div>
           <PrimaryButton type="submit" loading={loading} className="w-full py-3 text-base">
             {t.auth.requestCode}

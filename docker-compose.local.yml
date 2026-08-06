@@ -29,6 +29,9 @@ services:
     image: notiqai-backend:dev
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      ENVIRONMENT: development
+      DEBUG: "true"
     volumes:
       - ./backend:/app
       - media:/app/media
@@ -49,6 +52,10 @@ services:
       - ./admin:/app
       - /app/node_modules
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   curator:
     build:
@@ -63,6 +70,10 @@ services:
       - ./curator:/app
       - /app/node_modules
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   landing:
     build:
@@ -75,8 +86,35 @@ services:
       - ./landing:/app
       - /app/node_modules
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  platform:
+    build:
+      context: ./platform
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:${BACKEND_PORT:-8000}/api/v1
+    image: notiqai-platform:dev
+    ports:
+      - "5176:5176"
+    volumes:
+      - ./platform:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5176/"]
 
   nginx:
+    profiles: ["never"]
+
+  nginx-exporter:
     profiles: ["never"]
 
   grafana:
